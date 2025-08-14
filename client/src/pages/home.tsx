@@ -15,21 +15,22 @@ export default function HomePage() {
   const [location, setLocation] = useLocation();
   const [workouts, setWorkouts] = useState<WorkoutWithProgress[]>([]);
 
-  const loadWorkouts = useCallback(() => {
-    // Load workout data from public folder
-    fetch('/powerbuilding_data.json')
-      .then(response => response.json())
-      .then((workoutData: Workout[]) => {
-        const workoutProgress = LocalStorage.getWorkoutProgress();
-        const workoutsWithProgress = workoutData.map(workout => ({
-          ...workout,
-          progress: workoutProgress[workout.workout_number],
-        }));
-        setWorkouts(workoutsWithProgress);
-      })
-      .catch(error => {
-        console.error('Error loading workout data:', error);
-      });
+  const loadWorkouts = useCallback(async () => {
+    try {
+      const [response, workoutProgress] = await Promise.all([
+        fetch('/attached_assets/powerbuilding_data_1755148171236.json'),
+        LocalStorage.getWorkoutProgress()
+      ]);
+      
+      const workoutData = await response.json();
+      const workoutsWithProgress = workoutData.map((workout: any) => ({
+        ...workout,
+        progress: workoutProgress[workout.workout_number],
+      }));
+      setWorkouts(workoutsWithProgress);
+    } catch (error) {
+      console.error('Error loading workout data:', error);
+    }
   }, []);
 
   useEffect(() => {

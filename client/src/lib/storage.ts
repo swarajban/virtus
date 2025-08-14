@@ -1,13 +1,7 @@
 import type { WorkoutProgress, OneRM, ExerciseHistoryEntry } from "@shared/schema";
 import { api } from "./api-client";
 
-const STORAGE_KEYS = {
-  WORKOUT_PROGRESS: 'virtus_workout_progress',
-  ONE_RM: 'virtus_one_rm',
-  EXERCISE_HISTORY: 'virtus_exercise_history',
-} as const;
-
-// Cache for API data to reduce calls
+// Simple in-memory cache for API data to reduce calls
 let cache = {
   oneRM: null as OneRM | null,
   workoutProgress: null as Record<number, WorkoutProgress> | null,
@@ -17,10 +11,10 @@ let cache = {
   }
 };
 
-const CACHE_DURATION = 5000; // 5 seconds
+const CACHE_DURATION = 2000; // 2 seconds
 
-export class LocalStorage {
-  // Load initial data from API on startup
+export class DatabaseStorage {
+  // Initialize with user selection
   static async initialize() {
     try {
       // Check if a user is selected first, default to 'swaraj'
@@ -31,132 +25,69 @@ export class LocalStorage {
         localStorage.setItem('selected-username', username);
       }
       
-      // Fetch initial data from API
-      const [oneRM, progress] = await Promise.all([
-        api.getOneRM(),
-        api.getWorkoutProgress()
-      ]);
-      
-      cache.oneRM = oneRM;
-      cache.workoutProgress = progress;
-      cache.lastFetch.oneRM = Date.now();
-      cache.lastFetch.workoutProgress = Date.now();
-      
-      // Also save to localStorage as backup
-      localStorage.setItem(STORAGE_KEYS.ONE_RM, JSON.stringify(oneRM));
-      localStorage.setItem(STORAGE_KEYS.WORKOUT_PROGRESS, JSON.stringify(progress));
+      console.log("Initializing with user:", username);
     } catch (error) {
-      console.error("Failed to initialize from API:", error);
+      console.error("Failed to initialize:", error);
     }
   }
 
-  static getWorkoutProgress(): Record<number, WorkoutProgress> {
-    // Return cached data first, then fetch in background
-    if (cache.workoutProgress) {
-      // Refresh cache in background if stale
-      if (Date.now() - cache.lastFetch.workoutProgress > CACHE_DURATION) {
-        api.getWorkoutProgress().then(progress => {
-          cache.workoutProgress = progress;
-          cache.lastFetch.workoutProgress = Date.now();
-          localStorage.setItem(STORAGE_KEYS.WORKOUT_PROGRESS, JSON.stringify(progress));
-        }).catch(console.error);
-      }
-      return cache.workoutProgress;
-    }
-    
-    // Fallback to localStorage
+  // Get workout progress directly from API with light caching
+  static async getWorkoutProgress(): Promise<Record<number, WorkoutProgress>> {
     try {
-      const data = localStorage.getItem(STORAGE_KEYS.WORKOUT_PROGRESS);
-      const progress = data ? JSON.parse(data) : {};
-      cache.workoutProgress = progress;
-      return progress;
-    } catch {
-      return {};
-    }
-  }
-
-  // Force refresh workout progress from database
-  static async refreshWorkoutProgress(): Promise<Record<number, WorkoutProgress>> {
-    try {
+      // Return fresh data from API
       const progress = await api.getWorkoutProgress();
       cache.workoutProgress = progress;
       cache.lastFetch.workoutProgress = Date.now();
-      localStorage.setItem(STORAGE_KEYS.WORKOUT_PROGRESS, JSON.stringify(progress));
       return progress;
     } catch (error) {
-      console.error("Failed to refresh workout progress:", error);
-      return this.getWorkoutProgress();
+      console.error("Failed to fetch workout progress:", error);
+      return cache.workoutProgress || {};
     }
   }
 
-  // Clear all cached data and force fresh sync
-  static clearCache() {
-    cache.oneRM = null;
-    cache.workoutProgress = null;
-    cache.lastFetch.oneRM = 0;
-    cache.lastFetch.workoutProgress = 0;
-    localStorage.removeItem(STORAGE_KEYS.WORKOUT_PROGRESS);
-    localStorage.removeItem(STORAGE_KEYS.ONE_RM);
-    localStorage.removeItem(STORAGE_KEYS.EXERCISE_HISTORY);
-    console.log("Cache cleared, will fetch fresh data from database");
-  }
-
-  static saveWorkoutProgress(workoutNumber: number, progress: WorkoutProgress) {
-    // Update cache immediately
-    const allProgress = this.getWorkoutProgress();
-    allProgress[workoutNumber] = progress;
-    cache.workoutProgress = allProgress;
-    
-    // Save to localStorage immediately
-    localStorage.setItem(STORAGE_KEYS.WORKOUT_PROGRESS, JSON.stringify(allProgress));
-    
-    // Save to API in background
-    api.saveWorkoutProgress(workoutNumber, progress).catch(error => {
-      console.error("Failed to save workout progress to API:", error);
-    });
-  }
-
-  static clearWorkoutProgress(workoutNumber: number) {
-    const allProgress = this.getWorkoutProgress();
-    delete allProgress[workoutNumber];
-    cache.workoutProgress = allProgress;
-    localStorage.setItem(STORAGE_KEYS.WORKOUT_PROGRESS, JSON.stringify(allProgress));
-    
-    // Clear in API
-    api.saveWorkoutProgress(workoutNumber, {
-      workoutNumber,
-      status: "not_started",
-      exerciseProgress: {},
-    }).catch(console.error);
-  }
-
-  static getOneRM(): OneRM {
-    // Return cached data first, then fetch in background
-    if (cache.oneRM) {
-      // Refresh cache in background if stale
-      if (Date.now() - cache.lastFetch.oneRM > CACHE_DURATION) {
-        api.getOneRM().then(oneRM => {
-          cache.oneRM = oneRM;
-          cache.lastFetch.oneRM = Date.now();
-          localStorage.setItem(STORAGE_KEYS.ONE_RM, JSON.stringify(oneRM));
-        }).catch(console.error);
+  // Save workout progress directly to API
+  static async saveWorkoutProgress(workoutNumber: number, progress: WorkoutProgress): Promise<void> {
+    try {
+      await api.saveWorkoutProgress(workoutNumber, progress);
+      // Update cache after successful save
+      if (cache.workoutProgress) {
+        cache.workoutProgress[workoutNumber] = progress;
       }
-      return cache.oneRM;
+    } catch (error) {
+      console.error("Failed to save workout progress:", error);
+      throw error;
     }
-    
-    // Fallback to localStorage
+  }
+
+  // Clear workout progress directly in API
+  static async clearWorkoutProgress(workoutNumber: number): Promise<void> {
     try {
-      const data = localStorage.getItem(STORAGE_KEYS.ONE_RM);
-      const oneRM = data ? JSON.parse(data) : {
-        backSquat: 135,
-        benchPress: 95,
-        deadlift: 185,
-        overheadPress: 65,
-      };
+      await api.saveWorkoutProgress(workoutNumber, {
+        workoutNumber,
+        status: "not_started",
+        exerciseProgress: {},
+      });
+      // Update cache after successful clear
+      if (cache.workoutProgress) {
+        delete cache.workoutProgress[workoutNumber];
+      }
+    } catch (error) {
+      console.error("Failed to clear workout progress:", error);
+      throw error;
+    }
+  }
+
+  // Get OneRM directly from API with light caching
+  static async getOneRM(): Promise<OneRM> {
+    try {
+      const oneRM = await api.getOneRM();
       cache.oneRM = oneRM;
+      cache.lastFetch.oneRM = Date.now();
       return oneRM;
-    } catch {
-      return {
+    } catch (error) {
+      console.error("Failed to fetch OneRM:", error);
+      // Return cached data if available, otherwise defaults
+      return cache.oneRM || {
         backSquat: 135,
         benchPress: 95,
         deadlift: 185,
@@ -165,63 +96,46 @@ export class LocalStorage {
     }
   }
 
-  static saveOneRM(oneRM: OneRM) {
-    // Update cache immediately
-    cache.oneRM = oneRM;
-    cache.lastFetch.oneRM = Date.now();
-    
-    // Save to localStorage immediately
-    localStorage.setItem(STORAGE_KEYS.ONE_RM, JSON.stringify(oneRM));
-    
-    // Save to API in background
-    api.saveOneRM(oneRM).catch(error => {
-      console.error("Failed to save 1RM to API:", error);
-    });
+  // Save OneRM directly to API
+  static async saveOneRM(oneRM: OneRM): Promise<void> {
+    try {
+      await api.saveOneRM(oneRM);
+      // Update cache after successful save
+      cache.oneRM = oneRM;
+      cache.lastFetch.oneRM = Date.now();
+    } catch (error) {
+      console.error("Failed to save OneRM:", error);
+      throw error;
+    }
   }
 
-  static getExerciseHistory(): ExerciseHistoryEntry[] {
+  // Get exercise history directly from API
+  static async getExerciseHistory(): Promise<ExerciseHistoryEntry[]> {
     try {
-      const data = localStorage.getItem(STORAGE_KEYS.EXERCISE_HISTORY);
-      const history = data ? JSON.parse(data) : [];
-      
-      // Fetch from API in background to update cache
-      api.getExerciseHistory().then(apiHistory => {
-        localStorage.setItem(STORAGE_KEYS.EXERCISE_HISTORY, JSON.stringify(apiHistory));
-      }).catch(console.error);
-      
-      return history;
-    } catch {
+      return await api.getExerciseHistory();
+    } catch (error) {
+      console.error("Failed to fetch exercise history:", error);
       return [];
     }
   }
 
-  static saveExerciseHistory(entry: ExerciseHistoryEntry) {
-    // Save to localStorage immediately
-    const history = this.getExerciseHistory();
-    history.push(entry);
-    localStorage.setItem(STORAGE_KEYS.EXERCISE_HISTORY, JSON.stringify(history));
-    
-    console.log("Saving exercise history to API:", entry);
-    
-    // Save to API in background
-    api.saveExerciseHistory(entry)
-      .then(() => {
-        console.log("Exercise history saved to API successfully");
-      })
-      .catch(error => {
-        console.error("Failed to save exercise history to API:", error);
-      });
+  // Save exercise history directly to API
+  static async saveExerciseHistory(entry: ExerciseHistoryEntry): Promise<void> {
+    try {
+      console.log("Saving exercise history to API:", entry);
+      await api.saveExerciseHistory(entry);
+      console.log("Exercise history saved to API successfully");
+    } catch (error) {
+      console.error("Failed to save exercise history to API:", error);
+      throw error;
+    }
   }
 }
 
+// Export as default for easier imports
+export { DatabaseStorage as LocalStorage };
+
 // Initialize on load
 if (typeof window !== 'undefined') {
-  LocalStorage.initialize();
-  
-  // Add debug methods to global scope for troubleshooting
-  (window as any).VirtusDebug = {
-    clearCache: () => LocalStorage.clearCache(),
-    getWorkoutProgress: () => LocalStorage.getWorkoutProgress(),
-    refreshWorkoutProgress: () => LocalStorage.refreshWorkoutProgress(),
-  };
+  DatabaseStorage.initialize();
 }

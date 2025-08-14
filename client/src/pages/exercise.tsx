@@ -23,7 +23,7 @@ export default function ExercisePage() {
   const [userWeight, setUserWeight] = useState(0);
   const [userNotes, setUserNotes] = useState("");
   const [showHistory, setShowHistory] = useState(false);
-  const [oneRM, setOneRM] = useState(LocalStorage.getOneRM());
+  const [oneRM, setOneRM] = useState<OneRM | null>(null);
   const [totalExercises, setTotalExercises] = useState(0);
   const [isCompleting, setIsCompleting] = useState(false);
   const [isExerciseCompleted, setIsExerciseCompleted] = useState(false);
@@ -37,16 +37,24 @@ export default function ExercisePage() {
   }, [exerciseIndex]);
 
   useEffect(() => {
-    if (workoutNumber && exerciseIndex >= 0) {
-      // Load workout data from public folder
-      fetch('/powerbuilding_data.json')
-        .then(response => response.json())
-        .then((workoutData: Workout[]) => {
-          const foundWorkout = workoutData.find(w => w.workout_number === workoutNumber);
+    async function loadExerciseData() {
+      if (workoutNumber && exerciseIndex >= 0) {
+        try {
+          // Load all required data
+          const [workoutResponse, oneRMData, workoutProgress] = await Promise.all([
+            fetch('/attached_assets/powerbuilding_data_1755148171236.json'),
+            LocalStorage.getOneRM(),
+            LocalStorage.getWorkoutProgress()
+          ]);
+          
+          const workoutData = await workoutResponse.json();
+          setOneRM(oneRMData);
+          
+          const foundWorkout = workoutData.find((w: any) => w.workout_number === workoutNumber);
           
           if (foundWorkout && foundWorkout.exercises[exerciseIndex]) {
             const exerciseData = foundWorkout.exercises[exerciseIndex];
-            const enhancedExercise = enhanceExerciseWithCalculations(exerciseData, oneRM);
+            const enhancedExercise = enhanceExerciseWithCalculations(exerciseData, oneRMData);
             setExercise(enhancedExercise);
             setTotalExercises(foundWorkout.exercises.length);
             
@@ -56,7 +64,6 @@ export default function ExercisePage() {
             setUserWeight(enhancedExercise.calculatedWeight || 0);
 
             // Check if exercise is already completed
-            const workoutProgress = LocalStorage.getWorkoutProgress();
             const currentProgress = workoutProgress[workoutNumber];
             const exerciseKey = `${exerciseIndex}`;
             const isCompleted = currentProgress?.exerciseProgress?.[exerciseKey]?.completed || false;
@@ -71,18 +78,20 @@ export default function ExercisePage() {
               setUserNotes(savedProgress.notes || "");
             }
           }
-        })
-        .catch(error => {
-          console.error('Error loading workout data:', error);
-        });
+        } catch (error) {
+          console.error('Error loading exercise data:', error);
+        }
+      }
     }
-  }, [workoutNumber, exerciseIndex, oneRM]);
+    
+    loadExerciseData();
+  }, [workoutNumber, exerciseIndex]);
 
   if (!exercise) {
     return <div>Loading...</div>;
   }
 
-  const handleCompleteExercise = () => {
+  const handleCompleteExercise = async () => {
     setIsCompleting(true);
 
     console.log("Completing exercise:", {
@@ -94,63 +103,68 @@ export default function ExercisePage() {
       shouldSaveHistory: userWeight > 0 && exercise.type_of_set === "working"
     });
 
-    // Save exercise history only for working sets (not warm-ups)
-    if (userWeight > 0 && exercise.type_of_set === "working") {
-      const historyEntry = {
-        date: new Date().toISOString(),
-        exerciseName: exercise.name,
-        sets: userSets,
-        reps: userReps,
-        weight: userWeight,
-        notes: userNotes,
-        typeOfSet: exercise.type_of_set as "warm-up" | "working",
-      };
-      console.log("Saving exercise history entry:", historyEntry);
-      LocalStorage.saveExerciseHistory(historyEntry);
-    } else {
-      console.log("Not saving exercise history because:", {
-        hasWeight: userWeight > 0,
-        isWorkingSet: exercise.type_of_set === "working",
-        typeOfSet: exercise.type_of_set
-      });
-    }
-
-    // Save exercise completion to workout progress
-    const workoutProgress = LocalStorage.getWorkoutProgress();
-    const currentProgress = workoutProgress[workoutNumber] || {
-      workoutNumber,
-      status: "in_progress" as const,
-      startedAt: new Date().toISOString(),
-      exerciseProgress: {},
-    };
-
-    const exerciseKey = `${exerciseIndex}`;
-    currentProgress.exerciseProgress = {
-      ...currentProgress.exerciseProgress,
-      [exerciseKey]: {
-        sets: userSets,
-        reps: userReps,
-        weight: userWeight,
-        notes: userNotes,
-        completed: true,
-      },
-    };
-
-    LocalStorage.saveWorkoutProgress(workoutNumber, currentProgress);
-
-    // Show completion animation then navigate
-    setTimeout(() => {
-      setIsCompleting(false);
-      // Scroll to top before navigation
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      
-      // Navigate to next exercise or back to workout
-      if (exerciseIndex < totalExercises - 1) {
-        setLocation(`/workout/${workoutNumber}/exercise/${exerciseIndex + 1}`);
+    try {
+      // Save exercise history only for working sets (not warm-ups)
+      if (userWeight > 0 && exercise.type_of_set === "working") {
+        const historyEntry = {
+          date: new Date().toISOString(),
+          exerciseName: exercise.name,
+          sets: userSets,
+          reps: userReps,
+          weight: userWeight,
+          notes: userNotes,
+          typeOfSet: exercise.type_of_set as "warm-up" | "working",
+        };
+        console.log("Saving exercise history entry:", historyEntry);
+        await LocalStorage.saveExerciseHistory(historyEntry);
       } else {
-        setLocation(`/workout/${workoutNumber}`);
+        console.log("Not saving exercise history because:", {
+          hasWeight: userWeight > 0,
+          isWorkingSet: exercise.type_of_set === "working",
+          typeOfSet: exercise.type_of_set
+        });
       }
-    }, 1000);
+
+      // Save exercise completion to workout progress
+      const workoutProgress = await LocalStorage.getWorkoutProgress();
+      const currentProgress = workoutProgress[workoutNumber] || {
+        workoutNumber,
+        status: "in_progress" as const,
+        startedAt: new Date().toISOString(),
+        exerciseProgress: {},
+      };
+
+      const exerciseKey = `${exerciseIndex}`;
+      currentProgress.exerciseProgress = {
+        ...currentProgress.exerciseProgress,
+        [exerciseKey]: {
+          sets: userSets,
+          reps: userReps,
+          weight: userWeight,
+          notes: userNotes,
+          completed: true,
+        },
+      };
+
+      await LocalStorage.saveWorkoutProgress(workoutNumber, currentProgress);
+
+      // Show completion animation then navigate
+      setTimeout(() => {
+        setIsCompleting(false);
+        // Scroll to top before navigation
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        
+        // Navigate to next exercise or back to workout
+        if (exerciseIndex < totalExercises - 1) {
+          setLocation(`/workout/${workoutNumber}/exercise/${exerciseIndex + 1}`);
+        } else {
+          setLocation(`/workout/${workoutNumber}`);
+        }
+      }, 1000);
+    } catch (error) {
+      console.error("Error completing exercise:", error);
+      setIsCompleting(false);
+    }
   };
 
   const handlePreviousExercise = () => {
@@ -168,6 +182,7 @@ export default function ExercisePage() {
   };
 
   const getOneRMForExercise = () => {
+    if (!oneRM) return 0;
     switch (exercise.name) {
       case "Back squat": return oneRM.backSquat;
       case "Barbell bench press": return oneRM.benchPress;

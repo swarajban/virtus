@@ -20,13 +20,17 @@ export default function WorkoutPage() {
   const workoutNumber = params ? parseInt(params.workoutNumber) : 0;
 
   useEffect(() => {
-    if (workoutNumber) {
-      // Load workout data from public folder
-      fetch('/powerbuilding_data.json')
-        .then(response => response.json())
-        .then((workoutData: Workout[]) => {
-          const workoutProgress = LocalStorage.getWorkoutProgress();
-          const foundWorkout = workoutData.find(w => w.workout_number === workoutNumber);
+    async function loadWorkoutData() {
+      if (workoutNumber) {
+        try {
+          const [response, workoutProgress, oneRM] = await Promise.all([
+            fetch('/attached_assets/powerbuilding_data_1755148171236.json'),
+            LocalStorage.getWorkoutProgress(),
+            LocalStorage.getOneRM()
+          ]);
+          
+          const workoutData = await response.json();
+          const foundWorkout = workoutData.find((w: any) => w.workout_number === workoutNumber);
           
           if (foundWorkout) {
             const workoutWithProgress: WorkoutWithProgress = {
@@ -36,17 +40,18 @@ export default function WorkoutPage() {
             setWorkout(workoutWithProgress);
 
             // Enhance exercises with calculated weights
-            const oneRM = LocalStorage.getOneRM();
-            const enhancedExercises = foundWorkout.exercises.map(exercise => 
+            const enhancedExercises = foundWorkout.exercises.map((exercise: any) => 
               enhanceExerciseWithCalculations(exercise, oneRM)
             );
             setExercises(enhancedExercises);
           }
-        })
-        .catch(error => {
+        } catch (error) {
           console.error('Error loading workout data:', error);
-        });
+        }
+      }
     }
+    
+    loadWorkoutData();
   }, [workoutNumber]);
 
   if (!workout) {
@@ -56,30 +61,30 @@ export default function WorkoutPage() {
   const status = workout.progress?.status || "not_started";
   const statusBadge = getWorkoutStatusBadge(status);
 
-  const handleStartWorkout = () => {
+  const handleStartWorkout = async () => {
     const progress = {
       workoutNumber,
       status: "in_progress" as const,
       startedAt: new Date().toISOString(),
     };
-    LocalStorage.saveWorkoutProgress(workoutNumber, progress);
+    await LocalStorage.saveWorkoutProgress(workoutNumber, progress);
     setWorkout({ ...workout, progress });
   };
 
-  const handleCompleteWorkout = () => {
+  const handleCompleteWorkout = async () => {
     const progress = {
       workoutNumber,
       status: "completed" as const,
       startedAt: workout.progress?.startedAt || new Date().toISOString(),
       completedAt: new Date().toISOString(),
     };
-    LocalStorage.saveWorkoutProgress(workoutNumber, progress);
+    await LocalStorage.saveWorkoutProgress(workoutNumber, progress);
     setWorkout({ ...workout, progress });
   };
 
-  const handleResetWorkout = () => {
-    // Clear the workout progress from localStorage
-    LocalStorage.clearWorkoutProgress(workoutNumber);
+  const handleResetWorkout = async () => {
+    // Clear the workout progress from database
+    await LocalStorage.clearWorkoutProgress(workoutNumber);
     // Update the workout state
     const resetWorkout = { ...workout, progress: undefined };
     setWorkout(resetWorkout);

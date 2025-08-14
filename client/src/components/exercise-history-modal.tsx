@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { LocalStorage } from "@/lib/storage";
 import { formatDate } from "@/lib/workout-utils";
@@ -16,11 +16,29 @@ export function ExerciseHistoryModal({
   exerciseName 
 }: ExerciseHistoryModalProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [exerciseHistory, setExerciseHistory] = useState<ExerciseHistoryEntry[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Get exercise history for this exercise (warm-ups are already excluded when saving)
-  const exerciseHistory = LocalStorage.getExerciseHistory()
-    .filter(entry => entry.exerciseName === exerciseName)
-    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+  useEffect(() => {
+    async function loadExerciseHistory() {
+      if (isOpen) {
+        setIsLoading(true);
+        try {
+          const history = await LocalStorage.getExerciseHistory();
+          const filteredHistory = history
+            .filter(entry => entry.exerciseName === exerciseName)
+            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+          setExerciseHistory(filteredHistory);
+        } catch (error) {
+          console.error("Error loading exercise history:", error);
+          setExerciseHistory([]);
+        }
+        setIsLoading(false);
+      }
+    }
+    
+    loadExerciseHistory();
+  }, [isOpen, exerciseName]);
 
   useEffect(() => {
     let chartInstance: any = null;
@@ -110,7 +128,11 @@ export function ExerciseHistoryModal({
           <DialogDescription>{exerciseName}</DialogDescription>
         </DialogHeader>
         
-        {exerciseHistory.length > 0 ? (
+        {isLoading ? (
+          <div className="text-center py-8 text-gray-500">
+            <p>Loading exercise history...</p>
+          </div>
+        ) : exerciseHistory.length > 0 ? (
           <div className="space-y-4">
             {/* Chart Container */}
             <div className="relative w-full h-48 border rounded-lg p-2">

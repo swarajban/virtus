@@ -20,17 +20,33 @@ export default function OneRMPage() {
   });
 
   useEffect(() => {
-    const savedOneRM = LocalStorage.getOneRM();
-    setOneRM(savedOneRM);
+    async function loadOneRM() {
+      try {
+        const savedOneRM = await LocalStorage.getOneRM();
+        setOneRM(savedOneRM);
+      } catch (error) {
+        console.error("Error loading OneRM:", error);
+      }
+    }
+    loadOneRM();
   }, []);
 
-  const handleSave = () => {
-    LocalStorage.saveOneRM(oneRM);
-    toast({
-      title: "Success",
-      description: "1RM values have been saved successfully.",
-    });
-    setLocation('/');
+  const handleSave = async () => {
+    try {
+      await LocalStorage.saveOneRM(oneRM);
+      toast({
+        title: "Success",
+        description: "1RM values have been saved successfully.",
+      });
+      setLocation('/');
+    } catch (error) {
+      console.error("Error saving OneRM:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save 1RM values. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   const updateOneRM = (lift: keyof OneRM, value: number) => {
