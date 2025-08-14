@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { WeightInput } from "@/components/ui/weight-input";
 import { ExerciseHistoryModal } from "@/components/exercise-history-modal";
-import { ArrowLeft, Check, Info } from "lucide-react";
+import { ArrowLeft, Check, CheckCircle, Info } from "lucide-react";
 import { LocalStorage } from "@/lib/storage";
 import { enhanceExerciseWithCalculations, getActualPercentage } from "@/lib/workout-utils";
 import type { ExerciseWithCalculatedWeight } from "@/types/workout";
@@ -25,9 +25,15 @@ export default function ExercisePage() {
   const [showHistory, setShowHistory] = useState(false);
   const [oneRM, setOneRM] = useState(LocalStorage.getOneRM());
   const [totalExercises, setTotalExercises] = useState(0);
+  const [isCompleting, setIsCompleting] = useState(false);
 
   const workoutNumber = params ? parseInt(params.workoutNumber) : 0;
   const exerciseIndex = params ? parseInt(params.exerciseIndex) : 0;
+
+  // Scroll to top when exercise loads
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [exerciseIndex]);
 
   useEffect(() => {
     if (workoutNumber && exerciseIndex >= 0) {
@@ -60,6 +66,8 @@ export default function ExercisePage() {
   }
 
   const handleCompleteExercise = () => {
+    setIsCompleting(true);
+
     // Save exercise history
     if (userWeight > 0) {
       const historyEntry = {
@@ -96,12 +104,20 @@ export default function ExercisePage() {
 
     LocalStorage.saveWorkoutProgress(workoutNumber, currentProgress);
 
-    // Navigate to next exercise or back to workout
-    if (exerciseIndex < totalExercises - 1) {
-      setLocation(`/workout/${workoutNumber}/exercise/${exerciseIndex + 1}`);
-    } else {
-      setLocation(`/workout/${workoutNumber}`);
-    }
+    // Show completion animation then navigate
+    setTimeout(() => {
+      // Scroll to top before navigation
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      
+      setTimeout(() => {
+        // Navigate to next exercise or back to workout
+        if (exerciseIndex < totalExercises - 1) {
+          setLocation(`/workout/${workoutNumber}/exercise/${exerciseIndex + 1}`);
+        } else {
+          setLocation(`/workout/${workoutNumber}`);
+        }
+      }, 300);
+    }, 600);
   };
 
   const handlePreviousExercise = () => {
@@ -131,7 +147,17 @@ export default function ExercisePage() {
   const exerciseOneRM = getOneRMForExercise();
 
   return (
-    <div className="max-w-md mx-auto bg-white min-h-screen">
+    <div className="max-w-md mx-auto bg-white min-h-screen relative">
+      {/* Completion Overlay Animation */}
+      {isCompleting && (
+        <div className="fixed inset-0 bg-green-600 bg-opacity-95 flex items-center justify-center z-50 animate-pulse">
+          <div className="text-center text-white">
+            <CheckCircle className="h-16 w-16 mx-auto mb-4 animate-bounce" />
+            <h2 className="text-2xl font-bold mb-2">Exercise Completed!</h2>
+            <p className="text-lg opacity-90">Moving to next exercise...</p>
+          </div>
+        </div>
+      )}
       {/* Header */}
       <header className="bg-primary text-white px-4 py-6 sticky top-0 z-50">
         <div className="flex items-center justify-between">
@@ -307,10 +333,17 @@ export default function ExercisePage() {
         </div>
         <Button 
           onClick={handleCompleteExercise}
-          className="w-full bg-secondary text-white hover:bg-green-700 h-12"
+          disabled={isCompleting}
+          className={`w-full h-12 transition-all duration-300 ${
+            isCompleting 
+              ? "bg-green-600 scale-105 shadow-lg" 
+              : "bg-secondary hover:bg-green-700"
+          } text-white`}
         >
-          <Check className="h-4 w-4 mr-2" />
-          Complete Exercise
+          <Check className={`h-4 w-4 mr-2 transition-transform duration-300 ${
+            isCompleting ? "scale-125" : ""
+          }`} />
+          {isCompleting ? "Exercise Completed!" : "Complete Exercise"}
         </Button>
       </div>
 
