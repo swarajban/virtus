@@ -81,14 +81,17 @@ export default function HomePage() {
 
   return (
     <div className="max-w-md mx-auto bg-white min-h-screen">
-      {/* Header */}
-      <header className="bg-primary text-white px-4 py-6 sticky top-0 z-50">
+      {/* Modern Header with Gradient */}
+      <header className="gradient-purple text-white px-4 py-6 sticky top-0 z-50 shadow-lg">
         <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold">Virtus</h1>
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight font-heading">Virtus</h1>
+            <p className="text-purple-100 text-sm mt-1 opacity-90">Powerbuilding Excellence</p>
+          </div>
           <Button 
             variant="ghost" 
             size="icon"
-            className="text-white hover:bg-blue-700"
+            className="text-white hover:bg-white/20 transition-all duration-200 rounded-lg"
             onClick={() => setLocation('/one-rm')}
           >
             <Settings className="h-5 w-5" />
@@ -96,12 +99,13 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* Progress Section */}
-      <div className="p-4 bg-gradient-to-r from-blue-50 to-green-50">
-        <Card>
-          <CardContent className="p-4">
-            <h2 className="text-lg font-semibold mb-2">Program Progress</h2>
-            <p className="text-sm text-gray-600 mb-3">Powerbuilding Program</p>
+      {/* Progress Section with Modern Design */}
+      <div className="p-4">
+        <Card className="bg-white shadow-lg border-0 overflow-hidden">
+          <div className="gradient-purple h-2"></div>
+          <CardContent className="p-5">
+            <h2 className="text-xl font-bold text-gray-900 mb-2">Program Progress</h2>
+            <p className="text-sm text-gray-500 mb-4">Track your powerbuilding journey</p>
             
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium">Workouts Completed</span>
@@ -120,26 +124,26 @@ export default function HomePage() {
         <div className="grid grid-cols-2 gap-3 mb-6">
           <Button 
             onClick={handleNextWorkout}
-            className="bg-primary text-white p-4 h-auto flex-col space-y-2 hover:bg-blue-700"
+            className="gradient-purple text-white p-6 h-auto flex-col space-y-3 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-200"
             disabled={!nextWorkout}
           >
-            <Play className="h-5 w-5" />
-            <span>Next Workout</span>
+            <Play className="h-10 w-10" />
+            <span className="text-sm font-semibold">Next Workout</span>
           </Button>
           <Button 
             variant="outline"
             onClick={() => setLocation('/one-rm')}
-            className="p-4 h-auto flex-col space-y-2"
+            className="p-6 h-auto flex-col space-y-3 rounded-xl border-2 hover:border-primary hover:shadow-lg transform hover:-translate-y-1 transition-all duration-200 bg-white"
           >
-            <Settings className="h-5 w-5" />
-            <span>Settings</span>
+            <Settings className="h-10 w-10 text-primary" />
+            <span className="text-sm font-semibold text-gray-700">1RM Settings</span>
           </Button>
         </div>
       </div>
 
-      {/* Workout List */}
+      {/* Workout List with Modern Styling */}
       <div className="px-4 pb-6">
-        <h3 className="text-lg font-semibold mb-4">All Workouts</h3>
+        <h3 className="text-xl font-bold text-gray-900 mb-4">All Workouts</h3>
         
         <div className="space-y-3">
           {workouts.map((workout) => (

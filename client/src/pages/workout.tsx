@@ -148,30 +148,30 @@ export default function WorkoutPage() {
 
   return (
     <div className="max-w-md mx-auto bg-white min-h-screen">
-      {/* Header */}
-      <header className="bg-primary text-white px-4 py-6 sticky top-0 z-50">
+      {/* Modern Header */}
+      <header className="gradient-purple text-white px-4 py-6 sticky top-0 z-50 shadow-lg">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <Button 
               variant="ghost" 
               size="icon"
               onClick={() => setLocation('/')}
-              className="text-white hover:bg-blue-700 p-2 -ml-2"
+              className="text-white hover:bg-white/20 transition-all duration-200 rounded-lg p-2 -ml-2"
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <h1 className="text-2xl font-bold">Workout</h1>
+            <h1 className="text-2xl font-bold tracking-tight">Workout</h1>
           </div>
         </div>
       </header>
 
       {/* Workout Header */}
-      <div className="bg-gradient-to-r from-primary to-blue-600 text-white p-4">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm opacity-90">
-            Week {workout.week_number}, Day {workout.day_number}
+      <div className="bg-gradient-to-b from-purple-50 to-white p-6">
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-sm text-gray-600 font-medium uppercase tracking-wide">
+            Week {workout.week_number} • Day {workout.day_number}
           </span>
-          <Badge className={statusBadge.className}>
+          <Badge className={`${statusBadge.className} px-3 py-1 rounded-full text-xs font-semibold`}>
             {statusBadge.icon && <i className={`${statusBadge.icon} mr-1`} />}
             {statusBadge.label}
           </Badge>

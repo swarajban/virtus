@@ -65,40 +65,46 @@ export default function OneRMPage() {
 
   return (
     <div className="max-w-md mx-auto bg-white min-h-screen">
-      {/* Header */}
-      <header className="bg-primary text-white px-4 py-6 sticky top-0 z-50">
+      {/* Modern Header */}
+      <header className="gradient-purple text-white px-4 py-6 sticky top-0 z-50 shadow-lg">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <Button 
               variant="ghost" 
               size="icon"
               onClick={() => setLocation('/')}
-              className="text-white hover:bg-blue-700 p-2 -ml-2"
+              className="text-white hover:bg-white/20 transition-all duration-200 rounded-lg p-2 -ml-2"
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <h1 className="text-2xl font-bold">Settings</h1>
+            <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
           </div>
         </div>
       </header>
 
       <div className="p-4">
-        <h2 className="text-2xl font-bold mb-6">Settings</h2>
-        
-        {/* User Selector */}
         <div className="mb-6">
-          <UserSelector />
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">Settings</h2>
+          <p className="text-sm text-gray-500">Customize your training parameters</p>
         </div>
         
-        <h3 className="text-lg font-semibold mb-4">One Rep Max (1RM)</h3>
+        {/* User Selector with Modern Card */}
+        <Card className="mb-6 shadow-lg border-0">
+          <CardContent className="p-5">
+            <h3 className="font-semibold text-gray-900 mb-3">Active User</h3>
+            <UserSelector />
+          </CardContent>
+        </Card>
+        
+        <h3 className="text-xl font-bold text-gray-900 mb-4">One Rep Max (1RM)</h3>
         
         <div className="space-y-4">
           {lifts.map((lift) => (
-            <Card key={lift.key}>
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-semibold">{lift.name}</h3>
-                  <span className="text-lg font-bold">{lift.value} lbs</span>
+            <Card key={lift.key} className="shadow-md border-0 hover:shadow-lg transition-all duration-300">
+              <CardContent className="p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-bold text-gray-900">{lift.name}</h3>
+                  <span className="text-2xl font-bold text-primary">{lift.value} lbs</span>
                 </div>
                 <WeightInput
                   value={lift.value}
@@ -113,9 +119,9 @@ export default function OneRMPage() {
 
         <Button 
           onClick={handleSave}
-          className="w-full bg-primary text-white hover:bg-blue-700 mt-6 h-12"
+          className="w-full gradient-purple text-white mt-6 h-14 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 font-semibold text-base"
         >
-          <Save className="h-4 w-4 mr-2" />
+          <Save className="h-5 w-5 mr-2" />
           Save Changes
         </Button>
       </div>

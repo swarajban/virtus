@@ -76,7 +76,7 @@ export default function ExercisePage() {
               const savedProgress = currentProgress.exerciseProgress[exerciseKey];
               setUserSets(savedProgress.sets);
               setUserReps(savedProgress.reps);
-              setUserWeight(savedProgress.weight);
+              setUserWeight(savedProgress.weight || 0);
               setUserNotes(savedProgress.notes || "");
             }
           }
@@ -227,37 +227,37 @@ export default function ExercisePage() {
           </div>
         </div>
       )}
-      {/* Header */}
-      <header className="bg-primary text-white px-4 py-6 sticky top-0 z-50">
+      {/* Modern Header */}
+      <header className="gradient-purple text-white px-4 py-6 sticky top-0 z-50 shadow-lg">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <Button 
               variant="ghost" 
               size="icon"
               onClick={() => setLocation(`/workout/${workoutNumber}`)}
-              className="text-white hover:bg-blue-700 p-2 -ml-2"
+              className="text-white hover:bg-white/20 transition-all duration-200 rounded-lg p-2 -ml-2"
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <h1 className="text-2xl font-bold">Exercise</h1>
+            <h1 className="text-2xl font-bold tracking-tight">Exercise</h1>
           </div>
         </div>
       </header>
 
-      {/* Exercise Header */}
-      <div className="bg-gradient-to-r from-primary to-blue-600 text-white p-4">
-        <div className="flex items-center justify-between mb-2">
-          <span className="text-sm opacity-90">
+      {/* Exercise Header with Modern Design */}
+      <div className="bg-gradient-to-b from-purple-50 to-white p-6">
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-sm text-gray-600 font-medium uppercase tracking-wide">
             Exercise {exerciseIndex + 1} of {totalExercises}
           </span>
           {isExerciseCompleted && (
-            <Badge className="bg-green-500 hover:bg-green-500 text-white border-green-500">
+            <Badge className="bg-green-500 hover:bg-green-500 text-white border-green-500 px-3 py-1 rounded-full text-xs font-semibold">
               <CheckCircle className="h-3 w-3 mr-1" />
               Completed
             </Badge>
           )}
         </div>
-        <h2 className="text-xl font-bold mb-1">{exercise.name}</h2>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">{exercise.name}</h2>
         <p className="text-sm opacity-90">
           {exercise.number_of_sets} x {exercise.number_of_reps || "AMRAP"}
           {exercise.load_percentage && ` @ ${exercise.load_percentage}% 1RM`}
@@ -265,13 +265,13 @@ export default function ExercisePage() {
         </p>
       </div>
 
-      {/* Set Type Banner */}
-      <div className={`w-full py-3 px-4 text-center font-semibold text-white ${
+      {/* Set Type Banner with Modern Styling */}
+      <div className={`w-full py-3 px-4 text-center font-semibold text-white shadow-md ${
         exercise.type_of_set === "working" 
-          ? "bg-secondary" 
-          : "bg-yellow-500"
+          ? "gradient-green" 
+          : "bg-gradient-to-r from-yellow-500 to-orange-500"
       }`}>
-        {exercise.type_of_set} set
+        <span className="uppercase tracking-wide text-sm">{exercise.type_of_set} set</span>
       </div>
 
       {/* Weight Calculator */}
