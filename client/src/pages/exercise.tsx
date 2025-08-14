@@ -94,6 +94,7 @@ export default function ExercisePage() {
         reps: userReps,
         weight: userWeight,
         notes: userNotes,
+        typeOfSet: exercise.type_of_set as "warm-up" | "working",
       };
       LocalStorage.saveExerciseHistory(historyEntry);
     }

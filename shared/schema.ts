@@ -47,6 +47,7 @@ export const exerciseHistory = pgTable("exercise_history", {
   reps: integer("reps").notNull(),
   weight: real("weight").notNull(),
   notes: text("notes"),
+  typeOfSet: varchar("type_of_set", { length: 20 }).default("working"),
   performedAt: timestamp("performed_at").defaultNow().notNull(),
 }, (table) => [
   index("idx_eh_user_exercise").on(table.userId, table.exerciseName),
@@ -134,6 +135,7 @@ export const exerciseHistoryEntrySchema = z.object({
   reps: z.number(),
   weight: z.number(),
   notes: z.string().optional(),
+  typeOfSet: z.enum(["warm-up", "working"]).optional(),
 });
 
 export type Exercise = z.infer<typeof exerciseSchema>;

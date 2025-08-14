@@ -172,7 +172,10 @@ export class DatabaseStorage implements IStorage {
     let query = db
       .select()
       .from(exerciseHistory)
-      .where(eq(exerciseHistory.userId, userId))
+      .where(and(
+        eq(exerciseHistory.userId, userId),
+        eq(exerciseHistory.typeOfSet, "working") // Only get working sets
+      ))
       .orderBy(desc(exerciseHistory.performedAt));
     
     if (exerciseName) {
@@ -181,7 +184,8 @@ export class DatabaseStorage implements IStorage {
         .from(exerciseHistory)
         .where(and(
           eq(exerciseHistory.userId, userId),
-          eq(exerciseHistory.exerciseName, exerciseName)
+          eq(exerciseHistory.exerciseName, exerciseName),
+          eq(exerciseHistory.typeOfSet, "working") // Only get working sets
         ))
         .orderBy(desc(exerciseHistory.performedAt));
     }
@@ -195,6 +199,7 @@ export class DatabaseStorage implements IStorage {
       reps: h.reps,
       weight: h.weight,
       notes: h.notes || undefined,
+      typeOfSet: h.typeOfSet as "warm-up" | "working" | undefined,
     }));
   }
 
@@ -208,6 +213,7 @@ export class DatabaseStorage implements IStorage {
         reps: history.reps,
         weight: history.weight,
         notes: history.notes,
+        typeOfSet: history.typeOfSet || "working",
       });
   }
 }

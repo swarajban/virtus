@@ -23,6 +23,8 @@ export function ExerciseHistoryModal({
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   useEffect(() => {
+    let chartInstance: any = null;
+    
     if (isOpen && exerciseHistory.length > 0 && canvasRef.current) {
       // Import Chart.js dynamically
       import('chart.js/auto').then(({ default: Chart }) => {
@@ -30,22 +32,28 @@ export function ExerciseHistoryModal({
         if (!ctx) return;
 
         // Clear any existing chart
-        Chart.getChart(ctx)?.destroy();
+        const existingChart = Chart.getChart(ctx);
+        if (existingChart) {
+          existingChart.destroy();
+        }
 
         const dates = exerciseHistory.map(entry => formatDate(entry.date));
         const weights = exerciseHistory.map(entry => entry.weight);
 
-        new Chart(ctx, {
+        chartInstance = new Chart(ctx, {
           type: 'line',
           data: {
             labels: dates,
             datasets: [{
               label: 'Weight (lbs)',
               data: weights,
-              borderColor: 'hsl(203.8863, 88.2845%, 53.1373%)',
-              backgroundColor: 'hsla(203.8863, 88.2845%, 53.1373%, 0.1)',
+              borderColor: 'rgb(59, 130, 246)',
+              backgroundColor: 'rgba(59, 130, 246, 0.1)',
+              borderWidth: 2,
               fill: true,
-              tension: 0.4,
+              tension: 0.3,
+              pointRadius: 4,
+              pointBackgroundColor: 'rgb(59, 130, 246)',
             }]
           },
           options: {
@@ -53,18 +61,45 @@ export function ExerciseHistoryModal({
             maintainAspectRatio: false,
             scales: {
               y: {
-                beginAtZero: true
+                beginAtZero: false,
+                ticks: {
+                  callback: function(value) {
+                    return value + ' lbs';
+                  }
+                }
+              },
+              x: {
+                ticks: {
+                  maxRotation: 45,
+                  minRotation: 45
+                }
               }
             },
             plugins: {
               legend: {
                 display: false
+              },
+              tooltip: {
+                callbacks: {
+                  label: function(context) {
+                    return context.parsed.y + ' lbs';
+                  }
+                }
               }
             }
           }
         });
+      }).catch(error => {
+        console.error('Failed to load Chart.js:', error);
       });
     }
+    
+    // Cleanup function
+    return () => {
+      if (chartInstance) {
+        chartInstance.destroy();
+      }
+    };
   }, [isOpen, exerciseHistory]);
 
   return (
