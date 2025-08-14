@@ -22,6 +22,12 @@ export class LocalStorage {
     localStorage.setItem(STORAGE_KEYS.WORKOUT_PROGRESS, JSON.stringify(allProgress));
   }
 
+  static clearWorkoutProgress(workoutNumber: number) {
+    const allProgress = this.getWorkoutProgress();
+    delete allProgress[workoutNumber];
+    localStorage.setItem(STORAGE_KEYS.WORKOUT_PROGRESS, JSON.stringify(allProgress));
+  }
+
   static getOneRM(): OneRM {
     try {
       const data = localStorage.getItem(STORAGE_KEYS.ONE_RM);

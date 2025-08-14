@@ -1,0 +1,378 @@
+[
+  {
+    "workout_number": 1,
+    "week_number": 1,
+    "day_number": 1,
+    "workout_name": "Full Body 1: Squat, OHP",
+    "exercises": [
+      {
+        "name": "Back squat",
+        "superset_label": null,
+        "type_of_set": "warm-up",
+        "number_of_sets": 4,
+        "number_of_reps": 5,
+        "is_amrap": false,
+        "load_percentage": 80.0,
+        "rpe": 7.5,
+        "notes": "Focus on technique and explosive power!"
+      },
+      {
+        "name": "Back squat",
+        "superset_label": null,
+        "type_of_set": "working",
+        "number_of_sets": 1,
+        "number_of_reps": 5,
+        "is_amrap": false,
+        "load_percentage": 80.0,
+        "rpe": 7.5,
+        "notes": "Focus on technique and explosive power!"
+      },
+      {
+        "name": "Back squat",
+        "superset_label": null,
+        "type_of_set": "working",
+        "number_of_sets": 2,
+        "number_of_reps": 8,
+        "is_amrap": false,
+        "load_percentage": 70.0,
+        "rpe": null,
+        "notes": "Keep back angle and form consistent across all reps"
+      },
+      {
+        "name": "Overhead press",
+        "superset_label": null,
+        "type_of_set": "warm-up",
+        "number_of_sets": 2,
+        "number_of_reps": 8,
+        "is_amrap": false,
+        "load_percentage": 70.0,
+        "rpe": null,
+        "notes": "Reset each rep (don't touch-and-press)"
+      },
+      {
+        "name": "Overhead press",
+        "superset_label": null,
+        "type_of_set": "working",
+        "number_of_sets": 3,
+        "number_of_reps": 8,
+        "is_amrap": false,
+        "load_percentage": 70.0,
+        "rpe": null,
+        "notes": "Reset each rep (don't touch-and-press)"
+      },
+      {
+        "name": "Glute Ham Raise",
+        "superset_label": null,
+        "type_of_set": "warm-up",
+        "number_of_sets": 1,
+        "number_of_reps": 10,
+        "is_amrap": false,
+        "load_percentage": null,
+        "rpe": 7.0,
+        "notes": "Keep your hips straight, do nordic ham curls if no GHR machine"
+      },
+      {
+        "name": "Glute Ham Raise",
+        "superset_label": null,
+        "type_of_set": "working",
+        "number_of_sets": 3,
+        "number_of_reps": 10,
+        "is_amrap": false,
+        "load_percentage": null,
+        "rpe": 7.0,
+        "notes": "Keep your hips straight, do nordic ham curls if no GHR machine"
+      },
+      {
+        "name": "Helms row",
+        "superset_label": null,
+        "type_of_set": "warm-up",
+        "number_of_sets": 1,
+        "number_of_reps": 15,
+        "is_amrap": false,
+        "load_percentage": null,
+        "rpe": 9.0,
+        "notes": "Strict form.\nDrive elbows out and back at 45 degree angle"
+      },
+      {
+        "name": "Helms row",
+        "superset_label": null,
+        "type_of_set": "working",
+        "number_of_sets": 3,
+        "number_of_reps": 15,
+        "is_amrap": false,
+        "load_percentage": null,
+        "rpe": 9.0,
+        "notes": "Strict form.\nDrive elbows out and back at 45 degree angle"
+      },
+      {
+        "name": "Hammer curl",
+        "superset_label": null,
+        "type_of_set": "working",
+        "number_of_sets": 3,
+        "number_of_reps": 25,
+        "is_amrap": false,
+        "load_percentage": null,
+        "rpe": 10.0,
+        "notes": "Keep elbows locked in place, squeeze the dumbbell handle hard!"
+      }
+    ]
+  },
+  {
+    "workout_number": 2,
+    "week_number": 1,
+    "day_number": 2,
+    "workout_name": "Full Body 2: Deadlift, Bench Press",
+    "exercises": [
+      {
+        "name": "Deadlift",
+        "superset_label": null,
+        "type_of_set": "warm-up",
+        "number_of_sets": 4,
+        "number_of_reps": 4,
+        "is_amrap": false,
+        "load_percentage": 80.0,
+        "rpe": null,
+        "notes": "Conventional or sumo: use whatever stance you are stronger with"
+      },
+      {
+        "name": "Deadlift",
+        "superset_label": null,
+        "type_of_set": "working",
+        "number_of_sets": 3,
+        "number_of_reps": 4,
+        "is_amrap": false,
+        "load_percentage": 80.0,
+        "rpe": null,
+        "notes": "Conventional or sumo: use whatever stance you are stronger with"
+      },
+      {
+        "name": "Barbell bench press",
+        "superset_label": null,
+        "type_of_set": "warm-up",
+        "number_of_sets": 4,
+        "number_of_reps": 3,
+        "is_amrap": false,
+        "load_percentage": 87.5,
+        "rpe": 8.5,
+        "notes": "Top set.\nLeave 1 (maybe 2) reps in the tank. Hard set."
+      },
+      {
+        "name": "Barbell bench press",
+        "superset_label": null,
+        "type_of_set": "working",
+        "number_of_sets": 1,
+        "number_of_reps": 3,
+        "is_amrap": false,
+        "load_percentage": 87.5,
+        "rpe": 8.5,
+        "notes": "Top set.\nLeave 1 (maybe 2) reps in the tank. Hard set."
+      },
+      {
+        "name": "Barbell bench press",
+        "superset_label": null,
+        "type_of_set": "working",
+        "number_of_sets": 2,
+        "number_of_reps": 10,
+        "is_amrap": false,
+        "load_percentage": 67.5,
+        "rpe": null,
+        "notes": "Quick 1 second pause on the chest on each rep"
+      },
+      {
+        "name": "Hip abduction",
+        "superset_label": null,
+        "type_of_set": "working",
+        "number_of_sets": 3,
+        "number_of_reps": 20,
+        "is_amrap": false,
+        "load_percentage": null,
+        "rpe": 9.0,
+        "notes": "Machine, band or weighted, 1 second isometric hold at the top of each rep"
+      },
+      {
+        "name": "Weighted pull-up",
+        "superset_label": null,
+        "type_of_set": "warm-up",
+        "number_of_sets": 1,
+        "number_of_reps": 8,
+        "is_amrap": false,
+        "load_percentage": null,
+        "rpe": 8.0,
+        "notes": "1.5x shoulder width grip, pull your chest to the bar"
+      },
+      {
+        "name": "Weighted pull-up",
+        "superset_label": null,
+        "type_of_set": "working",
+        "number_of_sets": 3,
+        "number_of_reps": 8,
+        "is_amrap": false,
+        "load_percentage": null,
+        "rpe": 8.0,
+        "notes": "1.5x shoulder width grip, pull your chest to the bar"
+      },
+      {
+        "name": "Floor skull crusher",
+        "superset_label": null,
+        "type_of_set": "warm-up",
+        "number_of_sets": 1,
+        "number_of_reps": 12,
+        "is_amrap": false,
+        "load_percentage": null,
+        "rpe": 8.0,
+        "notes": "Arc the bar back behind your head, soft touch on the floor behind you"
+      },
+      {
+        "name": "Floor skull crusher",
+        "superset_label": null,
+        "type_of_set": "working",
+        "number_of_sets": 3,
+        "number_of_reps": 12,
+        "is_amrap": false,
+        "load_percentage": null,
+        "rpe": 8.0,
+        "notes": "Arc the bar back behind your head, soft touch on the floor behind you"
+      },
+      {
+        "name": "Standing calf raise",
+        "superset_label": null,
+        "type_of_set": "warm-up",
+        "number_of_sets": 1,
+        "number_of_reps": 10,
+        "is_amrap": false,
+        "load_percentage": null,
+        "rpe": 9.0,
+        "notes": "1-2 second pause at the bottom of each rep, full ROM"
+      },
+      {
+        "name": "Standing calf raise",
+        "superset_label": null,
+        "type_of_set": "working",
+        "number_of_sets": 3,
+        "number_of_reps": 10,
+        "is_amrap": false,
+        "load_percentage": null,
+        "rpe": 9.0,
+        "notes": "1-2 second pause at the bottom of each rep, full ROM"
+      }
+    ]
+  },
+  {
+    "workout_number": 3,
+    "week_number": 1,
+    "day_number": 3,
+    "workout_name": "Full Body 3: Squat, Dip",
+    "exercises": [
+      {
+        "name": "Back squat",
+        "superset_label": null,
+        "type_of_set": "warm-up",
+        "number_of_sets": 4,
+        "number_of_reps": 4,
+        "is_amrap": false,
+        "load_percentage": 80.0,
+        "rpe": null,
+        "notes": "Maintain tight pressure in your upper back against the bar"
+      },
+      {
+        "name": "Back squat",
+        "superset_label": null,
+        "type_of_set": "working",
+        "number_of_sets": 3,
+        "number_of_reps": 4,
+        "is_amrap": false,
+        "load_percentage": 80.0,
+        "rpe": null,
+        "notes": "Maintain tight pressure in your upper back against the bar"
+      },
+      {
+        "name": "Weighted dip",
+        "superset_label": null,
+        "type_of_set": "warm-up",
+        "number_of_sets": 2,
+        "number_of_reps": 8,
+        "is_amrap": false,
+        "load_percentage": null,
+        "rpe": 8.0,
+        "notes": "Do dumbbell floor press if no \naccess to dip handles"
+      },
+      {
+        "name": "Weighted dip",
+        "superset_label": null,
+        "type_of_set": "working",
+        "number_of_sets": 3,
+        "number_of_reps": 8,
+        "is_amrap": false,
+        "load_percentage": null,
+        "rpe": 8.0,
+        "notes": "Do dumbbell floor press if no \naccess to dip handles"
+      },
+      {
+        "name": "Hanging leg raise",
+        "superset_label": null,
+        "type_of_set": "working",
+        "number_of_sets": 3,
+        "number_of_reps": 12,
+        "is_amrap": false,
+        "load_percentage": null,
+        "rpe": 9.0,
+        "notes": "Knees to chest, controlled reps, straighten legs more to increase difficulty"
+      },
+      {
+        "name": "Lat pull-over",
+        "superset_label": null,
+        "type_of_set": "warm-up",
+        "number_of_sets": 1,
+        "number_of_reps": 15,
+        "is_amrap": false,
+        "load_percentage": null,
+        "rpe": 8.0,
+        "notes": "Can use a DB, cable/rope or band, stretch and squeeze lats!"
+      },
+      {
+        "name": "Lat pull-over",
+        "superset_label": null,
+        "type_of_set": "working",
+        "number_of_sets": 3,
+        "number_of_reps": 15,
+        "is_amrap": false,
+        "load_percentage": null,
+        "rpe": 8.0,
+        "notes": "Can use a DB, cable/rope or band, stretch and squeeze lats!"
+      },
+      {
+        "name": "Incline dumbbell curl",
+        "superset_label": null,
+        "type_of_set": "warm-up",
+        "number_of_sets": 1,
+        "number_of_reps": 15,
+        "is_amrap": false,
+        "load_percentage": null,
+        "rpe": 9.0,
+        "notes": "Do each arm one at a time rather than alternating, start with your weak arm"
+      },
+      {
+        "name": "Incline dumbbell curl",
+        "superset_label": null,
+        "type_of_set": "working",
+        "number_of_sets": 3,
+        "number_of_reps": 15,
+        "is_amrap": false,
+        "load_percentage": null,
+        "rpe": 9.0,
+        "notes": "Do each arm one at a time rather than alternating, start with your weak arm"
+      },
+      {
+        "name": "Face pull",
+        "superset_label": null,
+        "type_of_set": "working",
+        "number_of_sets": 4,
+        "number_of_reps": 20,
+        "is_amrap": false,
+        "load_percentage": null,
+        "rpe": 9.0,
+        "notes": "Can use cable/rope or band, retract your shoulder blades as you pull"
+      }
+    ]
+  }
+]

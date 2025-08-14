@@ -20,18 +20,20 @@ export const workoutSchema = z.object({
   exercises: z.array(exerciseSchema),
 });
 
+export const exerciseProgressSchema = z.object({
+  sets: z.number(),
+  reps: z.number(),
+  weight: z.number().optional(),
+  notes: z.string().optional(),
+  completed: z.boolean().default(false),
+});
+
 export const workoutProgressSchema = z.object({
   workoutNumber: z.number(),
   status: z.enum(["not_started", "in_progress", "completed"]),
   startedAt: z.string().optional(),
   completedAt: z.string().optional(),
-  exerciseProgress: z.record(z.object({
-    sets: z.number(),
-    reps: z.number(),
-    weight: z.number().optional(),
-    notes: z.string().optional(),
-    completed: z.boolean(),
-  })).optional(),
+  exerciseProgress: z.record(exerciseProgressSchema).optional(),
 });
 
 export const oneRMSchema = z.object({
@@ -52,6 +54,7 @@ export const exerciseHistoryEntrySchema = z.object({
 
 export type Exercise = z.infer<typeof exerciseSchema>;
 export type Workout = z.infer<typeof workoutSchema>;
+export type ExerciseProgress = z.infer<typeof exerciseProgressSchema>;
 export type WorkoutProgress = z.infer<typeof workoutProgressSchema>;
 export type OneRM = z.infer<typeof oneRMSchema>;
 export type ExerciseHistoryEntry = z.infer<typeof exerciseHistoryEntrySchema>;

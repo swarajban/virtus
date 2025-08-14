@@ -9,19 +9,27 @@ import { Play, BarChart3, Settings } from "lucide-react";
 import type { WorkoutWithProgress } from "@/types/workout";
 
 // Import the workout data
-import workoutData from "@assets/powerbuilding_data_1755148171236.json";
+import { Workout } from "@shared/schema";
 
 export default function HomePage() {
   const [, setLocation] = useLocation();
   const [workouts, setWorkouts] = useState<WorkoutWithProgress[]>([]);
 
   useEffect(() => {
-    const workoutProgress = LocalStorage.getWorkoutProgress();
-    const workoutsWithProgress = workoutData.map(workout => ({
-      ...workout,
-      progress: workoutProgress[workout.workout_number],
-    }));
-    setWorkouts(workoutsWithProgress);
+    // Load workout data from public folder
+    fetch('/powerbuilding_data.json')
+      .then(response => response.json())
+      .then((workoutData: Workout[]) => {
+        const workoutProgress = LocalStorage.getWorkoutProgress();
+        const workoutsWithProgress = workoutData.map(workout => ({
+          ...workout,
+          progress: workoutProgress[workout.workout_number],
+        }));
+        setWorkouts(workoutsWithProgress);
+      })
+      .catch(error => {
+        console.error('Error loading workout data:', error);
+      });
   }, []);
 
   const completedWorkouts = workouts.filter(w => w.progress?.status === "completed").length;

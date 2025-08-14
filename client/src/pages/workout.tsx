@@ -3,13 +3,13 @@ import { useLocation, useRoute } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Play, Check, CheckCircle, ArrowRight, Circle } from "lucide-react";
+import { ArrowLeft, Play, Check, CheckCircle, ArrowRight, Circle, RotateCcw } from "lucide-react";
 import { LocalStorage } from "@/lib/storage";
 import { getWorkoutStatusBadge, formatDate, enhanceExerciseWithCalculations } from "@/lib/workout-utils";
 import type { WorkoutWithProgress, ExerciseWithCalculatedWeight } from "@/types/workout";
 
-// Import the workout data
-import workoutData from "@assets/powerbuilding_data_1755148171236.json";
+// Import types
+import { Workout } from "@shared/schema";
 
 export default function WorkoutPage() {
   const [, setLocation] = useLocation();
@@ -21,23 +21,31 @@ export default function WorkoutPage() {
 
   useEffect(() => {
     if (workoutNumber) {
-      const workoutProgress = LocalStorage.getWorkoutProgress();
-      const foundWorkout = workoutData.find(w => w.workout_number === workoutNumber);
-      
-      if (foundWorkout) {
-        const workoutWithProgress: WorkoutWithProgress = {
-          ...foundWorkout,
-          progress: workoutProgress[workoutNumber],
-        };
-        setWorkout(workoutWithProgress);
+      // Load workout data from public folder
+      fetch('/powerbuilding_data.json')
+        .then(response => response.json())
+        .then((workoutData: Workout[]) => {
+          const workoutProgress = LocalStorage.getWorkoutProgress();
+          const foundWorkout = workoutData.find(w => w.workout_number === workoutNumber);
+          
+          if (foundWorkout) {
+            const workoutWithProgress: WorkoutWithProgress = {
+              ...foundWorkout,
+              progress: workoutProgress[workoutNumber],
+            };
+            setWorkout(workoutWithProgress);
 
-        // Enhance exercises with calculated weights
-        const oneRM = LocalStorage.getOneRM();
-        const enhancedExercises = foundWorkout.exercises.map(exercise => 
-          enhanceExerciseWithCalculations(exercise, oneRM)
-        );
-        setExercises(enhancedExercises);
-      }
+            // Enhance exercises with calculated weights
+            const oneRM = LocalStorage.getOneRM();
+            const enhancedExercises = foundWorkout.exercises.map(exercise => 
+              enhanceExerciseWithCalculations(exercise, oneRM)
+            );
+            setExercises(enhancedExercises);
+          }
+        })
+        .catch(error => {
+          console.error('Error loading workout data:', error);
+        });
     }
   }, [workoutNumber]);
 
@@ -69,14 +77,32 @@ export default function WorkoutPage() {
     setWorkout({ ...workout, progress });
   };
 
+  const handleResetWorkout = () => {
+    // Clear the workout progress from localStorage
+    LocalStorage.clearWorkoutProgress(workoutNumber);
+    // Update the workout state
+    const resetWorkout = { ...workout, progress: undefined };
+    setWorkout(resetWorkout);
+  };
+
   const handleExerciseClick = (exerciseIndex: number) => {
     setLocation(`/workout/${workoutNumber}/exercise/${exerciseIndex}`);
   };
 
   const getExerciseStatus = (exercise: ExerciseWithCalculatedWeight, index: number) => {
-    // This would be enhanced with actual progress tracking
-    if (index === 0 && status === "in_progress") return "completed";
-    if (index === 1 && status === "in_progress") return "current";
+    // Check if this exercise has been completed
+    const exerciseKey = `${index}`;
+    const isCompleted = workout?.progress?.exerciseProgress?.[exerciseKey]?.completed || false;
+    
+    if (isCompleted) return "completed";
+    if (status === "in_progress") {
+      // Find the first uncompleted exercise to mark as current
+      const firstIncompleteIndex = exercises.findIndex((_, i) => {
+        const key = `${i}`;
+        return !workout?.progress?.exerciseProgress?.[key]?.completed;
+      });
+      if (index === firstIncompleteIndex) return "current";
+    }
     return "upcoming";
   };
 
@@ -130,7 +156,7 @@ export default function WorkoutPage() {
 
       {/* Workout Actions */}
       <div className="p-4 bg-gray-50 border-b">
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-2 gap-3 mb-3">
           {status === "not_started" && (
             <Button 
               onClick={handleStartWorkout}
@@ -166,6 +192,16 @@ export default function WorkoutPage() {
             Back to Home
           </Button>
         </div>
+        {(status === "in_progress" || status === "completed") && (
+          <Button 
+            variant="destructive"
+            onClick={handleResetWorkout}
+            className="w-full h-10 text-sm"
+          >
+            <RotateCcw className="h-4 w-4 mr-2" />
+            Reset Workout
+          </Button>
+        )}
       </div>
 
       {/* Exercise List */}

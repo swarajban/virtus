@@ -11,8 +11,8 @@ import { LocalStorage } from "@/lib/storage";
 import { enhanceExerciseWithCalculations, getActualPercentage } from "@/lib/workout-utils";
 import type { ExerciseWithCalculatedWeight } from "@/types/workout";
 
-// Import the workout data
-import workoutData from "@assets/powerbuilding_data_1755148171236.json";
+// Import types
+import { Workout } from "@shared/schema";
 
 export default function ExercisePage() {
   const [, setLocation] = useLocation();
@@ -24,32 +24,40 @@ export default function ExercisePage() {
   const [userNotes, setUserNotes] = useState("");
   const [showHistory, setShowHistory] = useState(false);
   const [oneRM, setOneRM] = useState(LocalStorage.getOneRM());
+  const [totalExercises, setTotalExercises] = useState(0);
 
   const workoutNumber = params ? parseInt(params.workoutNumber) : 0;
   const exerciseIndex = params ? parseInt(params.exerciseIndex) : 0;
 
   useEffect(() => {
     if (workoutNumber && exerciseIndex >= 0) {
-      const foundWorkout = workoutData.find(w => w.workout_number === workoutNumber);
-      
-      if (foundWorkout && foundWorkout.exercises[exerciseIndex]) {
-        const exerciseData = foundWorkout.exercises[exerciseIndex];
-        const enhancedExercise = enhanceExerciseWithCalculations(exerciseData, oneRM);
-        setExercise(enhancedExercise);
-        
-        // Set initial values
-        setUserSets(enhancedExercise.number_of_sets);
-        setUserReps(enhancedExercise.number_of_reps || 1);
-        setUserWeight(enhancedExercise.calculatedWeight || 0);
-      }
+      // Load workout data from public folder
+      fetch('/powerbuilding_data.json')
+        .then(response => response.json())
+        .then((workoutData: Workout[]) => {
+          const foundWorkout = workoutData.find(w => w.workout_number === workoutNumber);
+          
+          if (foundWorkout && foundWorkout.exercises[exerciseIndex]) {
+            const exerciseData = foundWorkout.exercises[exerciseIndex];
+            const enhancedExercise = enhanceExerciseWithCalculations(exerciseData, oneRM);
+            setExercise(enhancedExercise);
+            setTotalExercises(foundWorkout.exercises.length);
+            
+            // Set initial values
+            setUserSets(enhancedExercise.number_of_sets);
+            setUserReps(enhancedExercise.number_of_reps || 1);
+            setUserWeight(enhancedExercise.calculatedWeight || 0);
+          }
+        })
+        .catch(error => {
+          console.error('Error loading workout data:', error);
+        });
     }
   }, [workoutNumber, exerciseIndex, oneRM]);
 
   if (!exercise) {
     return <div>Loading...</div>;
   }
-
-  const totalExercises = workoutData.find(w => w.workout_number === workoutNumber)?.exercises.length || 0;
 
   const handleCompleteExercise = () => {
     // Save exercise history
@@ -64,6 +72,29 @@ export default function ExercisePage() {
       };
       LocalStorage.saveExerciseHistory(historyEntry);
     }
+
+    // Save exercise completion to workout progress
+    const workoutProgress = LocalStorage.getWorkoutProgress();
+    const currentProgress = workoutProgress[workoutNumber] || {
+      workoutNumber,
+      status: "in_progress" as const,
+      startedAt: new Date().toISOString(),
+      exerciseProgress: {},
+    };
+
+    const exerciseKey = `${exerciseIndex}`;
+    currentProgress.exerciseProgress = {
+      ...currentProgress.exerciseProgress,
+      [exerciseKey]: {
+        sets: userSets,
+        reps: userReps,
+        weight: userWeight,
+        notes: userNotes,
+        completed: true,
+      },
+    };
+
+    LocalStorage.saveWorkoutProgress(workoutNumber, currentProgress);
 
     // Navigate to next exercise or back to workout
     if (exerciseIndex < totalExercises - 1) {
@@ -124,9 +155,6 @@ export default function ExercisePage() {
           <span className="text-sm opacity-90">
             Exercise {exerciseIndex + 1} of {totalExercises}
           </span>
-          <Badge className="bg-blue-100 text-blue-700">
-            {exercise.type_of_set} Set
-          </Badge>
         </div>
         <h2 className="text-xl font-bold mb-1">{exercise.name}</h2>
         <p className="text-sm opacity-90">
@@ -134,6 +162,15 @@ export default function ExercisePage() {
           {exercise.load_percentage && ` @ ${exercise.load_percentage}% 1RM`}
           {exercise.rpe && ` (RPE ${exercise.rpe})`}
         </p>
+      </div>
+
+      {/* Set Type Banner */}
+      <div className={`w-full py-3 px-4 text-center font-semibold text-white ${
+        exercise.type_of_set === "working" 
+          ? "bg-secondary" 
+          : "bg-yellow-500"
+      }`}>
+        {exercise.type_of_set} set
       </div>
 
       {/* Weight Calculator */}
