@@ -85,6 +85,15 @@ export default function ExercisePage() {
   const handleCompleteExercise = () => {
     setIsCompleting(true);
 
+    console.log("Completing exercise:", {
+      exerciseName: exercise.name,
+      typeOfSet: exercise.type_of_set,
+      userWeight,
+      userSets,
+      userReps,
+      shouldSaveHistory: userWeight > 0 && exercise.type_of_set === "working"
+    });
+
     // Save exercise history only for working sets (not warm-ups)
     if (userWeight > 0 && exercise.type_of_set === "working") {
       const historyEntry = {
@@ -96,7 +105,14 @@ export default function ExercisePage() {
         notes: userNotes,
         typeOfSet: exercise.type_of_set as "warm-up" | "working",
       };
+      console.log("Saving exercise history entry:", historyEntry);
       LocalStorage.saveExerciseHistory(historyEntry);
+    } else {
+      console.log("Not saving exercise history because:", {
+        hasWeight: userWeight > 0,
+        isWorkingSet: exercise.type_of_set === "working",
+        typeOfSet: exercise.type_of_set
+      });
     }
 
     // Save exercise completion to workout progress
