@@ -1,5 +1,89 @@
+import { sql } from "drizzle-orm";
+import { pgTable, text, timestamp, varchar, integer, real, boolean, jsonb, serial, index } from "drizzle-orm/pg-core";
+import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
+// User table - simple user identification for now
+export const users = pgTable("users", {
+  id: serial("id").primaryKey(),
+  deviceId: varchar("device_id", { length: 255 }).unique().notNull(), // For now, use device ID
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// One Rep Max table - stores user's 1RM values
+export const oneRepMaxes = pgTable("one_rep_maxes", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  backSquat: real("back_squat").default(135),
+  benchPress: real("bench_press").default(95),
+  deadlift: real("deadlift").default(185),
+  overheadPress: real("overhead_press").default(65),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_orm_user_id").on(table.userId),
+]);
+
+// Workout Progress table - stores workout completion status and progress
+export const workoutProgress = pgTable("workout_progress", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  workoutNumber: integer("workout_number").notNull(),
+  status: varchar("status", { length: 20 }).notNull(), // 'not_started', 'in_progress', 'completed'
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+  exerciseProgress: jsonb("exercise_progress").default({}).notNull(), // JSON object with exercise completion data
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_wp_user_workout").on(table.userId, table.workoutNumber),
+]);
+
+// Exercise History table - stores historical exercise performance data
+export const exerciseHistory = pgTable("exercise_history", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  exerciseName: varchar("exercise_name", { length: 255 }).notNull(),
+  sets: integer("sets").notNull(),
+  reps: integer("reps").notNull(),
+  weight: real("weight").notNull(),
+  notes: text("notes"),
+  performedAt: timestamp("performed_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_eh_user_exercise").on(table.userId, table.exerciseName),
+  index("idx_eh_performed_at").on(table.performedAt),
+]);
+
+// Derive schemas and types for database tables
+export const insertUserSchema = createInsertSchema(users).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertUser = z.infer<typeof insertUserSchema>;
+export type User = typeof users.$inferSelect;
+
+export const insertOneRepMaxSchema = createInsertSchema(oneRepMaxes).omit({
+  id: true,
+  updatedAt: true,
+});
+export type InsertOneRepMax = z.infer<typeof insertOneRepMaxSchema>;
+export type OneRepMax = typeof oneRepMaxes.$inferSelect;
+
+export const insertWorkoutProgressSchema = createInsertSchema(workoutProgress).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+export type InsertWorkoutProgress = z.infer<typeof insertWorkoutProgressSchema>;
+export type WorkoutProgressDB = typeof workoutProgress.$inferSelect;
+
+export const insertExerciseHistorySchema = createInsertSchema(exerciseHistory).omit({
+  id: true,
+  performedAt: true,
+});
+export type InsertExerciseHistory = z.infer<typeof insertExerciseHistorySchema>;
+export type ExerciseHistoryDB = typeof exerciseHistory.$inferSelect;
+
+// Keep original Zod schemas for JSON data and client-side types
 export const exerciseSchema = z.object({
   name: z.string(),
   superset_label: z.string().nullable(),

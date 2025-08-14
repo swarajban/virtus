@@ -1,38 +1,228 @@
-import { type User, type InsertUser } from "@shared/schema";
-import { randomUUID } from "crypto";
+import { 
+  users, 
+  oneRepMaxes,
+  workoutProgress,
+  exerciseHistory,
+  type User, 
+  type InsertUser,
+  type OneRepMax,
+  type InsertOneRepMax,
+  type WorkoutProgressDB,
+  type InsertWorkoutProgress,
+  type ExerciseHistoryDB,
+  type InsertExerciseHistory,
+  type WorkoutProgress,
+  type OneRM,
+  type ExerciseHistoryEntry
+} from "@shared/schema";
+import { db } from "./db";
+import { eq, and, desc } from "drizzle-orm";
 
-// modify the interface with any CRUD methods
-// you might need
-
+// Interface for storage operations
 export interface IStorage {
-  getUser(id: string): Promise<User | undefined>;
-  getUserByUsername(username: string): Promise<User | undefined>;
+  // User operations
+  getUser(id: number): Promise<User | undefined>;
+  getUserByDeviceId(deviceId: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  getOrCreateUser(deviceId: string): Promise<User>;
+  
+  // One Rep Max operations
+  getOneRepMax(userId: number): Promise<OneRM | null>;
+  saveOneRepMax(userId: number, oneRM: OneRM): Promise<void>;
+  
+  // Workout Progress operations
+  getWorkoutProgress(userId: number): Promise<Record<number, WorkoutProgress>>;
+  saveWorkoutProgress(userId: number, workoutNumber: number, progress: WorkoutProgress): Promise<void>;
+  
+  // Exercise History operations  
+  getExerciseHistory(userId: number, exerciseName?: string): Promise<ExerciseHistoryEntry[]>;
+  saveExerciseHistory(userId: number, history: ExerciseHistoryEntry): Promise<void>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<string, User>;
-
-  constructor() {
-    this.users = new Map();
+// Database storage implementation
+export class DatabaseStorage implements IStorage {
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user || undefined;
   }
 
-  async getUser(id: string): Promise<User | undefined> {
-    return this.users.get(id);
-  }
-
-  async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+  async getUserByDeviceId(deviceId: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.deviceId, deviceId));
+    return user || undefined;
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const id = randomUUID();
-    const user: User = { ...insertUser, id };
-    this.users.set(id, user);
+    const [user] = await db
+      .insert(users)
+      .values(insertUser)
+      .returning();
     return user;
+  }
+
+  async getOrCreateUser(deviceId: string): Promise<User> {
+    try {
+      let user = await this.getUserByDeviceId(deviceId);
+      if (!user) {
+        user = await this.createUser({ deviceId });
+      }
+      return user;
+    } catch (error: any) {
+      // Handle duplicate key error - user was created by another request
+      if (error?.code === '23505') {
+        const user = await this.getUserByDeviceId(deviceId);
+        if (user) return user;
+      }
+      throw error;
+    }
+  }
+
+  async getOneRepMax(userId: number): Promise<OneRM | null> {
+    const [orm] = await db
+      .select()
+      .from(oneRepMaxes)
+      .where(eq(oneRepMaxes.userId, userId))
+      .orderBy(desc(oneRepMaxes.updatedAt))
+      .limit(1);
+    
+    if (!orm) return null;
+    
+    return {
+      backSquat: orm.backSquat || 135,
+      benchPress: orm.benchPress || 95,
+      deadlift: orm.deadlift || 185,
+      overheadPress: orm.overheadPress || 65,
+    };
+  }
+
+  async saveOneRepMax(userId: number, oneRM: OneRM): Promise<void> {
+    const existing = await db
+      .select()
+      .from(oneRepMaxes)
+      .where(eq(oneRepMaxes.userId, userId))
+      .limit(1);
+
+    if (existing.length > 0) {
+      await db
+        .update(oneRepMaxes)
+        .set({
+          backSquat: oneRM.backSquat,
+          benchPress: oneRM.benchPress,
+          deadlift: oneRM.deadlift,
+          overheadPress: oneRM.overheadPress,
+          updatedAt: new Date(),
+        })
+        .where(eq(oneRepMaxes.userId, userId));
+    } else {
+      await db
+        .insert(oneRepMaxes)
+        .values({
+          userId,
+          backSquat: oneRM.backSquat,
+          benchPress: oneRM.benchPress,
+          deadlift: oneRM.deadlift,
+          overheadPress: oneRM.overheadPress,
+        });
+    }
+  }
+
+  async getWorkoutProgress(userId: number): Promise<Record<number, WorkoutProgress>> {
+    const progresses = await db
+      .select()
+      .from(workoutProgress)
+      .where(eq(workoutProgress.userId, userId));
+    
+    const result: Record<number, WorkoutProgress> = {};
+    for (const progress of progresses) {
+      result[progress.workoutNumber] = {
+        workoutNumber: progress.workoutNumber,
+        status: progress.status as "not_started" | "in_progress" | "completed",
+        startedAt: progress.startedAt?.toISOString(),
+        completedAt: progress.completedAt?.toISOString(),
+        exerciseProgress: progress.exerciseProgress as any,
+      };
+    }
+    return result;
+  }
+
+  async saveWorkoutProgress(userId: number, workoutNumber: number, progress: WorkoutProgress): Promise<void> {
+    const existing = await db
+      .select()
+      .from(workoutProgress)
+      .where(and(
+        eq(workoutProgress.userId, userId),
+        eq(workoutProgress.workoutNumber, workoutNumber)
+      ))
+      .limit(1);
+
+    const dbProgress = {
+      userId,
+      workoutNumber,
+      status: progress.status,
+      startedAt: progress.startedAt ? new Date(progress.startedAt) : null,
+      completedAt: progress.completedAt ? new Date(progress.completedAt) : null,
+      exerciseProgress: progress.exerciseProgress || {},
+    };
+
+    if (existing.length > 0) {
+      await db
+        .update(workoutProgress)
+        .set({
+          ...dbProgress,
+          updatedAt: new Date(),
+        })
+        .where(and(
+          eq(workoutProgress.userId, userId),
+          eq(workoutProgress.workoutNumber, workoutNumber)
+        ));
+    } else {
+      await db
+        .insert(workoutProgress)
+        .values(dbProgress);
+    }
+  }
+
+  async getExerciseHistory(userId: number, exerciseName?: string): Promise<ExerciseHistoryEntry[]> {
+    let query = db
+      .select()
+      .from(exerciseHistory)
+      .where(eq(exerciseHistory.userId, userId))
+      .orderBy(desc(exerciseHistory.performedAt));
+    
+    if (exerciseName) {
+      query = db
+        .select()
+        .from(exerciseHistory)
+        .where(and(
+          eq(exerciseHistory.userId, userId),
+          eq(exerciseHistory.exerciseName, exerciseName)
+        ))
+        .orderBy(desc(exerciseHistory.performedAt));
+    }
+    
+    const histories = await query;
+    
+    return histories.map(h => ({
+      date: h.performedAt.toISOString(),
+      exerciseName: h.exerciseName,
+      sets: h.sets,
+      reps: h.reps,
+      weight: h.weight,
+      notes: h.notes || undefined,
+    }));
+  }
+
+  async saveExerciseHistory(userId: number, history: ExerciseHistoryEntry): Promise<void> {
+    await db
+      .insert(exerciseHistory)
+      .values({
+        userId,
+        exerciseName: history.exerciseName,
+        sets: history.sets,
+        reps: history.reps,
+        weight: history.weight,
+        notes: history.notes,
+      });
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new DatabaseStorage();
