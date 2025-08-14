@@ -33,15 +33,15 @@ export function getWorkoutStatusBadge(status: string) {
       return {
         label: "Completed",
         icon: "fas fa-check",
-        className: "bg-secondary text-white",
-        borderClass: "border-secondary",
+        className: "bg-green-500 text-white",
+        borderClass: "border-green-500",
       };
     case "in_progress":
       return {
         label: "In Progress",
         icon: "fas fa-clock",
-        className: "bg-warning text-white",
-        borderClass: "border-warning",
+        className: "bg-yellow-500 text-white",
+        borderClass: "border-yellow-500",
       };
     case "not_started":
       return {
