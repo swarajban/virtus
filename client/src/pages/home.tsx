@@ -18,7 +18,7 @@ export default function HomePage() {
   const loadWorkouts = useCallback(async () => {
     try {
       const [response, workoutProgress] = await Promise.all([
-        fetch('/attached_assets/powerbuilding_data_1755148171236.json'),
+        fetch('/powerbuilding_data.json'),
         LocalStorage.getWorkoutProgress()
       ]);
       

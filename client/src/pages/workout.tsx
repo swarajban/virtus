@@ -24,7 +24,7 @@ export default function WorkoutPage() {
       if (workoutNumber) {
         try {
           const [response, workoutProgress, oneRM] = await Promise.all([
-            fetch('/attached_assets/powerbuilding_data_1755148171236.json'),
+            fetch('/powerbuilding_data.json'),
             LocalStorage.getWorkoutProgress(),
             LocalStorage.getOneRM()
           ]);
