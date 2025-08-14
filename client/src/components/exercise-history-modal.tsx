@@ -1,7 +1,5 @@
 import { useEffect, useRef } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Button } from "@/components/ui/button";
-import { X } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { LocalStorage } from "@/lib/storage";
 import { formatDate } from "@/lib/workout-utils";
 import type { ExerciseHistoryEntry } from "@shared/schema";
@@ -19,6 +17,7 @@ export function ExerciseHistoryModal({
 }: ExerciseHistoryModalProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
+  // Get exercise history for this exercise (warm-ups are already excluded when saving)
   const exerciseHistory = LocalStorage.getExerciseHistory()
     .filter(entry => entry.exerciseName === exerciseName)
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
@@ -70,31 +69,24 @@ export function ExerciseHistoryModal({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-md max-h-96 overflow-hidden">
+      <DialogContent className="max-w-md">
         <DialogHeader>
-          <div className="flex items-center justify-between">
-            <DialogTitle>Exercise History</DialogTitle>
-            <Button variant="ghost" size="icon" onClick={onClose}>
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
-          <p className="text-sm text-gray-600">{exerciseName}</p>
+          <DialogTitle>Exercise History</DialogTitle>
+          <DialogDescription>{exerciseName}</DialogDescription>
         </DialogHeader>
         
         {exerciseHistory.length > 0 ? (
-          <>
-            {/* Chart */}
-            <div className="border-b pb-4">
+          <div className="space-y-4">
+            {/* Chart Container */}
+            <div className="relative w-full h-48 border rounded-lg p-2">
               <canvas 
                 ref={canvasRef} 
-                width="400" 
-                height="200"
-                className="w-full h-48"
+                className="w-full h-full"
               />
             </div>
             
             {/* History List */}
-            <div className="overflow-y-auto max-h-48 space-y-3">
+            <div className="overflow-y-auto max-h-64 space-y-3 pr-2">
               {exerciseHistory.map((entry, index) => (
                 <div key={index} className="bg-gray-50 p-3 rounded-lg">
                   <div className="flex justify-between items-start mb-1">
@@ -110,7 +102,7 @@ export function ExerciseHistoryModal({
                 </div>
               ))}
             </div>
-          </>
+          </div>
         ) : (
           <div className="text-center py-8 text-gray-500">
             <p>No history available for this exercise</p>

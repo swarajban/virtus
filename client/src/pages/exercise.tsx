@@ -85,8 +85,8 @@ export default function ExercisePage() {
   const handleCompleteExercise = () => {
     setIsCompleting(true);
 
-    // Save exercise history
-    if (userWeight > 0) {
+    // Save exercise history only for working sets (not warm-ups)
+    if (userWeight > 0 && exercise.type_of_set === "working") {
       const historyEntry = {
         date: new Date().toISOString(),
         exerciseName: exercise.name,
