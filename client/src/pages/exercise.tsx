@@ -26,6 +26,7 @@ export default function ExercisePage() {
   const [oneRM, setOneRM] = useState(LocalStorage.getOneRM());
   const [totalExercises, setTotalExercises] = useState(0);
   const [isCompleting, setIsCompleting] = useState(false);
+  const [isExerciseCompleted, setIsExerciseCompleted] = useState(false);
 
   const workoutNumber = params ? parseInt(params.workoutNumber) : 0;
   const exerciseIndex = params ? parseInt(params.exerciseIndex) : 0;
@@ -53,6 +54,22 @@ export default function ExercisePage() {
             setUserSets(enhancedExercise.number_of_sets);
             setUserReps(enhancedExercise.number_of_reps || 1);
             setUserWeight(enhancedExercise.calculatedWeight || 0);
+
+            // Check if exercise is already completed
+            const workoutProgress = LocalStorage.getWorkoutProgress();
+            const currentProgress = workoutProgress[workoutNumber];
+            const exerciseKey = `${exerciseIndex}`;
+            const isCompleted = currentProgress?.exerciseProgress?.[exerciseKey]?.completed || false;
+            setIsExerciseCompleted(isCompleted);
+
+            // If completed, load the saved values
+            if (isCompleted && currentProgress?.exerciseProgress?.[exerciseKey]) {
+              const savedProgress = currentProgress.exerciseProgress[exerciseKey];
+              setUserSets(savedProgress.sets);
+              setUserReps(savedProgress.reps);
+              setUserWeight(savedProgress.weight);
+              setUserNotes(savedProgress.notes || "");
+            }
           }
         })
         .catch(error => {
@@ -180,6 +197,12 @@ export default function ExercisePage() {
           <span className="text-sm opacity-90">
             Exercise {exerciseIndex + 1} of {totalExercises}
           </span>
+          {isExerciseCompleted && (
+            <Badge className="bg-green-500 hover:bg-green-500 text-white border-green-500">
+              <CheckCircle className="h-3 w-3 mr-1" />
+              Completed
+            </Badge>
+          )}
         </div>
         <h2 className="text-xl font-bold mb-1">{exercise.name}</h2>
         <p className="text-sm opacity-90">
@@ -336,13 +359,19 @@ export default function ExercisePage() {
           className={`w-full h-12 transition-all duration-300 ${
             isCompleting 
               ? "bg-green-600 scale-105 shadow-lg" 
-              : "bg-secondary hover:bg-green-700"
+              : isExerciseCompleted 
+                ? "bg-green-600 hover:bg-green-700" 
+                : "bg-secondary hover:bg-green-700"
           } text-white`}
         >
           <Check className={`h-4 w-4 mr-2 transition-transform duration-300 ${
             isCompleting ? "scale-125" : ""
           }`} />
-          {isCompleting ? "Exercise Completed!" : "Complete Exercise"}
+          {isCompleting 
+            ? "Exercise Completed!" 
+            : isExerciseCompleted 
+              ? "Mark Complete Again" 
+              : "Complete Exercise"}
         </Button>
       </div>
 
