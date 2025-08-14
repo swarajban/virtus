@@ -23,11 +23,12 @@ export class LocalStorage {
   // Load initial data from API on startup
   static async initialize() {
     try {
-      // Check if a user is selected first
-      const username = localStorage.getItem('selected-username');
+      // Check if a user is selected first, default to 'swaraj'
+      let username = localStorage.getItem('selected-username');
       if (!username) {
-        console.log("No user selected, waiting for user selection");
-        return;
+        console.log("No user selected, defaulting to 'swaraj'");
+        username = 'swaraj';
+        localStorage.setItem('selected-username', username);
       }
       
       // Fetch initial data from API
@@ -174,10 +175,16 @@ export class LocalStorage {
     history.push(entry);
     localStorage.setItem(STORAGE_KEYS.EXERCISE_HISTORY, JSON.stringify(history));
     
+    console.log("Saving exercise history to API:", entry);
+    
     // Save to API in background
-    api.saveExerciseHistory(entry).catch(error => {
-      console.error("Failed to save exercise history to API:", error);
-    });
+    api.saveExerciseHistory(entry)
+      .then(() => {
+        console.log("Exercise history saved to API successfully");
+      })
+      .catch(error => {
+        console.error("Failed to save exercise history to API:", error);
+      });
   }
 }
 

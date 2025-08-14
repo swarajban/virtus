@@ -117,6 +117,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await getUserFromRequest(req);
       const historyEntry = req.body;
       
+      console.log("Saving exercise history for user:", user.id, "Entry:", historyEntry);
       await storage.saveExerciseHistory(user.id, historyEntry);
       res.json({ success: true });
     } catch (error) {

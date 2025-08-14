@@ -204,6 +204,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   async saveExerciseHistory(userId: number, history: ExerciseHistoryEntry): Promise<void> {
+    console.log("Inserting exercise history:", {
+      userId,
+      exerciseName: history.exerciseName,
+      sets: history.sets,
+      reps: history.reps,
+      weight: history.weight,
+      notes: history.notes,
+      typeOfSet: history.typeOfSet || "working",
+    });
+    
     await db
       .insert(exerciseHistory)
       .values({
@@ -215,6 +225,8 @@ export class DatabaseStorage implements IStorage {
         notes: history.notes,
         typeOfSet: history.typeOfSet || "working",
       });
+    
+    console.log("Exercise history saved successfully");
   }
 }
 
