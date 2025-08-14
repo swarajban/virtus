@@ -3,10 +3,10 @@ import { pgTable, text, timestamp, varchar, integer, real, boolean, jsonb, seria
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-// User table - simple user identification for now
+// User table - stores usernames
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
-  deviceId: varchar("device_id", { length: 255 }).unique().notNull(), // For now, use device ID
+  username: varchar("username", { length: 255 }).unique().notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

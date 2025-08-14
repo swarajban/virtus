@@ -23,6 +23,13 @@ export class LocalStorage {
   // Load initial data from API on startup
   static async initialize() {
     try {
+      // Check if a user is selected first
+      const username = localStorage.getItem('selected-username');
+      if (!username) {
+        console.log("No user selected, waiting for user selection");
+        return;
+      }
+      
       // Fetch initial data from API
       const [oneRM, progress] = await Promise.all([
         api.getOneRM(),

@@ -22,9 +22,9 @@ import { eq, and, desc } from "drizzle-orm";
 export interface IStorage {
   // User operations
   getUser(id: number): Promise<User | undefined>;
-  getUserByDeviceId(deviceId: string): Promise<User | undefined>;
+  getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
-  getOrCreateUser(deviceId: string): Promise<User>;
+  getAllUsers(): Promise<User[]>;
   
   // One Rep Max operations
   getOneRepMax(userId: number): Promise<OneRM | null>;
@@ -46,8 +46,8 @@ export class DatabaseStorage implements IStorage {
     return user || undefined;
   }
 
-  async getUserByDeviceId(deviceId: string): Promise<User | undefined> {
-    const [user] = await db.select().from(users).where(eq(users.deviceId, deviceId));
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
     return user || undefined;
   }
 
@@ -59,21 +59,8 @@ export class DatabaseStorage implements IStorage {
     return user;
   }
 
-  async getOrCreateUser(deviceId: string): Promise<User> {
-    try {
-      let user = await this.getUserByDeviceId(deviceId);
-      if (!user) {
-        user = await this.createUser({ deviceId });
-      }
-      return user;
-    } catch (error: any) {
-      // Handle duplicate key error - user was created by another request
-      if (error?.code === '23505') {
-        const user = await this.getUserByDeviceId(deviceId);
-        if (user) return user;
-      }
-      throw error;
-    }
+  async getAllUsers(): Promise<User[]> {
+    return await db.select().from(users);
   }
 
   async getOneRepMax(userId: number): Promise<OneRM | null> {

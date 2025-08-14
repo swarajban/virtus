@@ -4,16 +4,34 @@ import { storage } from "./storage";
 import { insertOneRepMaxSchema, insertWorkoutProgressSchema, insertExerciseHistorySchema } from "@shared/schema";
 import { z } from "zod";
 
-// Helper to get or create user based on device ID from headers
+// Helper to get user based on username from headers
 async function getUserFromRequest(req: any) {
-  const deviceId = req.headers['x-device-id'] as string || req.ip || 'default-device';
-  return await storage.getOrCreateUser(deviceId);
+  const username = req.headers['x-username'] as string;
+  if (!username) {
+    throw new Error('Username header is required');
+  }
+  const user = await storage.getUserByUsername(username);
+  if (!user) {
+    throw new Error(`User ${username} not found`);
+  }
+  return user;
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Health check endpoint
   app.get("/api/health", (req, res) => {
     res.json({ status: "ok", timestamp: new Date().toISOString() });
+  });
+
+  // Get all users
+  app.get("/api/users", async (req, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      res.json(users);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ error: "Failed to fetch users" });
+    }
   });
 
   // Get user's 1RM values

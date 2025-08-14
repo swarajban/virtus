@@ -1,23 +1,28 @@
 // API client for backend communication
-import { OneRM, WorkoutProgress, ExerciseHistoryEntry } from "@shared/schema";
+import { OneRM, WorkoutProgress, ExerciseHistoryEntry, User } from "@shared/schema";
 
-// Generate a unique device ID for this browser/device
-function getDeviceId(): string {
-  let deviceId = localStorage.getItem('device-id');
-  if (!deviceId) {
-    deviceId = `device-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    localStorage.setItem('device-id', deviceId);
-  }
-  return deviceId;
+// Get the current selected username
+function getCurrentUsername(): string | null {
+  return localStorage.getItem('selected-username');
 }
 
-// Helper function to make API requests with device ID
+// Set the current username
+export function setCurrentUsername(username: string): void {
+  localStorage.setItem('selected-username', username);
+}
+
+// Helper function to make API requests with username
 async function apiRequest(url: string, options: RequestInit = {}) {
+  const username = getCurrentUsername();
+  if (!username && !url.includes('/api/users') && !url.includes('/api/health')) {
+    throw new Error('No user selected');
+  }
+  
   const response = await fetch(url, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
-      'x-device-id': getDeviceId(),
+      ...(username ? { 'x-username': username } : {}),
       ...options.headers,
     },
   });
@@ -31,6 +36,11 @@ async function apiRequest(url: string, options: RequestInit = {}) {
 
 // API methods
 export const api = {
+  // Users
+  async getUsers(): Promise<User[]> {
+    return apiRequest('/api/users');
+  },
+  
   // One Rep Max
   async getOneRM(): Promise<OneRM> {
     return apiRequest('/api/one-rm');
