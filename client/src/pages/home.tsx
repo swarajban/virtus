@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,10 +12,10 @@ import type { WorkoutWithProgress } from "@/types/workout";
 import { Workout } from "@shared/schema";
 
 export default function HomePage() {
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
   const [workouts, setWorkouts] = useState<WorkoutWithProgress[]>([]);
 
-  useEffect(() => {
+  const loadWorkouts = useCallback(() => {
     // Load workout data from public folder
     fetch('/powerbuilding_data.json')
       .then(response => response.json())
@@ -31,6 +31,38 @@ export default function HomePage() {
         console.error('Error loading workout data:', error);
       });
   }, []);
+
+  useEffect(() => {
+    loadWorkouts();
+    
+    // Reload workouts when page becomes visible again
+    const handleFocus = () => {
+      loadWorkouts();
+    };
+    
+    window.addEventListener('focus', handleFocus);
+    
+    // Also check when the page becomes visible (handles tab switching)
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        loadWorkouts();
+      }
+    };
+    
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    
+    return () => {
+      window.removeEventListener('focus', handleFocus);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [loadWorkouts]);
+  
+  // Reload workouts when navigating to home page
+  useEffect(() => {
+    if (location === '/') {
+      loadWorkouts();
+    }
+  }, [location, loadWorkouts]);
 
   const completedWorkouts = workouts.filter(w => w.progress?.status === "completed").length;
   const totalWorkouts = workouts.length;
