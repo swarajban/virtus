@@ -126,6 +126,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Clear workout progress
+  app.delete('/api/workout-progress/:workoutNumber', async (req, res) => {
+    try {
+      const user = await getUserFromRequest(req);
+      const workoutNumber = parseInt(req.params.workoutNumber);
+      
+      await storage.clearWorkoutProgress(user.id, workoutNumber);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error clearing workout progress:', error);
+      res.status(500).json({ error: 'Failed to clear workout progress' });
+    }
+  });
+
+  // Clear exercise history for a workout
+  app.delete('/api/exercise-history/workout/:workoutNumber', async (req, res) => {
+    try {
+      const user = await getUserFromRequest(req);
+      const workoutNumber = parseInt(req.params.workoutNumber);
+      
+      await storage.clearExerciseHistoryForWorkout(user.id, workoutNumber);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error clearing exercise history for workout:', error);
+      res.status(500).json({ error: 'Failed to clear exercise history for workout' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

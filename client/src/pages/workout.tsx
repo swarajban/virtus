@@ -83,11 +83,20 @@ export default function WorkoutPage() {
   };
 
   const handleResetWorkout = async () => {
-    // Clear the workout progress from database
-    await LocalStorage.clearWorkoutProgress(workoutNumber);
-    // Update the workout state
-    const resetWorkout = { ...workout, progress: undefined };
-    setWorkout(resetWorkout);
+    try {
+      // Clear both workout progress and exercise history for this workout
+      await Promise.all([
+        LocalStorage.clearWorkoutProgress(workoutNumber),
+        LocalStorage.clearExerciseHistoryForWorkout(workoutNumber)
+      ]);
+      
+      // Update the workout state
+      const resetWorkout = { ...workout, progress: undefined };
+      setWorkout(resetWorkout);
+      console.log(`Reset workout ${workoutNumber} - cleared progress and exercise history`);
+    } catch (error) {
+      console.error("Error resetting workout:", error);
+    }
   };
 
   const handleExerciseClick = (exerciseIndex: number) => {

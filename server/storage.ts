@@ -228,6 +228,50 @@ export class DatabaseStorage implements IStorage {
     
     console.log("Exercise history saved successfully");
   }
+
+  async clearWorkoutProgress(userId: number, workoutNumber: number): Promise<void> {
+    await db
+      .delete(workoutProgress)
+      .where(and(
+        eq(workoutProgress.userId, userId),
+        eq(workoutProgress.workoutNumber, workoutNumber)
+      ));
+    console.log(`Cleared workout progress for user ${userId}, workout ${workoutNumber}`);
+  }
+
+  async clearExerciseHistoryForWorkout(userId: number, workoutNumber: number): Promise<void> {
+    try {
+      // Load workout data to get exercise names
+      const fs = await import('fs');
+      const path = await import('path');
+      const workoutDataPath = path.join(process.cwd(), 'client/public/powerbuilding_data.json');
+      const workoutData = JSON.parse(fs.readFileSync(workoutDataPath, 'utf-8'));
+      const workout = workoutData.find((w: any) => w.workout_number === workoutNumber);
+      
+      if (!workout) {
+        console.log(`No workout found with number ${workoutNumber}`);
+        return;
+      }
+
+      const exerciseNames = workout.exercises.map((ex: any) => ex.name);
+      console.log(`Clearing exercise history for workout ${workoutNumber}, exercises:`, exerciseNames);
+
+      // Delete exercise history entries for this workout's exercises
+      for (const exerciseName of exerciseNames) {
+        await db
+          .delete(exerciseHistory)
+          .where(and(
+            eq(exerciseHistory.userId, userId),
+            eq(exerciseHistory.exerciseName, exerciseName)
+          ));
+      }
+
+      console.log(`Cleared exercise history for workout ${workoutNumber}`);
+    } catch (error) {
+      console.error('Error clearing exercise history for workout:', error);
+      throw error;
+    }
+  }
 }
 
 export const storage = new DatabaseStorage();

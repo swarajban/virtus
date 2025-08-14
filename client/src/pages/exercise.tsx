@@ -10,6 +10,7 @@ import { ArrowLeft, Check, CheckCircle, Info } from "lucide-react";
 import { LocalStorage } from "@/lib/storage";
 import { enhanceExerciseWithCalculations, getActualPercentage } from "@/lib/workout-utils";
 import type { ExerciseWithCalculatedWeight } from "@/types/workout";
+import type { OneRM } from "@shared/schema";
 
 // Import types
 import { Workout } from "@shared/schema";
@@ -27,6 +28,7 @@ export default function ExercisePage() {
   const [totalExercises, setTotalExercises] = useState(0);
   const [isCompleting, setIsCompleting] = useState(false);
   const [isExerciseCompleted, setIsExerciseCompleted] = useState(false);
+  const [isInitialLoading, setIsInitialLoading] = useState(true);
 
   const workoutNumber = params ? parseInt(params.workoutNumber) : 0;
   const exerciseIndex = params ? parseInt(params.exerciseIndex) : 0;
@@ -80,6 +82,8 @@ export default function ExercisePage() {
           }
         } catch (error) {
           console.error('Error loading exercise data:', error);
+        } finally {
+          setIsInitialLoading(false);
         }
       }
     }
@@ -87,8 +91,25 @@ export default function ExercisePage() {
     loadExerciseData();
   }, [workoutNumber, exerciseIndex]);
 
+  if (isInitialLoading) {
+    return (
+      <div className="max-w-md mx-auto bg-white min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading exercise...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!exercise) {
-    return <div>Loading...</div>;
+    return (
+      <div className="max-w-md mx-auto bg-white min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-gray-600">Exercise not found</p>
+        </div>
+      </div>
+    );
   }
 
   const handleCompleteExercise = async () => {

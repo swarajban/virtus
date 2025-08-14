@@ -77,4 +77,16 @@ export const api = {
       body: JSON.stringify(history),
     });
   },
+
+  async clearWorkoutProgress(workoutNumber: number): Promise<void> {
+    await apiRequest(`/api/workout-progress/${workoutNumber}`, {
+      method: 'DELETE',
+    });
+  },
+
+  async clearExerciseHistoryForWorkout(workoutNumber: number): Promise<void> {
+    await apiRequest(`/api/exercise-history/workout/${workoutNumber}`, {
+      method: 'DELETE',
+    });
+  },
 };

@@ -59,23 +59,7 @@ export class DatabaseStorage {
     }
   }
 
-  // Clear workout progress directly in API
-  static async clearWorkoutProgress(workoutNumber: number): Promise<void> {
-    try {
-      await api.saveWorkoutProgress(workoutNumber, {
-        workoutNumber,
-        status: "not_started",
-        exerciseProgress: {},
-      });
-      // Update cache after successful clear
-      if (cache.workoutProgress) {
-        delete cache.workoutProgress[workoutNumber];
-      }
-    } catch (error) {
-      console.error("Failed to clear workout progress:", error);
-      throw error;
-    }
-  }
+
 
   // Get OneRM directly from API with light caching
   static async getOneRM(): Promise<OneRM> {
@@ -127,6 +111,28 @@ export class DatabaseStorage {
       console.log("Exercise history saved to API successfully");
     } catch (error) {
       console.error("Failed to save exercise history to API:", error);
+      throw error;
+    }
+  }
+
+  // Clear workout progress directly from API
+  static async clearWorkoutProgress(workoutNumber: number): Promise<void> {
+    try {
+      await api.clearWorkoutProgress(workoutNumber);
+      console.log("Workout progress cleared successfully");
+    } catch (error) {
+      console.error("Failed to clear workout progress:", error);
+      throw error;
+    }
+  }
+
+  // Clear exercise history for a workout directly from API
+  static async clearExerciseHistoryForWorkout(workoutNumber: number): Promise<void> {
+    try {
+      await api.clearExerciseHistoryForWorkout(workoutNumber);
+      console.log("Exercise history cleared for workout successfully");
+    } catch (error) {
+      console.error("Failed to clear exercise history for workout:", error);
       throw error;
     }
   }
