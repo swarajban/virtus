@@ -75,6 +75,32 @@ export class LocalStorage {
     }
   }
 
+  // Force refresh workout progress from database
+  static async refreshWorkoutProgress(): Promise<Record<number, WorkoutProgress>> {
+    try {
+      const progress = await api.getWorkoutProgress();
+      cache.workoutProgress = progress;
+      cache.lastFetch.workoutProgress = Date.now();
+      localStorage.setItem(STORAGE_KEYS.WORKOUT_PROGRESS, JSON.stringify(progress));
+      return progress;
+    } catch (error) {
+      console.error("Failed to refresh workout progress:", error);
+      return this.getWorkoutProgress();
+    }
+  }
+
+  // Clear all cached data and force fresh sync
+  static clearCache() {
+    cache.oneRM = null;
+    cache.workoutProgress = null;
+    cache.lastFetch.oneRM = 0;
+    cache.lastFetch.workoutProgress = 0;
+    localStorage.removeItem(STORAGE_KEYS.WORKOUT_PROGRESS);
+    localStorage.removeItem(STORAGE_KEYS.ONE_RM);
+    localStorage.removeItem(STORAGE_KEYS.EXERCISE_HISTORY);
+    console.log("Cache cleared, will fetch fresh data from database");
+  }
+
   static saveWorkoutProgress(workoutNumber: number, progress: WorkoutProgress) {
     // Update cache immediately
     const allProgress = this.getWorkoutProgress();
@@ -191,4 +217,11 @@ export class LocalStorage {
 // Initialize on load
 if (typeof window !== 'undefined') {
   LocalStorage.initialize();
+  
+  // Add debug methods to global scope for troubleshooting
+  (window as any).VirtusDebug = {
+    clearCache: () => LocalStorage.clearCache(),
+    getWorkoutProgress: () => LocalStorage.getWorkoutProgress(),
+    refreshWorkoutProgress: () => LocalStorage.refreshWorkoutProgress(),
+  };
 }
