@@ -16,6 +16,8 @@ export default function WorkoutPage() {
   const [match, params] = useRoute("/workout/:workoutNumber");
   const [workout, setWorkout] = useState<WorkoutWithProgress | null>(null);
   const [exercises, setExercises] = useState<ExerciseWithCalculatedWeight[]>([]);
+  const [showReset, setShowReset] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const workoutNumber = params ? parseInt(params.workoutNumber) : 0;
 
@@ -23,6 +25,7 @@ export default function WorkoutPage() {
     async function loadWorkoutData() {
       if (workoutNumber) {
         try {
+          setIsLoading(true);
           const [response, workoutProgress, oneRM] = await Promise.all([
             fetch('/powerbuilding_data.json'),
             LocalStorage.getWorkoutProgress(),
@@ -47,6 +50,8 @@ export default function WorkoutPage() {
           }
         } catch (error) {
           console.error('Error loading workout data:', error);
+        } finally {
+          setIsLoading(false);
         }
       }
     }
@@ -54,8 +59,15 @@ export default function WorkoutPage() {
     loadWorkoutData();
   }, [workoutNumber]);
 
-  if (!workout) {
-    return <div>Loading...</div>;
+  if (isLoading || !workout) {
+    return (
+      <div className="max-w-md mx-auto bg-white min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading workout...</p>
+        </div>
+      </div>
+    );
   }
 
   const status = workout.progress?.status || "not_started";
@@ -209,7 +221,7 @@ export default function WorkoutPage() {
         {(status === "in_progress" || status === "completed") && (
           <Button 
             variant="destructive"
-            onClick={handleResetWorkout}
+            onClick={() => setShowReset(true)}
             className="w-full h-10 text-sm"
           >
             <RotateCcw className="h-4 w-4 mr-2" />
@@ -281,6 +293,37 @@ export default function WorkoutPage() {
           })}
         </div>
       </div>
+
+      {/* Reset Confirmation Dialog */}
+      {showReset && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg mx-4 max-w-sm w-full">
+            <h3 className="text-lg font-semibold mb-2">Reset Workout?</h3>
+            <p className="text-gray-600 mb-4">
+              This will clear all progress and exercise history for this workout. This action cannot be undone.
+            </p>
+            <div className="flex gap-3">
+              <Button 
+                variant="outline" 
+                onClick={() => setShowReset(false)}
+                className="flex-1"
+              >
+                Cancel
+              </Button>
+              <Button 
+                variant="destructive" 
+                onClick={() => {
+                  handleResetWorkout();
+                  setShowReset(false);
+                }}
+                className="flex-1"
+              >
+                Reset
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -14,9 +14,18 @@ import { Workout } from "@shared/schema";
 export default function HomePage() {
   const [location, setLocation] = useLocation();
   const [workouts, setWorkouts] = useState<WorkoutWithProgress[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [lastLoadTime, setLastLoadTime] = useState(0);
 
-  const loadWorkouts = useCallback(async () => {
+  const loadWorkouts = useCallback(async (force = false) => {
+    // Throttle requests to prevent rapid reloading
+    const now = Date.now();
+    if (!force && now - lastLoadTime < 1000) {
+      return;
+    }
+    
     try {
+      setIsLoading(true);
       const [response, workoutProgress] = await Promise.all([
         fetch('/powerbuilding_data.json'),
         LocalStorage.getWorkoutProgress()
@@ -28,42 +37,17 @@ export default function HomePage() {
         progress: workoutProgress[workout.workout_number],
       }));
       setWorkouts(workoutsWithProgress);
+      setLastLoadTime(now);
     } catch (error) {
       console.error('Error loading workout data:', error);
+    } finally {
+      setIsLoading(false);
     }
-  }, []);
+  }, [lastLoadTime]);
 
   useEffect(() => {
-    loadWorkouts();
-    
-    // Reload workouts when page becomes visible again
-    const handleFocus = () => {
-      loadWorkouts();
-    };
-    
-    window.addEventListener('focus', handleFocus);
-    
-    // Also check when the page becomes visible (handles tab switching)
-    const handleVisibilityChange = () => {
-      if (!document.hidden) {
-        loadWorkouts();
-      }
-    };
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    
-    return () => {
-      window.removeEventListener('focus', handleFocus);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-    };
-  }, [loadWorkouts]);
-  
-  // Reload workouts when navigating to home page
-  useEffect(() => {
-    if (location === '/') {
-      loadWorkouts();
-    }
-  }, [location, loadWorkouts]);
+    loadWorkouts(true);
+  }, []);
 
   const completedWorkouts = workouts.filter(w => w.progress?.status === "completed").length;
   const totalWorkouts = workouts.length;
@@ -72,6 +56,18 @@ export default function HomePage() {
   const nextWorkout = workouts.find(w => 
     !w.progress || w.progress.status === "not_started"
   );
+
+  // Show loading only on initial load
+  if (isLoading && workouts.length === 0) {
+    return (
+      <div className="max-w-md mx-auto bg-white min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading workouts...</p>
+        </div>
+      </div>
+    );
+  }
 
   const handleWorkoutClick = (workout: WorkoutWithProgress) => {
     setLocation(`/workout/${workout.workout_number}`);
