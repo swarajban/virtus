@@ -106,18 +106,17 @@ export default function ExercisePage() {
 
     // Show completion animation then navigate
     setTimeout(() => {
+      setIsCompleting(false);
       // Scroll to top before navigation
       window.scrollTo({ top: 0, behavior: 'smooth' });
       
-      setTimeout(() => {
-        // Navigate to next exercise or back to workout
-        if (exerciseIndex < totalExercises - 1) {
-          setLocation(`/workout/${workoutNumber}/exercise/${exerciseIndex + 1}`);
-        } else {
-          setLocation(`/workout/${workoutNumber}`);
-        }
-      }, 300);
-    }, 600);
+      // Navigate to next exercise or back to workout
+      if (exerciseIndex < totalExercises - 1) {
+        setLocation(`/workout/${workoutNumber}/exercise/${exerciseIndex + 1}`);
+      } else {
+        setLocation(`/workout/${workoutNumber}`);
+      }
+    }, 1000);
   };
 
   const handlePreviousExercise = () => {
