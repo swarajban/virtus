@@ -1,0 +1,288 @@
+import { useState, useEffect } from "react";
+import { useLocation, useRoute } from "wouter";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { WeightInput } from "@/components/ui/weight-input";
+import { ExerciseHistoryModal } from "@/components/exercise-history-modal";
+import { ArrowLeft, Check, Info } from "lucide-react";
+import { LocalStorage } from "@/lib/storage";
+import { enhanceExerciseWithCalculations, getActualPercentage } from "@/lib/workout-utils";
+import type { ExerciseWithCalculatedWeight } from "@/types/workout";
+
+// Import the workout data
+import workoutData from "@assets/powerbuilding_data_1755148171236.json";
+
+export default function ExercisePage() {
+  const [, setLocation] = useLocation();
+  const [match, params] = useRoute("/workout/:workoutNumber/exercise/:exerciseIndex");
+  const [exercise, setExercise] = useState<ExerciseWithCalculatedWeight | null>(null);
+  const [userSets, setUserSets] = useState(1);
+  const [userReps, setUserReps] = useState(1);
+  const [userWeight, setUserWeight] = useState(0);
+  const [userNotes, setUserNotes] = useState("");
+  const [showHistory, setShowHistory] = useState(false);
+  const [oneRM, setOneRM] = useState(LocalStorage.getOneRM());
+
+  const workoutNumber = params ? parseInt(params.workoutNumber) : 0;
+  const exerciseIndex = params ? parseInt(params.exerciseIndex) : 0;
+
+  useEffect(() => {
+    if (workoutNumber && exerciseIndex >= 0) {
+      const foundWorkout = workoutData.find(w => w.workout_number === workoutNumber);
+      
+      if (foundWorkout && foundWorkout.exercises[exerciseIndex]) {
+        const exerciseData = foundWorkout.exercises[exerciseIndex];
+        const enhancedExercise = enhanceExerciseWithCalculations(exerciseData, oneRM);
+        setExercise(enhancedExercise);
+        
+        // Set initial values
+        setUserSets(enhancedExercise.number_of_sets);
+        setUserReps(enhancedExercise.number_of_reps || 1);
+        setUserWeight(enhancedExercise.calculatedWeight || 0);
+      }
+    }
+  }, [workoutNumber, exerciseIndex, oneRM]);
+
+  if (!exercise) {
+    return <div>Loading...</div>;
+  }
+
+  const totalExercises = workoutData.find(w => w.workout_number === workoutNumber)?.exercises.length || 0;
+
+  const handleCompleteExercise = () => {
+    // Save exercise history
+    if (userWeight > 0) {
+      const historyEntry = {
+        date: new Date().toISOString(),
+        exerciseName: exercise.name,
+        sets: userSets,
+        reps: userReps,
+        weight: userWeight,
+        notes: userNotes,
+      };
+      LocalStorage.saveExerciseHistory(historyEntry);
+    }
+
+    // Navigate to next exercise or back to workout
+    if (exerciseIndex < totalExercises - 1) {
+      setLocation(`/workout/${workoutNumber}/exercise/${exerciseIndex + 1}`);
+    } else {
+      setLocation(`/workout/${workoutNumber}`);
+    }
+  };
+
+  const handlePreviousExercise = () => {
+    if (exerciseIndex > 0) {
+      setLocation(`/workout/${workoutNumber}/exercise/${exerciseIndex - 1}`);
+    } else {
+      setLocation(`/workout/${workoutNumber}`);
+    }
+  };
+
+  const handleNextExercise = () => {
+    if (exerciseIndex < totalExercises - 1) {
+      setLocation(`/workout/${workoutNumber}/exercise/${exerciseIndex + 1}`);
+    }
+  };
+
+  const getOneRMForExercise = () => {
+    switch (exercise.name) {
+      case "Back squat": return oneRM.backSquat;
+      case "Barbell bench press": return oneRM.benchPress;
+      case "Deadlift": return oneRM.deadlift;
+      case "Overhead press": return oneRM.overheadPress;
+      default: return 0;
+    }
+  };
+
+  const exerciseOneRM = getOneRMForExercise();
+
+  return (
+    <div className="max-w-md mx-auto bg-white min-h-screen">
+      {/* Header */}
+      <header className="bg-primary text-white px-4 py-6 sticky top-0 z-50">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <Button 
+              variant="ghost" 
+              size="icon"
+              onClick={() => setLocation(`/workout/${workoutNumber}`)}
+              className="text-white hover:bg-blue-700 p-2 -ml-2"
+            >
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+            <h1 className="text-2xl font-bold">Exercise</h1>
+          </div>
+        </div>
+      </header>
+
+      {/* Exercise Header */}
+      <div className="bg-gradient-to-r from-primary to-blue-600 text-white p-4">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-sm opacity-90">
+            Exercise {exerciseIndex + 1} of {totalExercises}
+          </span>
+          <Badge className="bg-blue-100 text-blue-700">
+            {exercise.type_of_set} Set
+          </Badge>
+        </div>
+        <h2 className="text-xl font-bold mb-1">{exercise.name}</h2>
+        <p className="text-sm opacity-90">
+          {exercise.number_of_sets} x {exercise.number_of_reps || "AMRAP"}
+          {exercise.load_percentage && ` @ ${exercise.load_percentage}% 1RM`}
+          {exercise.rpe && ` (RPE ${exercise.rpe})`}
+        </p>
+      </div>
+
+      {/* Weight Calculator */}
+      {exercise.calculatedWeight && (
+        <div className="p-4 bg-yellow-50 border-b">
+          <Card>
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-3">
+                <span className="font-medium">Recommended Weight</span>
+                <span className="text-lg font-bold text-primary">
+                  {exercise.calculatedWeight} lbs
+                </span>
+              </div>
+              <div className="text-sm text-gray-600">
+                <div className="flex justify-between">
+                  <span>1RM: {exerciseOneRM} lbs</span>
+                  <span>Load: {exercise.load_percentage}%</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Exercise Input */}
+      <div className="p-4 space-y-6">
+        {/* Sets and Reps */}
+        <Card>
+          <CardContent className="p-4">
+            <h3 className="font-semibold mb-4">Sets & Reps</h3>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Sets
+                </label>
+                <WeightInput
+                  value={userSets}
+                  onChange={setUserSets}
+                  step={1}
+                  min={1}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Reps
+                </label>
+                <WeightInput
+                  value={userReps}
+                  onChange={setUserReps}
+                  step={1}
+                  min={1}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Weight */}
+        <Card>
+          <CardContent className="p-4">
+            <h3 className="font-semibold mb-4">Weight (lbs)</h3>
+            <WeightInput
+              value={userWeight}
+              onChange={setUserWeight}
+              step={5}
+              min={0}
+              className="mb-2"
+            />
+            {exerciseOneRM > 0 && userWeight > 0 && (
+              <div className="text-center">
+                <span className="text-sm text-gray-600">
+                  Actual: {getActualPercentage(userWeight, exerciseOneRM)} of 1RM
+                </span>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Notes */}
+        <Card>
+          <CardContent className="p-4">
+            <h3 className="font-semibold mb-3">Exercise Notes</h3>
+            {exercise.notes && (
+              <div className="bg-blue-50 p-3 rounded-lg mb-3">
+                <p className="text-sm text-blue-700">
+                  <Info className="inline h-4 w-4 mr-1" />
+                  {exercise.notes}
+                </p>
+              </div>
+            )}
+            <Textarea
+              placeholder="Add your notes..."
+              value={userNotes}
+              onChange={(e) => setUserNotes(e.target.value)}
+              rows={3}
+            />
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Exercise Navigation */}
+      <div className="p-4 bg-gray-50 border-t">
+        <div className="grid grid-cols-4 gap-2 mb-4">
+          <Button
+            variant="outline"
+            onClick={() => setLocation(`/workout/${workoutNumber}`)}
+            className="text-sm"
+          >
+            Workout
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handlePreviousExercise}
+            disabled={exerciseIndex === 0}
+            className="text-sm"
+          >
+            Previous
+          </Button>
+          <Button
+            variant="outline"
+            onClick={() => setShowHistory(true)}
+            className="text-sm"
+          >
+            History
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleNextExercise}
+            disabled={exerciseIndex >= totalExercises - 1}
+            className="text-sm"
+          >
+            Next
+          </Button>
+        </div>
+        <Button 
+          onClick={handleCompleteExercise}
+          className="w-full bg-secondary text-white hover:bg-green-700 h-12"
+        >
+          <Check className="h-4 w-4 mr-2" />
+          Complete Exercise
+        </Button>
+      </div>
+
+      {/* Exercise History Modal */}
+      <ExerciseHistoryModal
+        isOpen={showHistory}
+        onClose={() => setShowHistory(false)}
+        exerciseName={exercise.name}
+      />
+    </div>
+  );
+}
