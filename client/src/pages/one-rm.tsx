@@ -3,6 +3,7 @@ import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { WeightInput } from "@/components/ui/weight-input";
+import { UserSelector } from "@/components/user-selector";
 import { ArrowLeft, Save } from "lucide-react";
 import { LocalStorage } from "@/lib/storage";
 import { useToast } from "@/hooks/use-toast";
@@ -60,13 +61,20 @@ export default function OneRMPage() {
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <h1 className="text-2xl font-bold">1RM Settings</h1>
+            <h1 className="text-2xl font-bold">Settings</h1>
           </div>
         </div>
       </header>
 
       <div className="p-4">
-        <h2 className="text-2xl font-bold mb-6">One Rep Max (1RM)</h2>
+        <h2 className="text-2xl font-bold mb-6">Settings</h2>
+        
+        {/* User Selector */}
+        <div className="mb-6">
+          <UserSelector />
+        </div>
+        
+        <h3 className="text-lg font-semibold mb-4">One Rep Max (1RM)</h3>
         
         <div className="space-y-4">
           {lifts.map((lift) => (

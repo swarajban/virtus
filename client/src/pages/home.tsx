@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { WorkoutCard } from "@/components/workout-card";
 import { LocalStorage } from "@/lib/storage";
-import { Play, BarChart3, Settings } from "lucide-react";
+import { Play, Settings } from "lucide-react";
 import type { WorkoutWithProgress } from "@/types/workout";
 
 // Import the workout data
@@ -102,8 +102,8 @@ export default function HomePage() {
             onClick={() => setLocation('/one-rm')}
             className="p-4 h-auto flex-col space-y-2"
           >
-            <BarChart3 className="h-5 w-5" />
-            <span>1RM Settings</span>
+            <Settings className="h-5 w-5" />
+            <span>Settings</span>
           </Button>
         </div>
       </div>

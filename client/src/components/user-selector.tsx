@@ -1,11 +1,16 @@
 import { useEffect, useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { User } from "lucide-react";
 import { api, setCurrentUsername } from "@/lib/api-client";
 import { LocalStorage } from "@/lib/storage";
 import type { User as UserType } from "@shared/schema";
 
-export function UserSelector() {
+interface UserSelectorProps {
+  compact?: boolean;
+}
+
+export function UserSelector({ compact = false }: UserSelectorProps) {
   const [users, setUsers] = useState<UserType[]>([]);
   const [selectedUser, setSelectedUser] = useState<string>("");
   const [loading, setLoading] = useState(true);
@@ -47,24 +52,60 @@ export function UserSelector() {
   };
 
   if (loading) {
-    return <div className="p-2 text-sm text-muted-foreground">Loading users...</div>;
+    return (
+      <Card>
+        <CardContent className="p-4">
+          <div className="text-sm text-muted-foreground">Loading users...</div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (compact) {
+    return (
+      <div className="flex items-center gap-2">
+        <User className="h-5 w-5 text-muted-foreground" />
+        <Select value={selectedUser} onValueChange={handleUserChange}>
+          <SelectTrigger className="w-[180px]">
+            <SelectValue placeholder="Select user" />
+          </SelectTrigger>
+          <SelectContent>
+            {users.map((user) => (
+              <SelectItem key={user.id} value={user.username}>
+                {user.username}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+    );
   }
 
   return (
-    <div className="flex items-center gap-2 p-4 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b">
-      <User className="h-5 w-5 text-muted-foreground" />
-      <Select value={selectedUser} onValueChange={handleUserChange}>
-        <SelectTrigger className="w-[180px]">
-          <SelectValue placeholder="Select user" />
-        </SelectTrigger>
-        <SelectContent>
-          {users.map((user) => (
-            <SelectItem key={user.id} value={user.username}>
-              {user.username}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
-    </div>
+    <Card>
+      <CardHeader>
+        <CardTitle>User Account</CardTitle>
+        <CardDescription>
+          Select which user's data to view and edit
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <div className="flex items-center gap-3">
+          <User className="h-5 w-5 text-muted-foreground" />
+          <Select value={selectedUser} onValueChange={handleUserChange}>
+            <SelectTrigger className="w-full">
+              <SelectValue placeholder="Select user" />
+            </SelectTrigger>
+            <SelectContent>
+              {users.map((user) => (
+                <SelectItem key={user.id} value={user.username}>
+                  {user.username}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
