@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { WorkoutCard } from "@/components/workout-card";
 import { LocalStorage } from "@/lib/storage";
-import { Play, Settings } from "lucide-react";
+import { Play, Settings, Activity } from "lucide-react";
 import type { WorkoutWithProgress } from "@/types/workout";
 
 // Import the workout data
@@ -132,11 +132,11 @@ export default function HomePage() {
           </Button>
           <Button 
             variant="outline"
-            onClick={() => setLocation('/one-rm')}
+            onClick={() => setLocation('/exercise-history')}
             className="p-6 h-auto flex-col space-y-3 rounded-xl border-2 hover:border-primary hover:shadow-lg transform hover:-translate-y-1 transition-all duration-200 bg-white"
           >
-            <Settings className="h-10 w-10 text-primary" />
-            <span className="text-sm font-semibold text-gray-700">1RM Settings</span>
+            <Activity className="h-10 w-10 text-primary" />
+            <span className="text-sm font-semibold text-gray-700">Exercise History</span>
           </Button>
         </div>
       </div>
