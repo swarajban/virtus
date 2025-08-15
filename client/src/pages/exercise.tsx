@@ -19,6 +19,7 @@ export default function ExercisePage() {
   const [, setLocation] = useLocation();
   const [match, params] = useRoute("/workout/:workoutNumber/exercise/:exerciseIndex");
   const [exercise, setExercise] = useState<ExerciseWithCalculatedWeight | null>(null);
+  const [workoutName, setWorkoutName] = useState<string>("");
   const [userSets, setUserSets] = useState(1);
   const [userReps, setUserReps] = useState(1);
   const [userWeight, setUserWeight] = useState(0);
@@ -58,6 +59,7 @@ export default function ExercisePage() {
             const exerciseData = foundWorkout.exercises[exerciseIndex];
             const enhancedExercise = enhanceExerciseWithCalculations(exerciseData, oneRMData);
             setExercise(enhancedExercise);
+            setWorkoutName(foundWorkout.workout_name);
             setTotalExercises(foundWorkout.exercises.length);
             
             // Set initial values
@@ -239,7 +241,7 @@ export default function ExercisePage() {
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <h1 className="text-2xl font-bold tracking-tight">Exercise</h1>
+            <h1 className="text-2xl font-bold tracking-tight">{workoutName || "Exercise"}</h1>
           </div>
         </div>
       </header>
