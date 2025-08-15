@@ -4,9 +4,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Settings as SettingsIcon } from "lucide-react";
+import { ArrowLeft, Settings as SettingsIcon, User } from "lucide-react";
 import { api } from "@/lib/api-client";
 import { useToast } from "@/hooks/use-toast";
+import { UserSelector } from "@/components/user-selector";
 
 interface Program {
   name: string;
@@ -123,6 +124,19 @@ export default function SettingsPage() {
 
       {/* Settings Content */}
       <div className="p-4 space-y-4">
+        {/* User Account Selection */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <User className="h-5 w-5" />
+              User Account
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <UserSelector />
+          </CardContent>
+        </Card>
+
         {/* Program Selection */}
         <Card>
           <CardHeader>

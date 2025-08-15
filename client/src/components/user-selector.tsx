@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { User } from "lucide-react";
 import { api, setCurrentUsername } from "@/lib/api-client";
 import { LocalStorage } from "@/lib/storage";
@@ -53,11 +52,7 @@ export function UserSelector({ compact = false }: UserSelectorProps) {
 
   if (loading) {
     return (
-      <Card>
-        <CardContent className="p-4">
-          <div className="text-sm text-muted-foreground">Loading users...</div>
-        </CardContent>
-      </Card>
+      <div className="text-sm text-muted-foreground">Loading users...</div>
     );
   }
 
@@ -82,30 +77,20 @@ export function UserSelector({ compact = false }: UserSelectorProps) {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>User Account</CardTitle>
-        <CardDescription>
-          Select which user's data to view and edit
-        </CardDescription>
-      </CardHeader>
-      <CardContent>
-        <div className="flex items-center gap-3">
-          <User className="h-5 w-5 text-muted-foreground" />
-          <Select value={selectedUser} onValueChange={handleUserChange}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="Select user" />
-            </SelectTrigger>
-            <SelectContent>
-              {users.map((user) => (
-                <SelectItem key={user.id} value={user.username}>
-                  {user.username}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-      </CardContent>
-    </Card>
+    <div className="flex items-center gap-3">
+      <User className="h-5 w-5 text-muted-foreground" />
+      <Select value={selectedUser} onValueChange={handleUserChange}>
+        <SelectTrigger className="w-full">
+          <SelectValue placeholder="Select user" />
+        </SelectTrigger>
+        <SelectContent>
+          {users.map((user) => (
+            <SelectItem key={user.id} value={user.username}>
+              {user.username}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
   );
 }

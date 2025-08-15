@@ -3,7 +3,7 @@ import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { WeightInput } from "@/components/ui/weight-input";
-import { UserSelector } from "@/components/user-selector";
+
 import { ArrowLeft, Save } from "lucide-react";
 import { LocalStorage } from "@/lib/storage";
 import { useToast } from "@/hooks/use-toast";
@@ -72,31 +72,21 @@ export default function OneRMPage() {
             <Button 
               variant="ghost" 
               size="icon"
-              onClick={() => setLocation('/')}
+              onClick={() => setLocation('/settings')}
               className="text-white hover:bg-white/20 transition-all duration-200 rounded-lg p-2 -ml-2"
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <h1 className="text-2xl font-bold tracking-tight">Settings</h1>
+            <h1 className="text-2xl font-bold tracking-tight">1RM Settings</h1>
           </div>
         </div>
       </header>
 
       <div className="p-4">
         <div className="mb-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-2">Settings</h2>
-          <p className="text-sm text-gray-500">Customize your training parameters</p>
+          <h2 className="text-2xl font-bold text-gray-900 mb-2">One Rep Max (1RM)</h2>
+          <p className="text-sm text-gray-500">Set your current maximum lifts for accurate weight calculations</p>
         </div>
-        
-        {/* User Selector with Modern Card */}
-        <Card className="mb-6 shadow-lg border-0">
-          <CardContent className="p-5">
-            <h3 className="font-semibold text-gray-900 mb-3">Active User</h3>
-            <UserSelector />
-          </CardContent>
-        </Card>
-        
-        <h3 className="text-xl font-bold text-gray-900 mb-4">One Rep Max (1RM)</h3>
         
         <div className="space-y-4">
           {lifts.map((lift) => (
