@@ -1,6 +1,6 @@
 # Overview
 
-Virtus is a workout tracking web application designed for powerbuilding/strength training programs. The app allows users to track their workout progress, view exercise history with performance charts, manage 1RM (one-rep max) values, and follow structured workout programs. Built as a mobile-first Progressive Web App (PWA), it provides an intuitive interface for gym-goers to log exercises, track weights, sets, and reps, and monitor their strength progression over time.
+Virtus is a workout tracking web application designed for powerbuilding/strength training programs. The app allows users to track their workout progress, view exercise history with performance charts, manage 1RM (one-rep max) values, and follow structured workout programs. Built as a mobile-first Progressive Web App (PWA), it provides an intuitive interface for gym-goers to log exercises, track weights, sets, and reps, and monitor their strength progression over time. The app supports multiple workout programs and user accounts with database synchronization.
 
 # User Preferences
 
@@ -17,10 +17,11 @@ Preferred communication style: Simple, everyday language.
 - **Mobile-First Design**: Responsive design optimized for mobile devices with touch-friendly interfaces
 
 ## Data Management
-- **Storage Strategy**: Browser localStorage for workout progress, 1RM values, and exercise history
-- **Data Schema**: Zod schemas for type-safe data validation and parsing
-- **Workout Data**: Static JSON file containing structured workout programs with exercises, sets, reps, and load percentages
-- **State Persistence**: Custom LocalStorage class for managing workout progress, 1RM data, and exercise history
+- **Storage Strategy**: PostgreSQL database for cross-device synchronization with username-based authentication
+- **Data Schema**: Zod schemas for type-safe data validation and parsing  
+- **Workout Data**: JSON file with programs structure containing multiple workout programs
+- **User Management**: Username-based system with preset users ("swaraj", "demo")
+- **Program Selection**: Users can switch between available workout programs through Settings
 
 ## Backend Architecture
 - **Server**: Express.js with TypeScript for API endpoints
@@ -29,10 +30,11 @@ Preferred communication style: Simple, everyday language.
 - **Development**: Vite middleware integration for hot module replacement in development
 
 ## Component Architecture
-- **Page Components**: Home, Workout, Exercise, and OneRM pages for different app sections
-- **UI Components**: Reusable components for workout cards, progress bars, weight inputs, and exercise history modals
+- **Page Components**: Home, Workout, Exercise, OneRM, Exercise History, and Settings pages
+- **UI Components**: Reusable components for workout cards, progress bars, weight inputs, exercise history modals, and user selector
 - **Custom Hooks**: Mobile detection and toast notifications for enhanced UX
 - **Chart Integration**: Chart.js for rendering exercise history graphs and progress visualization
+- **Settings Page**: Centralized location for user account switching and program selection
 
 ## Workout Logic
 - **1RM Integration**: Automatic weight calculation based on user's one-rep max values and exercise load percentages

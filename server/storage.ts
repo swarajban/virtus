@@ -249,7 +249,11 @@ export class DatabaseStorage implements IStorage {
       const fs = await import('fs');
       const path = await import('path');
       const workoutDataPath = path.join(process.cwd(), 'client/public/powerbuilding_data.json');
-      const workoutData = JSON.parse(fs.readFileSync(workoutDataPath, 'utf-8'));
+      const data = JSON.parse(fs.readFileSync(workoutDataPath, 'utf-8'));
+      
+      // Handle new JSON structure with programs
+      const programData = data.programs ? data.programs[0] : { workouts: data };
+      const workoutData = programData.workouts || [];
       const workout = workoutData.find((w: any) => w.workout_number === workoutNumber);
       
       if (!workout) {
