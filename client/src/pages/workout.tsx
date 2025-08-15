@@ -249,7 +249,14 @@ export default function WorkoutPage() {
               >
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-2">
-                    <h4 className="font-semibold text-gray-900">{exercise.name}</h4>
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-semibold text-gray-900">{exercise.name}</h4>
+                      {exercise.superset_label && (
+                        <Badge className="bg-purple-500 text-white px-2 py-0.5 text-xs font-bold rounded">
+                          Superset {exercise.superset_label}
+                        </Badge>
+                      )}
+                    </div>
                     {exerciseStatus === "completed" && (
                       <CheckCircle className="h-5 w-5 text-secondary" />
                     )}

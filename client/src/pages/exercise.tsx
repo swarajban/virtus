@@ -257,7 +257,14 @@ export default function ExercisePage() {
             </Badge>
           )}
         </div>
-        <h2 className="text-2xl font-bold text-gray-900 mb-2">{exercise.name}</h2>
+        <div className="flex items-center gap-3 mb-2">
+          <h2 className="text-2xl font-bold text-gray-900">{exercise.name}</h2>
+          {exercise.superset_label && (
+            <Badge className="bg-purple-500 text-white px-3 py-1 text-sm font-bold rounded-full shadow-md">
+              Superset {exercise.superset_label}
+            </Badge>
+          )}
+        </div>
         <p className="text-sm opacity-90">
           {exercise.number_of_sets} x {exercise.number_of_reps || "AMRAP"}
           {exercise.load_percentage && ` @ ${exercise.load_percentage}% 1RM`}
@@ -271,7 +278,10 @@ export default function ExercisePage() {
           ? "gradient-green" 
           : "bg-gradient-to-r from-yellow-500 to-orange-500"
       }`}>
-        <span className="uppercase tracking-wide text-sm">{exercise.type_of_set} set</span>
+        <span className="uppercase tracking-wide text-sm">
+          {exercise.type_of_set} set
+          {exercise.superset_label && ` • Part of Superset ${exercise.superset_label}`}
+        </span>
       </div>
 
       {/* Weight Calculator */}
