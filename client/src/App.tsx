@@ -8,6 +8,7 @@ import WorkoutPage from "@/pages/workout";
 import ExercisePage from "@/pages/exercise";
 import OneRMPage from "@/pages/one-rm";
 import ExerciseHistoryPage from "@/pages/exercise-history";
+import SettingsPage from "@/pages/settings";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -18,6 +19,7 @@ function Router() {
       <Route path="/workout/:workoutNumber/exercise/:exerciseIndex" component={ExercisePage} />
       <Route path="/one-rm" component={OneRMPage} />
       <Route path="/exercise-history" component={ExerciseHistoryPage} />
+      <Route path="/settings" component={SettingsPage} />
       <Route component={NotFound} />
     </Switch>
   );

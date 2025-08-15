@@ -7,6 +7,7 @@ import { z } from "zod";
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: varchar("username", { length: 255 }).unique().notNull(),
+  selectedProgram: varchar("selected_program", { length: 255 }).notNull().default("Powerbuilding 4x"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -27,6 +28,7 @@ export const oneRepMaxes = pgTable("one_rep_maxes", {
 export const workoutProgress = pgTable("workout_progress", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
+  programName: varchar("program_name", { length: 255 }).notNull().default("Powerbuilding 4x"),
   workoutNumber: integer("workout_number").notNull(),
   status: varchar("status", { length: 20 }).notNull(), // 'not_started', 'in_progress', 'completed'
   startedAt: timestamp("started_at"),
@@ -42,6 +44,7 @@ export const workoutProgress = pgTable("workout_progress", {
 export const exerciseHistory = pgTable("exercise_history", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
+  programName: varchar("program_name", { length: 255 }).notNull().default("Powerbuilding 4x"),
   exerciseName: varchar("exercise_name", { length: 255 }).notNull(),
   sets: integer("sets").notNull(),
   reps: integer("reps").notNull(),
@@ -105,6 +108,15 @@ export const workoutSchema = z.object({
   exercises: z.array(exerciseSchema),
 });
 
+export const programSchema = z.object({
+  name: z.string(),
+  workouts: z.array(workoutSchema),
+});
+
+export const programsDataSchema = z.object({
+  programs: z.array(programSchema),
+});
+
 export const exerciseProgressSchema = z.object({
   sets: z.number(),
   reps: z.number(),
@@ -114,6 +126,7 @@ export const exerciseProgressSchema = z.object({
 });
 
 export const workoutProgressSchema = z.object({
+  programName: z.string().default("Powerbuilding 4x"),
   workoutNumber: z.number(),
   status: z.enum(["not_started", "in_progress", "completed"]),
   startedAt: z.string().optional(),
@@ -130,6 +143,7 @@ export const oneRMSchema = z.object({
 
 export const exerciseHistoryEntrySchema = z.object({
   date: z.string(),
+  programName: z.string().default("Powerbuilding 4x"),
   exerciseName: z.string(),
   sets: z.number(),
   reps: z.number(),

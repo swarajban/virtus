@@ -31,7 +31,11 @@ export default function HomePage() {
         LocalStorage.getWorkoutProgress()
       ]);
       
-      const workoutData = await response.json();
+      const data = await response.json();
+      // Handle new JSON structure with programs
+      const programData = data.programs ? data.programs[0] : { workouts: data };
+      const workoutData = programData.workouts || [];
+      
       const workoutsWithProgress = workoutData.map((workout: any) => ({
         ...workout,
         progress: workoutProgress[workout.workout_number],
@@ -92,7 +96,7 @@ export default function HomePage() {
             variant="ghost" 
             size="icon"
             className="text-white hover:bg-white/20 transition-all duration-200 rounded-lg"
-            onClick={() => setLocation('/one-rm')}
+            onClick={() => setLocation('/settings')}
           >
             <Settings className="h-5 w-5" />
           </Button>

@@ -32,7 +32,10 @@ export default function WorkoutPage() {
             LocalStorage.getOneRM()
           ]);
           
-          const workoutData = await response.json();
+          const data = await response.json();
+          // Handle new JSON structure with programs
+          const programData = data.programs ? data.programs[0] : { workouts: data };
+          const workoutData = programData.workouts || [];
           const foundWorkout = workoutData.find((w: any) => w.workout_number === workoutNumber);
           
           if (foundWorkout) {

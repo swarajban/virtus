@@ -89,4 +89,17 @@ export const api = {
       method: 'DELETE',
     });
   },
+
+  async updateUserProgram(programName: string): Promise<void> {
+    await apiRequest('/api/user/program', {
+      method: 'POST',
+      body: JSON.stringify({ programName }),
+    });
+  },
+
+  async clearAllProgress(): Promise<void> {
+    await apiRequest('/api/progress/clear', {
+      method: 'POST',
+    });
+  },
 };

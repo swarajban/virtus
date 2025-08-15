@@ -37,6 +37,10 @@ export interface IStorage {
   // Exercise History operations  
   getExerciseHistory(userId: number, exerciseName?: string): Promise<ExerciseHistoryEntry[]>;
   saveExerciseHistory(userId: number, history: ExerciseHistoryEntry): Promise<void>;
+  clearWorkoutProgress(userId: number, workoutNumber: number): Promise<void>;
+  clearExerciseHistoryForWorkout(userId: number, workoutNumber: number): Promise<void>;
+  updateUserProgram(userId: number, programName: string): Promise<void>;
+  clearAllProgress(userId: number): Promise<void>;
 }
 
 // Database storage implementation
@@ -271,6 +275,28 @@ export class DatabaseStorage implements IStorage {
       console.error('Error clearing exercise history for workout:', error);
       throw error;
     }
+  }
+
+  async updateUserProgram(userId: number, programName: string): Promise<void> {
+    await db
+      .update(users)
+      .set({ selectedProgram: programName })
+      .where(eq(users.id, userId));
+    console.log(`Updated user ${userId} program to ${programName}`);
+  }
+
+  async clearAllProgress(userId: number): Promise<void> {
+    // Clear all workout progress
+    await db
+      .delete(workoutProgress)
+      .where(eq(workoutProgress.userId, userId));
+    
+    // Clear all exercise history
+    await db
+      .delete(exerciseHistory)
+      .where(eq(exerciseHistory.userId, userId));
+    
+    console.log(`Cleared all progress for user ${userId}`);
   }
 }
 

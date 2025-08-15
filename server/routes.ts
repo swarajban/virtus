@@ -154,6 +154,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update user's selected program
+  app.post('/api/user/program', async (req, res) => {
+    try {
+      const user = await getUserFromRequest(req);
+      const { programName } = req.body;
+      
+      await storage.updateUserProgram(user.id, programName);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error updating user program:', error);
+      res.status(500).json({ error: 'Failed to update user program' });
+    }
+  });
+
+  // Clear all progress for the user
+  app.post('/api/progress/clear', async (req, res) => {
+    try {
+      const user = await getUserFromRequest(req);
+      
+      await storage.clearAllProgress(user.id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error clearing all progress:', error);
+      res.status(500).json({ error: 'Failed to clear all progress' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

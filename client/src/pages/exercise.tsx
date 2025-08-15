@@ -50,9 +50,12 @@ export default function ExercisePage() {
             LocalStorage.getWorkoutProgress()
           ]);
           
-          const workoutData = await workoutResponse.json();
+          const data = await workoutResponse.json();
           setOneRM(oneRMData);
           
+          // Handle new JSON structure with programs
+          const programData = data.programs ? data.programs[0] : { workouts: data };
+          const workoutData = programData.workouts || [];
           const foundWorkout = workoutData.find((w: any) => w.workout_number === workoutNumber);
           
           if (foundWorkout && foundWorkout.exercises[exerciseIndex]) {
