@@ -1,10 +1,34 @@
 import { useState, useEffect, useRef } from "react";
 
+// Load initial state from localStorage
+const loadTimerState = () => {
+  if (typeof window === 'undefined') {
+    return { seconds: 0, isRunning: false, lastUpdate: Date.now() };
+  }
+  
+  const saved = localStorage.getItem('restTimerState');
+  if (saved) {
+    const state = JSON.parse(saved);
+    // If timer was running, calculate elapsed time since last update
+    if (state.isRunning) {
+      const elapsed = Math.floor((Date.now() - state.lastUpdate) / 1000);
+      state.seconds += elapsed;
+    }
+    state.lastUpdate = Date.now();
+    return state;
+  }
+  
+  return { seconds: 0, isRunning: false, lastUpdate: Date.now() };
+};
+
 // Global timer state that persists across components
-let globalTimerState = {
-  seconds: 0,
-  isRunning: false,
-  lastUpdate: Date.now()
+let globalTimerState = loadTimerState();
+
+// Save state to localStorage
+const saveTimerState = () => {
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('restTimerState', JSON.stringify(globalTimerState));
+  }
 };
 
 // Subscribers to timer state changes
@@ -12,6 +36,7 @@ const subscribers = new Set<() => void>();
 
 const notifySubscribers = () => {
   subscribers.forEach(callback => callback());
+  saveTimerState();
 };
 
 export function useRestTimer() {
@@ -55,6 +80,18 @@ export function useRestTimer() {
       }
     };
   }, [isRunning]);
+
+  // Save state on window unload
+  useEffect(() => {
+    const handleUnload = () => {
+      saveTimerState();
+    };
+    
+    window.addEventListener('beforeunload', handleUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleUnload);
+    };
+  }, []);
 
   const startTimer = () => {
     globalTimerState.isRunning = true;
