@@ -193,3 +193,58 @@ export function RestTimer() {
     </button>
   );
 }
+
+export function RestTimerBar() {
+  const { 
+    formattedTime, 
+    isRunning,
+    startTimer,
+    stopTimer,
+    resetTimer
+  } = useRestTimer();
+
+  const handleStartStop = () => {
+    if (isRunning) {
+      stopTimer();
+    } else {
+      startTimer();
+    }
+  };
+
+  const handleReset = () => {
+    resetTimer();
+    if (isRunning) {
+      // If it was running, restart it after reset
+      setTimeout(() => startTimer(), 50);
+    }
+  };
+
+  return (
+    <div className="bg-gray-900 text-white px-4 py-3 flex items-center justify-between sticky top-[84px] z-40 shadow-lg border-t border-gray-700">
+      <div className="flex items-center gap-3">
+        <span className="text-xs uppercase tracking-wide text-gray-400 font-medium">Rest Timer</span>
+        <span className="font-mono text-xl font-bold text-white">{formattedTime}</span>
+      </div>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={handleReset}
+          className="px-4 py-1.5 bg-gray-700 hover:bg-gray-600 active:bg-gray-500 rounded-md text-sm font-medium transition-all duration-150 active:scale-95"
+          type="button"
+        >
+          Reset
+        </button>
+        <button
+          onClick={handleStartStop}
+          className={`px-5 py-1.5 rounded-md text-sm font-bold transition-all duration-150 active:scale-95 ${
+            isRunning 
+              ? 'bg-red-500 hover:bg-red-600 active:bg-red-700 text-white' 
+              : 'bg-green-500 hover:bg-green-600 active:bg-green-700 text-white'
+          }`}
+          type="button"
+        >
+          {isRunning ? 'Stop' : 'Start'}
+        </button>
+      </div>
+    </div>
+  );
+}

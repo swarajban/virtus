@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { WeightInput } from "@/components/ui/weight-input";
 import { ExerciseHistoryModal } from "@/components/exercise-history-modal";
 import { PlateCalculator } from "@/components/plate-calculator";
-import { RestTimer } from "@/components/rest-timer";
+import { RestTimerBar } from "@/components/rest-timer";
 import { ArrowLeft, Check, CheckCircle, Info } from "lucide-react";
 import { LocalStorage } from "@/lib/storage";
 import { enhanceExerciseWithCalculations, getActualPercentage } from "@/lib/workout-utils";
@@ -249,9 +249,11 @@ export default function ExercisePage() {
             </Button>
             <h1 className="text-2xl font-bold tracking-tight">{workoutName || "Exercise"}</h1>
           </div>
-          <RestTimer />
         </div>
       </header>
+
+      {/* Rest Timer Bar */}
+      <RestTimerBar />
 
       {/* Exercise Header with Modern Design */}
       <div className="bg-gradient-to-b from-purple-50 to-white p-6">
