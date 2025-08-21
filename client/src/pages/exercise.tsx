@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { WeightInput } from "@/components/ui/weight-input";
 import { ExerciseHistoryModal } from "@/components/exercise-history-modal";
+import { PlateCalculator } from "@/components/plate-calculator";
 import { ArrowLeft, Check, CheckCircle, Info } from "lucide-react";
 import { LocalStorage } from "@/lib/storage";
 import { enhanceExerciseWithCalculations, getActualPercentage } from "@/lib/workout-utils";
@@ -133,6 +134,7 @@ export default function ExercisePage() {
       // Save exercise history only for working sets (not warm-ups)
       if (userWeight > 0 && exercise.type_of_set === "working") {
         const historyEntry = {
+          programName: "Powerbuilding 4x", // Default program name
           date: new Date().toISOString(),
           exerciseName: exercise.name,
           sets: userSets,
@@ -362,6 +364,7 @@ export default function ExercisePage() {
                 </span>
               </div>
             )}
+            {userWeight > 0 && <PlateCalculator weight={userWeight} />}
           </CardContent>
         </Card>
 
