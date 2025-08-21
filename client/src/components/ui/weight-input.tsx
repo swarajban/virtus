@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Minus, Plus } from "lucide-react";
@@ -17,17 +18,51 @@ export function WeightInput({
   min = 0, 
   className 
 }: WeightInputProps) {
+  // Local state to allow temporary empty values
+  const [localValue, setLocalValue] = useState<string>(value.toString());
+
+  // Sync local state when prop value changes
+  useEffect(() => {
+    setLocalValue(value.toString());
+  }, [value]);
+
   const handleIncrement = () => {
-    onChange(value + step);
+    const numValue = parseInt(localValue) || 0;
+    const newValue = numValue + step;
+    setLocalValue(newValue.toString());
+    onChange(newValue);
   };
 
   const handleDecrement = () => {
-    onChange(Math.max(min, value - step));
+    const numValue = parseInt(localValue) || 0;
+    const newValue = Math.max(min, numValue - step);
+    setLocalValue(newValue.toString());
+    onChange(newValue);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = parseInt(e.target.value) || 0;
-    onChange(Math.max(min, newValue));
+    const inputValue = e.target.value;
+    
+    // Allow empty string for user to type
+    setLocalValue(inputValue);
+    
+    // Only update parent if valid number
+    if (inputValue === '') {
+      onChange(0);
+    } else {
+      const numValue = parseInt(inputValue);
+      if (!isNaN(numValue)) {
+        onChange(Math.max(min, numValue));
+      }
+    }
+  };
+
+  const handleBlur = () => {
+    // On blur, ensure we have a valid number
+    if (localValue === '' || isNaN(parseInt(localValue))) {
+      setLocalValue('0');
+      onChange(0);
+    }
   };
 
   return (
@@ -42,8 +77,9 @@ export function WeightInput({
       </Button>
       <Input
         type="number"
-        value={value}
+        value={localValue}
         onChange={handleInputChange}
+        onBlur={handleBlur}
         className="text-center font-medium"
         step={step}
         min={min}
