@@ -134,7 +134,7 @@ export function PlateCalculator({ weight }: PlateCalculatorProps) {
 
   return (
     <div className="text-xs text-gray-700 mt-1 font-mono text-center space-y-1">
-      <div className="text-[10px] text-gray-500 font-medium">PLATES</div>
+      <div className="w-full h-px bg-gray-300"></div>
       <div className="text-[11px]">{leftSide} | {rightSide}</div>
       <div className="flex items-center justify-center">
         {leftBars}
