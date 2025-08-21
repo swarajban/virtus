@@ -205,7 +205,9 @@ export function RestTimerBar() {
 
   const handleStartStop = () => {
     if (isRunning) {
-      stopTimer();
+      // Restart: reset and immediately start again
+      resetTimer();
+      setTimeout(() => startTimer(), 50);
     } else {
       startTimer();
     }
@@ -213,10 +215,7 @@ export function RestTimerBar() {
 
   const handleReset = () => {
     resetTimer();
-    if (isRunning) {
-      // If it was running, restart it after reset
-      setTimeout(() => startTimer(), 50);
-    }
+    stopTimer();
   };
 
   return (
@@ -237,12 +236,12 @@ export function RestTimerBar() {
           onClick={handleStartStop}
           className={`px-5 py-1.5 rounded-md text-sm font-bold transition-all duration-150 active:scale-95 ${
             isRunning 
-              ? 'bg-red-500 hover:bg-red-600 active:bg-red-700 text-white' 
+              ? 'bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white' 
               : 'bg-green-500 hover:bg-green-600 active:bg-green-700 text-white'
           }`}
           type="button"
         >
-          {isRunning ? 'Stop' : 'Start'}
+          {isRunning ? 'Restart' : 'Start'}
         </button>
       </div>
     </div>
