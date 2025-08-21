@@ -13,7 +13,6 @@ interface Plate {
 const BARBELL_WEIGHT = 45;
 
 const AVAILABLE_PLATES: Plate[] = [
-  { weight: 55, color: "#dc2626", textColor: "white" }, // red
   { weight: 45, color: "#2563eb", textColor: "white" }, // blue
   { weight: 35, color: "#facc15", textColor: "black" }, // yellow
   { weight: 25, color: "#16a34a", textColor: "white" }, // green
