@@ -46,10 +46,8 @@ export function WeightInput({
     // Allow empty string for user to type
     setLocalValue(inputValue);
     
-    // Only update parent if valid number
-    if (inputValue === '') {
-      onChange(0);
-    } else {
+    // Only update parent with valid numbers, but don't force 0 on empty
+    if (inputValue !== '') {
       const numValue = parseInt(inputValue);
       if (!isNaN(numValue)) {
         onChange(Math.max(min, numValue));
