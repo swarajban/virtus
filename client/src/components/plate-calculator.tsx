@@ -90,29 +90,29 @@ export function PlateCalculator({ weight }: PlateCalculatorProps) {
     return acc;
   }, [] as Array<Plate & { count: number }>);
 
-  // Create compact display with multipliers for mobile
+  // Create the display string (show each weight individually)
   const leftSide = plateGroups.map(g => {
     if (g.count > 1) {
-      return `${g.count}×${g.weight}`;
+      return Array(g.count).fill(g.weight).join(" + ");
     }
     return `${g.weight}`;
-  }).join("+");
+  }).join(" + ");
 
   const rightSide = [...plateGroups].reverse().map(g => {
     if (g.count > 1) {
-      return `${g.weight}×${g.count}`;
+      return Array(g.count).fill(g.weight).join(" + ");
     }
     return `${g.weight}`;
-  }).join("+");
+  }).join(" + ");
 
-  // Create the ASCII art with colored bars - more compact for mobile
+  // Create the ASCII art with colored bars
   const leftBars = sortedPlates.map((plate, i) => (
     <span 
       key={`left-${i}`}
       style={{ 
         color: plate.color,
         fontWeight: 'bold',
-        fontSize: '1em'
+        fontSize: '1.2em'
       }}
     >
       |
@@ -125,7 +125,7 @@ export function PlateCalculator({ weight }: PlateCalculatorProps) {
       style={{ 
         color: plate.color,
         fontWeight: 'bold',
-        fontSize: '1em'
+        fontSize: '1.2em'
       }}
     >
       |
@@ -133,16 +133,17 @@ export function PlateCalculator({ weight }: PlateCalculatorProps) {
   ));
 
   return (
-    <div className="text-xs text-gray-700 mt-1 font-mono text-center overflow-x-auto">
-      <div className="inline-flex items-center min-w-0">
-        <span className="font-medium mr-1 flex-shrink-0">Plates:</span>
-        <span className="text-[10px] sm:text-xs">{leftSide}</span>
-        <span className="inline-flex items-center mx-1 flex-shrink-0">
+    <div className="text-xs text-gray-700 mt-1 font-mono text-center">
+      <div className="space-y-1">
+        <div className="flex items-center justify-center">
+          <span className="font-medium mr-2">Plates:</span>
+          <span className="text-[11px]">{leftSide} | {rightSide}</span>
+        </div>
+        <div className="flex items-center justify-center">
           {leftBars}
-          <span className="mx-0.5 text-gray-400 text-[10px]">---</span>
+          <span className="mx-1 text-gray-400">------</span>
           {rightBars}
-        </span>
-        <span className="text-[10px] sm:text-xs">{rightSide}</span>
+        </div>
       </div>
     </div>
   );
