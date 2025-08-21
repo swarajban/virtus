@@ -62,7 +62,7 @@ export function PlateCalculator({ weight }: PlateCalculatorProps) {
 
   if (plateConfiguration.error) {
     return (
-      <div className="text-xs text-red-500 mt-1">
+      <div className="text-xs text-red-500 mt-1 text-center">
         Error calculating plates for entered weight
       </div>
     );
@@ -70,7 +70,7 @@ export function PlateCalculator({ weight }: PlateCalculatorProps) {
 
   if (plateConfiguration.plates.length === 0 && weight === BARBELL_WEIGHT) {
     return (
-      <div className="text-xs text-gray-600 mt-1">
+      <div className="text-xs text-gray-600 mt-1 text-center">
         <span className="font-medium">Plates:</span> Empty barbell
       </div>
     );
@@ -135,7 +135,7 @@ export function PlateCalculator({ weight }: PlateCalculatorProps) {
   ));
 
   return (
-    <div className="text-xs text-gray-700 mt-1 font-mono">
+    <div className="text-xs text-gray-700 mt-1 font-mono text-center">
       <span className="font-medium">Plates: </span>
       <span className="inline-flex items-center">
         <span className="mr-1">{leftSide}</span>
