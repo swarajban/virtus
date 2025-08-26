@@ -93,8 +93,48 @@ export function useRestTimer() {
     };
   }, []);
 
+  // Handle visibility changes to sync timer when tab becomes visible
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible' && globalTimerState.isRunning) {
+        // Calculate elapsed time since last update
+        const elapsed = Math.floor((Date.now() - globalTimerState.lastUpdate) / 1000);
+        
+        // Only update if significant time has passed (more than 1 second)
+        if (elapsed > 1) {
+          globalTimerState.seconds += elapsed - 1; // Subtract 1 to account for the current interval
+          globalTimerState.lastUpdate = Date.now();
+          setSeconds(globalTimerState.seconds);
+          notifySubscribers();
+        }
+      }
+    };
+
+    // Also handle focus event for additional reliability
+    const handleFocus = () => {
+      if (globalTimerState.isRunning) {
+        const elapsed = Math.floor((Date.now() - globalTimerState.lastUpdate) / 1000);
+        if (elapsed > 1) {
+          globalTimerState.seconds += elapsed - 1;
+          globalTimerState.lastUpdate = Date.now();
+          setSeconds(globalTimerState.seconds);
+          notifySubscribers();
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('focus', handleFocus);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('focus', handleFocus);
+    };
+  }, []);
+
   const startTimer = () => {
     globalTimerState.isRunning = true;
+    globalTimerState.lastUpdate = Date.now();
     setIsRunning(true);
     notifySubscribers();
   };
