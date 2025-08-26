@@ -71,6 +71,7 @@ export default function ExercisePage() {
             setUserSets(enhancedExercise.number_of_sets);
             setUserReps(enhancedExercise.number_of_reps || 1);
             setUserWeight(enhancedExercise.calculatedWeight || 0);
+            setUserNotes(""); // Clear notes for new exercises
 
             // Check if exercise is already completed
             const currentProgress = workoutProgress[workoutNumber];
