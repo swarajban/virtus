@@ -102,4 +102,11 @@ export const api = {
       method: 'POST',
     });
   },
+
+  async recoverProgress(workoutNumbers: number[]): Promise<any> {
+    return apiRequest('/api/progress/recover', {
+      method: 'POST',
+      body: JSON.stringify({ workoutNumbers }),
+    });
+  },
 };

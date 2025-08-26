@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LocalStorage } from "@/lib/storage";
 import { api } from "@/lib/api-client";
-import { apiRequest } from "@/lib/queryClient";
 import { ArrowLeft, Database, CheckCircle, AlertCircle, RefreshCw } from "lucide-react";
 import { useLocation } from "wouter";
 import { useToast } from "@/hooks/use-toast";
@@ -19,17 +18,11 @@ export default function DataDiagnostic() {
   const recoverProgress = async () => {
     setIsRecovering(true);
     try {
-      const result = await apiRequest("/api/progress/recover", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ workoutNumbers: [1, 2, 3, 4] })
-      });
+      const result = await api.recoverProgress([1, 2, 3, 4]);
       
       toast({
         title: "Recovery Complete",
-        description: `Successfully recovered exercise progress for workouts 1-4`,
+        description: `Successfully recovered ${result.recovered} workouts from ${result.totalHistory} history entries`,
       });
       
       // Refresh diagnostics
