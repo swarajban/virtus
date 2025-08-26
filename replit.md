@@ -3,9 +3,11 @@
 Virtus is a workout tracking web application designed for powerbuilding/strength training programs. The app allows users to track their workout progress, view exercise history with performance charts, manage 1RM (one-rep max) values, and follow structured workout programs. Built as a mobile-first Progressive Web App (PWA), it provides an intuitive interface for gym-goers to log exercises, track weights, sets, and reps, and monitor their strength progression over time. The app supports multiple workout programs and user accounts with database synchronization.
 
 ## Recent Updates (January 2025)
-- **Fixed Critical Bug**: Reset workout button was deleting ALL exercise history for exercises in that workout, not just the specific workout session
-- **Added Data Recovery Tool**: Created comprehensive recovery system to restore lost exercise progress from historical data
-- **Bug Fix Details**: The reset function now only clears workout progress, preserving valuable exercise history data
+- **Session ID Implementation**: Added unique session tracking (format: session_[timestamp]_[random]) to precisely identify each workout attempt
+- **Fixed Reset Bug**: Reset workout now only clears data for the current session, preserving historical workout data
+- **Fixed Complete Workout Bug**: Resolved issue where completing a workout was clearing all exercise progress data
+- **Improved Animation**: Simplified exercise completion animation from 1s to 500ms with cleaner visual design
+- **Data Integrity**: All workout and exercise data now properly preserved when changing workout status
 
 # User Preferences
 
