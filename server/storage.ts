@@ -307,6 +307,17 @@ export class DatabaseStorage implements IStorage {
   async recoverProgressFromHistory(userId: number, workoutNumbers: number[]): Promise<any> {
     console.log(`Starting recovery for user ${userId}, workouts: ${workoutNumbers.join(', ')}`);
     
+    // Load workout data to understand exercise structure
+    const fs = await import('fs');
+    const path = await import('path');
+    const workoutDataPath = path.join(process.cwd(), 'client/public/powerbuilding_data.json');
+    const data = JSON.parse(fs.readFileSync(workoutDataPath, 'utf-8'));
+    
+    // Get the user to find their selected program
+    const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
+    const selectedProgram = user[0]?.selectedProgram || data.programs[0].name;
+    const program = data.programs.find((p: any) => p.name === selectedProgram) || data.programs[0];
+    
     // Get exercise history for this user
     const userHistory = await db
       .select()
@@ -334,25 +345,61 @@ export class DatabaseStorage implements IStorage {
     for (let i = 0; i < Math.min(workoutNumbers.length, sortedDates.length); i++) {
       const workoutNumber = workoutNumbers[i];
       const dateKey = sortedDates[i];
-      const exercises = workoutsByDate.get(dateKey)!;
+      const historicalExercises = workoutsByDate.get(dateKey)!;
       
-      console.log(`Processing workout ${workoutNumber} from ${dateKey}`);
+      console.log(`Processing workout ${workoutNumber} from ${dateKey} with ${historicalExercises.length} entries`);
       
-      // Build exercise progress JSON
-      const exerciseProgressData: Record<string, any> = {};
-      let exerciseIndex = 0;
-      
-      for (const exercise of exercises) {
-        // Include both working and warm-up sets
-        exerciseProgressData[exerciseIndex.toString()] = {
-          sets: exercise.sets,
-          reps: exercise.reps,
-          weight: exercise.weight,
-          notes: exercise.notes || "",
-          completed: true
-        };
-        exerciseIndex++;
+      // Get the workout structure from the program
+      const workoutData = program.workouts.find((w: any) => w.workout_number === workoutNumber);
+      if (!workoutData) {
+        console.log(`Warning: No workout structure found for workout ${workoutNumber}`);
+        continue;
       }
+      
+      // Build exercise progress JSON matching the workout structure
+      const exerciseProgressData: Record<string, any> = {};
+      let globalIndex = 0;
+      
+      // Process each exercise in the workout structure
+      for (const exerciseTemplate of workoutData.exercises) {
+        const exerciseName = exerciseTemplate.name;
+        
+        // Find all history entries for this exercise (both warmup and working sets)
+        const exerciseHistories = historicalExercises.filter(h => h.exerciseName === exerciseName);
+        
+        if (exerciseHistories.length === 0) {
+          console.log(`No history found for exercise: ${exerciseName}`);
+          continue;
+        }
+        
+        // Process warmup sets first
+        const warmupSets = exerciseHistories.filter(h => h.typeOfSet === 'warmup');
+        for (const warmup of warmupSets) {
+          exerciseProgressData[globalIndex.toString()] = {
+            sets: warmup.sets,
+            reps: warmup.reps,
+            weight: warmup.weight,
+            notes: warmup.notes || "",
+            completed: true
+          };
+          globalIndex++;
+        }
+        
+        // Process working sets
+        const workingSets = exerciseHistories.filter(h => h.typeOfSet === 'working' || !h.typeOfSet);
+        for (const working of workingSets) {
+          exerciseProgressData[globalIndex.toString()] = {
+            sets: working.sets,
+            reps: working.reps,
+            weight: working.weight,
+            notes: working.notes || "",
+            completed: true
+          };
+          globalIndex++;
+        }
+      }
+      
+      console.log(`Built exercise progress with ${globalIndex} total entries (warmups + working sets)`);
       
       // Check if workout progress already exists
       const existing = await db
@@ -371,14 +418,14 @@ export class DatabaseStorage implements IStorage {
           .set({
             exerciseProgress: exerciseProgressData,
             status: "completed",
-            completedAt: exercises[exercises.length - 1].performedAt,
+            completedAt: historicalExercises[historicalExercises.length - 1].performedAt,
             updatedAt: new Date()
           })
           .where(and(
             eq(workoutProgress.userId, userId),
             eq(workoutProgress.workoutNumber, workoutNumber)
           ));
-        console.log(`Updated workout ${workoutNumber} with ${exerciseIndex} exercises`);
+        console.log(`Updated workout ${workoutNumber} with ${globalIndex} exercises`);
       } else {
         // Create new record
         await db
@@ -387,16 +434,16 @@ export class DatabaseStorage implements IStorage {
             userId,
             workoutNumber,
             status: "completed",
-            startedAt: exercises[0].performedAt,
-            completedAt: exercises[exercises.length - 1].performedAt,
+            startedAt: historicalExercises[0].performedAt,
+            completedAt: historicalExercises[historicalExercises.length - 1].performedAt,
             exerciseProgress: exerciseProgressData
           });
-        console.log(`Created workout ${workoutNumber} with ${exerciseIndex} exercises`);
+        console.log(`Created workout ${workoutNumber} with ${globalIndex} exercises`);
       }
     }
     
     return {
-      recovered: workoutNumbers.length,
+      recovered: Math.min(workoutNumbers.length, sortedDates.length),
       totalHistory: userHistory.length,
       dates: sortedDates
     };

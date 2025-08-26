@@ -21,6 +21,9 @@ export default function DataDiagnostic() {
     try {
       const result = await apiRequest("/api/progress/recover", {
         method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
         body: JSON.stringify({ workoutNumbers: [1, 2, 3, 4] })
       });
       
