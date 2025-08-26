@@ -81,6 +81,7 @@ export default function WorkoutPage() {
       workoutNumber,
       status: "in_progress" as const,
       startedAt: new Date().toISOString(),
+      exerciseProgress: workout.progress?.exerciseProgress || {}, // PRESERVE existing exercise progress
     };
     await LocalStorage.saveWorkoutProgress(workoutNumber, progress);
     setWorkout({ ...workout, progress });
@@ -92,6 +93,7 @@ export default function WorkoutPage() {
       status: "completed" as const,
       startedAt: workout.progress?.startedAt || new Date().toISOString(),
       completedAt: new Date().toISOString(),
+      exerciseProgress: workout.progress?.exerciseProgress || {}, // PRESERVE existing exercise progress
     };
     await LocalStorage.saveWorkoutProgress(workoutNumber, progress);
     setWorkout({ ...workout, progress });
