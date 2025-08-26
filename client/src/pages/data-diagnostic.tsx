@@ -3,14 +3,45 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LocalStorage } from "@/lib/storage";
 import { api } from "@/lib/api-client";
-import { ArrowLeft, Database, CheckCircle, AlertCircle } from "lucide-react";
+import { apiRequest } from "@/lib/queryClient";
+import { ArrowLeft, Database, CheckCircle, AlertCircle, RefreshCw } from "lucide-react";
 import { useLocation } from "wouter";
+import { useToast } from "@/hooks/use-toast";
 
 export default function DataDiagnostic() {
   const [, setLocation] = useLocation();
+  const { toast } = useToast();
   const [diagnosticData, setDiagnosticData] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isRecovering, setIsRecovering] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const recoverProgress = async () => {
+    setIsRecovering(true);
+    try {
+      const result = await apiRequest("/api/progress/recover", {
+        method: "POST",
+        body: JSON.stringify({ workoutNumbers: [1, 2, 3, 4] })
+      });
+      
+      toast({
+        title: "Recovery Complete",
+        description: `Successfully recovered exercise progress for workouts 1-4`,
+      });
+      
+      // Refresh diagnostics
+      await runDiagnostics();
+    } catch (err) {
+      console.error("Recovery error:", err);
+      toast({
+        title: "Recovery Failed",
+        description: err instanceof Error ? err.message : "Failed to recover progress",
+        variant: "destructive"
+      });
+    } finally {
+      setIsRecovering(false);
+    }
+  };
 
   const runDiagnostics = async () => {
     setIsLoading(true);
@@ -91,6 +122,38 @@ export default function DataDiagnostic() {
               <AlertCircle className="h-5 w-5" />
               <span className="font-medium">Error: {error}</span>
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Recovery Button for Empty Data */}
+      {diagnosticData && diagnosticData.totalExercisesRecorded === 0 && diagnosticData.exerciseHistoryEntries > 0 && (
+        <Card className="mb-6 border-orange-200 bg-orange-50">
+          <CardHeader>
+            <CardTitle className="text-orange-900">Data Recovery Available</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-orange-700 mb-4">
+              Your exercise history has {diagnosticData.exerciseHistoryEntries} entries, but your workout progress is empty.
+              You can recover your exercise progress for workouts 1-4 from your exercise history.
+            </p>
+            <Button 
+              onClick={recoverProgress}
+              disabled={isRecovering}
+              className="bg-orange-600 hover:bg-orange-700"
+            >
+              {isRecovering ? (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                  Recovering...
+                </>
+              ) : (
+                <>
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Recover Exercise Progress
+                </>
+              )}
+            </Button>
           </CardContent>
         </Card>
       )}

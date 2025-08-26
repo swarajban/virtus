@@ -181,6 +181,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Recover exercise progress from history
+  app.post('/api/progress/recover', async (req, res) => {
+    try {
+      const user = await getUserFromRequest(req);
+      const result = await storage.recoverProgressFromHistory(user.id, req.body.workoutNumbers || [1, 2, 3, 4]);
+      res.json({ success: true, result });
+    } catch (error) {
+      console.error('Error recovering progress:', error);
+      res.status(500).json({ error: 'Failed to recover progress' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

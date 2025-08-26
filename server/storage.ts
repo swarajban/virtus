@@ -41,6 +41,7 @@ export interface IStorage {
   clearExerciseHistoryForWorkout(userId: number, workoutNumber: number): Promise<void>;
   updateUserProgram(userId: number, programName: string): Promise<void>;
   clearAllProgress(userId: number): Promise<void>;
+  recoverProgressFromHistory(userId: number, workoutNumbers: number[]): Promise<any>;
 }
 
 // Database storage implementation
@@ -301,6 +302,104 @@ export class DatabaseStorage implements IStorage {
       .where(eq(exerciseHistory.userId, userId));
     
     console.log(`Cleared all progress for user ${userId}`);
+  }
+
+  async recoverProgressFromHistory(userId: number, workoutNumbers: number[]): Promise<any> {
+    console.log(`Starting recovery for user ${userId}, workouts: ${workoutNumbers.join(', ')}`);
+    
+    // Get exercise history for this user
+    const userHistory = await db
+      .select()
+      .from(exerciseHistory)
+      .where(eq(exerciseHistory.userId, userId))
+      .orderBy(exerciseHistory.performedAt);
+    
+    console.log(`Found ${userHistory.length} exercise history entries`);
+    
+    // Group by date to identify workout sessions
+    const workoutsByDate = new Map<string, typeof userHistory>();
+    
+    for (const entry of userHistory) {
+      const dateKey = entry.performedAt.toISOString().split('T')[0];
+      if (!workoutsByDate.has(dateKey)) {
+        workoutsByDate.set(dateKey, []);
+      }
+      workoutsByDate.get(dateKey)!.push(entry);
+    }
+    
+    const sortedDates = Array.from(workoutsByDate.keys()).sort();
+    console.log(`Found ${sortedDates.length} unique workout dates`);
+    
+    // Process each workout number
+    for (let i = 0; i < Math.min(workoutNumbers.length, sortedDates.length); i++) {
+      const workoutNumber = workoutNumbers[i];
+      const dateKey = sortedDates[i];
+      const exercises = workoutsByDate.get(dateKey)!;
+      
+      console.log(`Processing workout ${workoutNumber} from ${dateKey}`);
+      
+      // Build exercise progress JSON
+      const exerciseProgressData: Record<string, any> = {};
+      let exerciseIndex = 0;
+      
+      for (const exercise of exercises) {
+        // Include both working and warm-up sets
+        exerciseProgressData[exerciseIndex.toString()] = {
+          sets: exercise.sets,
+          reps: exercise.reps,
+          weight: exercise.weight,
+          notes: exercise.notes || "",
+          completed: true
+        };
+        exerciseIndex++;
+      }
+      
+      // Check if workout progress already exists
+      const existing = await db
+        .select()
+        .from(workoutProgress)
+        .where(and(
+          eq(workoutProgress.userId, userId),
+          eq(workoutProgress.workoutNumber, workoutNumber)
+        ))
+        .limit(1);
+      
+      if (existing.length > 0) {
+        // Update existing record
+        await db
+          .update(workoutProgress)
+          .set({
+            exerciseProgress: exerciseProgressData,
+            status: "completed",
+            completedAt: exercises[exercises.length - 1].performedAt,
+            updatedAt: new Date()
+          })
+          .where(and(
+            eq(workoutProgress.userId, userId),
+            eq(workoutProgress.workoutNumber, workoutNumber)
+          ));
+        console.log(`Updated workout ${workoutNumber} with ${exerciseIndex} exercises`);
+      } else {
+        // Create new record
+        await db
+          .insert(workoutProgress)
+          .values({
+            userId,
+            workoutNumber,
+            status: "completed",
+            startedAt: exercises[0].performedAt,
+            completedAt: exercises[exercises.length - 1].performedAt,
+            exerciseProgress: exerciseProgressData
+          });
+        console.log(`Created workout ${workoutNumber} with ${exerciseIndex} exercises`);
+      }
+    }
+    
+    return {
+      recovered: workoutNumbers.length,
+      totalHistory: userHistory.length,
+      dates: sortedDates
+    };
   }
 }
 
