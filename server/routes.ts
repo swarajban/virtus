@@ -252,26 +252,64 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Temporary endpoint to fix missing exercises in production
   app.post('/api/fix-missing-exercises', async (req, res) => {
     try {
-      console.log('Fixing missing exercises...');
+      console.log('Fixing missing exercises by scanning workout JSON...');
       
-      // Add Deadlift if missing
-      const deadliftCheck = await storage.getExerciseByName('Deadlift');
-      if (!deadliftCheck) {
-        const deadlift = await storage.createExercise({
-          name: 'Deadlift',
-          usesBarbell: true,
-          notes: null,
-          youtubeLink: null,
-          onerm: null,
-          onermExerciseId: null
-        });
-        console.log('Added missing Deadlift exercise');
+      // Read the powerbuilding data JSON file
+      const fs = await import('fs');
+      const path = await import('path');
+      const jsonPath = path.join(process.cwd(), 'attached_assets', 'powerbuilding_data_v2_1755222339109.json');
+      const jsonData = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
+      
+      // Extract all unique exercise names from the entire JSON structure
+      const uniqueExercises = new Set<string>();
+      
+      // Loop through all programs
+      for (const program of jsonData.programs) {
+        // Loop through all workouts in the program
+        for (const workout of program.workouts) {
+          // Loop through all exercises in the workout
+          for (const exercise of workout.exercises) {
+            if (exercise.name) {
+              uniqueExercises.add(exercise.name);
+            }
+          }
+        }
+      }
+      
+      console.log(`Found ${uniqueExercises.size} unique exercises in workout JSON`);
+      
+      // Check which exercises are missing
+      const added: string[] = [];
+      const barbellPatterns = [
+        'squat', 'press', 'deadlift', 'row', 'bench', 'clean',
+        'snatch', 'jerk', 'thruster', 'rack pull', 'good morning',
+        'barbell', 'bar '
+      ];
+      
+      for (const exerciseName of uniqueExercises) {
+        const existing = await storage.getExerciseByName(exerciseName);
+        if (!existing) {
+          const nameLower = exerciseName.toLowerCase();
+          const usesBarbell = barbellPatterns.some(pattern => nameLower.includes(pattern));
+          
+          await storage.createExercise({
+            name: exerciseName,
+            usesBarbell,
+            notes: null,
+            youtubeLink: null,
+            onerm: null,
+            onermExerciseId: null
+          });
+          added.push(exerciseName);
+          console.log(`Added missing exercise: ${exerciseName}`);
+        }
       }
       
       res.json({ 
         success: true, 
-        message: 'Missing exercises fixed',
-        added: !deadliftCheck ? ['Deadlift'] : []
+        message: added.length > 0 ? `Added ${added.length} missing exercises` : 'All exercises already exist',
+        added,
+        totalExercises: uniqueExercises.size
       });
     } catch (error) {
       console.error('Error fixing exercises:', error);

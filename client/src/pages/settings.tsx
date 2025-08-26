@@ -222,7 +222,7 @@ export default function SettingsPage() {
                     method: 'POST',
                     headers: { 
                       'Content-Type': 'application/json',
-                      'x-username': selectedUsername
+                      'x-username': localStorage.getItem('selected-username') || 'demo'
                     }
                   });
                   const result = await response.json();
