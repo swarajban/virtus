@@ -9,6 +9,7 @@ import ExercisePage from "@/pages/exercise";
 import OneRMPage from "@/pages/one-rm";
 import ExerciseHistoryPage from "@/pages/exercise-history";
 import SettingsPage from "@/pages/settings";
+import DataDiagnostic from "@/pages/data-diagnostic";
 import NotFound from "@/pages/not-found";
 
 function Router() {
@@ -20,6 +21,7 @@ function Router() {
       <Route path="/one-rm" component={OneRMPage} />
       <Route path="/exercise-history" component={ExerciseHistoryPage} />
       <Route path="/settings" component={SettingsPage} />
+      <Route path="/data-diagnostic" component={DataDiagnostic} />
       <Route component={NotFound} />
     </Switch>
   );

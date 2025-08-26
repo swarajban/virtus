@@ -193,6 +193,20 @@ export default function SettingsPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Data Diagnostic Link */}
+        <Card className="cursor-pointer hover:shadow-md transition-all duration-200 border-blue-200 bg-blue-50"
+              onClick={() => setLocation('/data-diagnostic')}>
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="font-semibold text-blue-900">Data Diagnostic Tool</h3>
+                <p className="text-sm text-blue-700 mt-1">Check your workout and exercise data integrity</p>
+              </div>
+              <ArrowLeft className="h-5 w-5 text-blue-600 rotate-180" />
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
