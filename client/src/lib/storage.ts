@@ -104,10 +104,10 @@ export class DatabaseStorage {
   }
 
   // Save exercise history directly to API
-  static async saveExerciseHistory(entry: ExerciseHistoryEntry): Promise<void> {
+  static async saveExerciseHistory(entry: ExerciseHistoryEntry, workoutNumber?: number): Promise<void> {
     try {
-      console.log("Saving exercise history to API:", entry);
-      await api.saveExerciseHistory(entry);
+      console.log("Saving exercise history to API:", entry, "for workout", workoutNumber);
+      await api.saveExerciseHistory(entry, workoutNumber);
       console.log("Exercise history saved to API successfully");
     } catch (error) {
       console.error("Failed to save exercise history to API:", error);

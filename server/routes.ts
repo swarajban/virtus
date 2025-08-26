@@ -115,10 +115,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/exercise-history", async (req, res) => {
     try {
       const user = await getUserFromRequest(req);
-      const historyEntry = req.body;
+      const { historyEntry, workoutNumber } = req.body;
       
-      console.log("Saving exercise history for user:", user.id, "Entry:", historyEntry);
-      await storage.saveExerciseHistory(user.id, historyEntry);
+      console.log("Saving exercise history for user:", user.id, "Workout:", workoutNumber, "Entry:", historyEntry);
+      await storage.saveExerciseHistory(user.id, historyEntry, workoutNumber);
       res.json({ success: true });
     } catch (error) {
       console.error("Error saving exercise history:", error);

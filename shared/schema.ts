@@ -30,6 +30,7 @@ export const workoutProgress = pgTable("workout_progress", {
   userId: integer("user_id").notNull().references(() => users.id),
   programName: varchar("program_name", { length: 255 }).notNull().default("Powerbuilding 4x"),
   workoutNumber: integer("workout_number").notNull(),
+  sessionId: varchar("session_id", { length: 255 }), // Unique ID for each workout attempt
   status: varchar("status", { length: 20 }).notNull(), // 'not_started', 'in_progress', 'completed'
   startedAt: timestamp("started_at"),
   completedAt: timestamp("completed_at"),
@@ -38,6 +39,7 @@ export const workoutProgress = pgTable("workout_progress", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
   index("idx_wp_user_workout").on(table.userId, table.workoutNumber),
+  index("idx_wp_session").on(table.sessionId),
 ]);
 
 // Exercise History table - stores historical exercise performance data
@@ -46,6 +48,7 @@ export const exerciseHistory = pgTable("exercise_history", {
   userId: integer("user_id").notNull().references(() => users.id),
   programName: varchar("program_name", { length: 255 }).notNull().default("Powerbuilding 4x"),
   exerciseName: varchar("exercise_name", { length: 255 }).notNull(),
+  sessionId: varchar("session_id", { length: 255 }), // Links to specific workout session
   sets: integer("sets").notNull(),
   reps: integer("reps").notNull(),
   weight: real("weight").notNull(),
@@ -55,6 +58,7 @@ export const exerciseHistory = pgTable("exercise_history", {
 }, (table) => [
   index("idx_eh_user_exercise").on(table.userId, table.exerciseName),
   index("idx_eh_performed_at").on(table.performedAt),
+  index("idx_eh_session").on(table.sessionId),
 ]);
 
 // Derive schemas and types for database tables

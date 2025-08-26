@@ -146,7 +146,7 @@ export default function ExercisePage() {
           typeOfSet: exercise.type_of_set as "warm-up" | "working",
         };
         console.log("Saving exercise history entry:", historyEntry);
-        await LocalStorage.saveExerciseHistory(historyEntry);
+        await LocalStorage.saveExerciseHistory(historyEntry, workoutNumber);
       } else {
         console.log("Not saving exercise history because:", {
           hasWeight: userWeight > 0,

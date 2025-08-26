@@ -32,11 +32,11 @@ export interface IStorage {
   
   // Workout Progress operations
   getWorkoutProgress(userId: number): Promise<Record<number, WorkoutProgress>>;
-  saveWorkoutProgress(userId: number, workoutNumber: number, progress: WorkoutProgress): Promise<void>;
+  saveWorkoutProgress(userId: number, workoutNumber: number, progress: WorkoutProgress): Promise<string>;
   
   // Exercise History operations  
   getExerciseHistory(userId: number, exerciseName?: string): Promise<ExerciseHistoryEntry[]>;
-  saveExerciseHistory(userId: number, history: ExerciseHistoryEntry): Promise<void>;
+  saveExerciseHistory(userId: number, history: ExerciseHistoryEntry, workoutNumber?: number): Promise<void>;
   clearWorkoutProgress(userId: number, workoutNumber: number): Promise<void>;
   clearExerciseHistoryForWorkout(userId: number, workoutNumber: number): Promise<void>;
   updateUserProgram(userId: number, programName: string): Promise<void>;
@@ -136,7 +136,7 @@ export class DatabaseStorage implements IStorage {
     return result;
   }
 
-  async saveWorkoutProgress(userId: number, workoutNumber: number, progress: WorkoutProgress): Promise<void> {
+  async saveWorkoutProgress(userId: number, workoutNumber: number, progress: WorkoutProgress): Promise<string> {
     const existing = await db
       .select()
       .from(workoutProgress)
@@ -146,9 +146,17 @@ export class DatabaseStorage implements IStorage {
       ))
       .limit(1);
 
+    // Generate session ID if this is a new workout start or restart
+    let sessionId = existing[0]?.sessionId;
+    if (!sessionId || (progress.status === 'in_progress' && existing[0]?.status === 'not_started')) {
+      sessionId = `session_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+      console.log(`Generated new session ID: ${sessionId} for workout ${workoutNumber}`);
+    }
+
     const dbProgress = {
       userId,
       workoutNumber,
+      sessionId,
       status: progress.status,
       startedAt: progress.startedAt ? new Date(progress.startedAt) : null,
       completedAt: progress.completedAt ? new Date(progress.completedAt) : null,
@@ -171,6 +179,8 @@ export class DatabaseStorage implements IStorage {
         .insert(workoutProgress)
         .values(dbProgress);
     }
+    
+    return sessionId || '';
   }
 
   async getExerciseHistory(userId: number, exerciseName?: string): Promise<ExerciseHistoryEntry[]> {
@@ -208,10 +218,26 @@ export class DatabaseStorage implements IStorage {
     }));
   }
 
-  async saveExerciseHistory(userId: number, history: ExerciseHistoryEntry): Promise<void> {
+  async saveExerciseHistory(userId: number, history: ExerciseHistoryEntry, workoutNumber?: number): Promise<void> {
+    // Get current session ID from workout progress if workoutNumber is provided
+    let sessionId: string | undefined;
+    if (workoutNumber) {
+      const progress = await db
+        .select()
+        .from(workoutProgress)
+        .where(and(
+          eq(workoutProgress.userId, userId),
+          eq(workoutProgress.workoutNumber, workoutNumber)
+        ))
+        .limit(1);
+      
+      sessionId = progress[0]?.sessionId || undefined;
+    }
+    
     console.log("Inserting exercise history:", {
       userId,
       exerciseName: history.exerciseName,
+      sessionId,
       sets: history.sets,
       reps: history.reps,
       weight: history.weight,
@@ -224,6 +250,7 @@ export class DatabaseStorage implements IStorage {
       .values({
         userId,
         exerciseName: history.exerciseName,
+        sessionId,
         sets: history.sets,
         reps: history.reps,
         weight: history.weight,
@@ -231,7 +258,7 @@ export class DatabaseStorage implements IStorage {
         typeOfSet: history.typeOfSet || "working",
       });
     
-    console.log("Exercise history saved successfully");
+    console.log("Exercise history saved successfully with sessionId:", sessionId);
   }
 
   async clearWorkoutProgress(userId: number, workoutNumber: number): Promise<void> {
@@ -246,15 +273,34 @@ export class DatabaseStorage implements IStorage {
 
   async clearExerciseHistoryForWorkout(userId: number, workoutNumber: number): Promise<void> {
     try {
-      // This function should only be called when resetting a workout that hasn't been completed yet
-      // It should not delete historical exercise data from completed workouts
-      // For now, we'll leave exercise history intact as it's valuable historical data
-      console.log(`Note: Exercise history is preserved for workout ${workoutNumber} to maintain historical data`);
+      // Get the session ID for this workout
+      const progress = await db
+        .select()
+        .from(workoutProgress)
+        .where(and(
+          eq(workoutProgress.userId, userId),
+          eq(workoutProgress.workoutNumber, workoutNumber)
+        ))
+        .limit(1);
       
-      // Only clear the workout progress, not the exercise history
-      // The exercise history is a permanent record of what was actually performed
+      if (!progress[0]?.sessionId) {
+        console.log(`No session ID found for workout ${workoutNumber}, skipping exercise history clear`);
+        return;
+      }
+      
+      const sessionId = progress[0].sessionId;
+      
+      // Delete exercise history entries for this specific session
+      await db
+        .delete(exerciseHistory)
+        .where(and(
+          eq(exerciseHistory.userId, userId),
+          eq(exerciseHistory.sessionId, sessionId)
+        ));
+      
+      console.log(`Cleared exercise history for workout ${workoutNumber}, session ${sessionId}`);
     } catch (error) {
-      console.error('Error in clearExerciseHistoryForWorkout:', error);
+      console.error('Error clearing exercise history for workout:', error);
       throw error;
     }
   }

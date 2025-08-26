@@ -71,10 +71,10 @@ export const api = {
     return apiRequest(`/api/exercise-history${query}`);
   },
   
-  async saveExerciseHistory(history: ExerciseHistoryEntry): Promise<void> {
+  async saveExerciseHistory(history: ExerciseHistoryEntry, workoutNumber?: number): Promise<void> {
     await apiRequest('/api/exercise-history', {
       method: 'POST',
-      body: JSON.stringify(history),
+      body: JSON.stringify({ historyEntry: history, workoutNumber }),
     });
   },
 
