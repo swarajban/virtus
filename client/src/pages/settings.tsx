@@ -207,6 +207,51 @@ export default function SettingsPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Database Fix (Temporary) */}
+        <Card className="border-orange-200">
+          <CardContent className="p-4">
+            <h3 className="font-semibold mb-2">Fix Missing Exercises</h3>
+            <p className="text-sm text-gray-600 mb-3">
+              Use this to fix missing "Deadlift" exercise in production database.
+            </p>
+            <Button
+              onClick={async () => {
+                try {
+                  const response = await fetch('/api/fix-missing-exercises', {
+                    method: 'POST',
+                    headers: { 
+                      'Content-Type': 'application/json',
+                      'x-username': selectedUsername
+                    }
+                  });
+                  const result = await response.json();
+                  if (result.success) {
+                    toast({
+                      title: "Success",
+                      description: result.added.length > 0 
+                        ? `Added missing exercises: ${result.added.join(', ')}`
+                        : "No missing exercises found",
+                    });
+                  } else {
+                    throw new Error(result.error);
+                  }
+                } catch (error) {
+                  console.error('Error fixing exercises:', error);
+                  toast({
+                    title: "Error",
+                    description: "Failed to fix missing exercises",
+                    variant: "destructive",
+                  });
+                }
+              }}
+              variant="outline"
+              className="w-full"
+            >
+              Fix Missing Exercises
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

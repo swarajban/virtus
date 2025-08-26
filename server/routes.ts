@@ -249,6 +249,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Temporary endpoint to fix missing exercises in production
+  app.post('/api/fix-missing-exercises', async (req, res) => {
+    try {
+      console.log('Fixing missing exercises...');
+      
+      // Add Deadlift if missing
+      const deadliftCheck = await storage.getExerciseByName('Deadlift');
+      if (!deadliftCheck) {
+        const deadlift = await storage.createExercise({
+          name: 'Deadlift',
+          usesBarbell: true,
+          notes: null,
+          youtubeLink: null,
+          onerm: null,
+          onermExerciseId: null
+        });
+        console.log('Added missing Deadlift exercise');
+      }
+      
+      res.json({ 
+        success: true, 
+        message: 'Missing exercises fixed',
+        added: !deadliftCheck ? ['Deadlift'] : []
+      });
+    } catch (error) {
+      console.error('Error fixing exercises:', error);
+      res.status(500).json({ error: 'Failed to fix exercises' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
