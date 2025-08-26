@@ -99,16 +99,14 @@ export default function WorkoutPage() {
 
   const handleResetWorkout = async () => {
     try {
-      // Clear both workout progress and exercise history for this workout
-      await Promise.all([
-        LocalStorage.clearWorkoutProgress(workoutNumber),
-        LocalStorage.clearExerciseHistoryForWorkout(workoutNumber)
-      ]);
+      // Only clear workout progress, not exercise history
+      // Exercise history is valuable historical data that should be preserved
+      await LocalStorage.clearWorkoutProgress(workoutNumber);
       
       // Update the workout state
       const resetWorkout = { ...workout, progress: undefined };
       setWorkout(resetWorkout);
-      console.log(`Reset workout ${workoutNumber} - cleared progress and exercise history`);
+      console.log(`Reset workout ${workoutNumber} - cleared progress only (exercise history preserved)`);
     } catch (error) {
       console.error("Error resetting workout:", error);
     }

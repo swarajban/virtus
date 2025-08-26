@@ -246,38 +246,15 @@ export class DatabaseStorage implements IStorage {
 
   async clearExerciseHistoryForWorkout(userId: number, workoutNumber: number): Promise<void> {
     try {
-      // Load workout data to get exercise names
-      const fs = await import('fs');
-      const path = await import('path');
-      const workoutDataPath = path.join(process.cwd(), 'client/public/powerbuilding_data.json');
-      const data = JSON.parse(fs.readFileSync(workoutDataPath, 'utf-8'));
+      // This function should only be called when resetting a workout that hasn't been completed yet
+      // It should not delete historical exercise data from completed workouts
+      // For now, we'll leave exercise history intact as it's valuable historical data
+      console.log(`Note: Exercise history is preserved for workout ${workoutNumber} to maintain historical data`);
       
-      // Handle new JSON structure with programs
-      const programData = data.programs ? data.programs[0] : { workouts: data };
-      const workoutData = programData.workouts || [];
-      const workout = workoutData.find((w: any) => w.workout_number === workoutNumber);
-      
-      if (!workout) {
-        console.log(`No workout found with number ${workoutNumber}`);
-        return;
-      }
-
-      const exerciseNames = workout.exercises.map((ex: any) => ex.name);
-      console.log(`Clearing exercise history for workout ${workoutNumber}, exercises:`, exerciseNames);
-
-      // Delete exercise history entries for this workout's exercises
-      for (const exerciseName of exerciseNames) {
-        await db
-          .delete(exerciseHistory)
-          .where(and(
-            eq(exerciseHistory.userId, userId),
-            eq(exerciseHistory.exerciseName, exerciseName)
-          ));
-      }
-
-      console.log(`Cleared exercise history for workout ${workoutNumber}`);
+      // Only clear the workout progress, not the exercise history
+      // The exercise history is a permanent record of what was actually performed
     } catch (error) {
-      console.error('Error clearing exercise history for workout:', error);
+      console.error('Error in clearExerciseHistoryForWorkout:', error);
       throw error;
     }
   }
