@@ -178,7 +178,7 @@ export default function ExercisePage() {
 
       await LocalStorage.saveWorkoutProgress(workoutNumber, currentProgress);
 
-      // Show completion animation then navigate
+      // Show completion animation then navigate - reduced to 500ms
       setTimeout(() => {
         setIsCompleting(false);
         // Scroll to top before navigation
@@ -190,7 +190,7 @@ export default function ExercisePage() {
         } else {
           setLocation(`/workout/${workoutNumber}`);
         }
-      }, 1000);
+      }, 500); // Reduced from 1000ms to 500ms
     } catch (error) {
       console.error("Error completing exercise:", error);
       setIsCompleting(false);
@@ -226,13 +226,12 @@ export default function ExercisePage() {
 
   return (
     <div className="max-w-md mx-auto bg-white min-h-screen relative">
-      {/* Completion Overlay Animation */}
+      {/* Simplified Completion Animation - Faster and Cleaner */}
       {isCompleting && (
-        <div className="fixed inset-0 bg-green-600 bg-opacity-95 flex items-center justify-center z-50 animate-pulse">
-          <div className="text-center text-white">
-            <CheckCircle className="h-16 w-16 mx-auto mb-4 animate-bounce" />
-            <h2 className="text-2xl font-bold mb-2">Exercise Completed!</h2>
-            <p className="text-lg opacity-90">Moving to next exercise...</p>
+        <div className="fixed inset-0 bg-green-500 bg-opacity-90 flex items-center justify-center z-50 transition-opacity duration-300">
+          <div className="bg-white rounded-2xl p-6 shadow-2xl transform scale-95 animate-scale-check">
+            <CheckCircle className="h-12 w-12 mx-auto text-green-500 mb-2" />
+            <p className="text-lg font-semibold text-gray-800">Complete!</p>
           </div>
         </div>
       )}
