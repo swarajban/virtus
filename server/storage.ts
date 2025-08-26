@@ -273,7 +273,7 @@ export class DatabaseStorage implements IStorage {
 
   async clearExerciseHistoryForWorkout(userId: number, workoutNumber: number): Promise<void> {
     try {
-      // Get the session ID for this workout
+      // Get the session ID for this workout BEFORE we clear the progress
       const progress = await db
         .select()
         .from(workoutProgress)
@@ -289,9 +289,10 @@ export class DatabaseStorage implements IStorage {
       }
       
       const sessionId = progress[0].sessionId;
+      console.log(`Found session ID for workout ${workoutNumber}: ${sessionId}`);
       
       // Delete exercise history entries for this specific session
-      await db
+      const result = await db
         .delete(exerciseHistory)
         .where(and(
           eq(exerciseHistory.userId, userId),

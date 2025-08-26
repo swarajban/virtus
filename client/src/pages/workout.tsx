@@ -99,11 +99,10 @@ export default function WorkoutPage() {
 
   const handleResetWorkout = async () => {
     try {
-      // Clear both workout progress and exercise history for this specific session
-      await Promise.all([
-        LocalStorage.clearWorkoutProgress(workoutNumber),
-        LocalStorage.clearExerciseHistoryForWorkout(workoutNumber)
-      ]);
+      // IMPORTANT: Clear exercise history FIRST (while we still have the session ID)
+      // Then clear workout progress
+      await LocalStorage.clearExerciseHistoryForWorkout(workoutNumber);
+      await LocalStorage.clearWorkoutProgress(workoutNumber);
       
       // Update the workout state
       const resetWorkout = { ...workout, progress: undefined };
