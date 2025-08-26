@@ -8,6 +8,10 @@ Virtus is a workout tracking web application designed for powerbuilding/strength
 - **Fixed Complete Workout Bug**: Resolved issue where completing a workout was clearing all exercise progress data
 - **Improved Animation**: Simplified exercise completion animation from 1s to 500ms with cleaner visual design
 - **Data Integrity**: All workout and exercise data now properly preserved when changing workout status
+- **Exercise Database Migration**: Created exercises table and successfully migrated 56 unique exercises from JSON to PostgreSQL database
+- **Exercise Info Page**: New page for viewing/editing exercise details including YouTube videos, notes, custom 1RM values
+- **Exercises List Page**: New searchable exercise directory with ability to add custom exercises
+- **Enhanced Navigation**: Exercise names now link to exercise info pages throughout the app for easy access
 
 # User Preferences
 
@@ -29,6 +33,8 @@ Preferred communication style: Simple, everyday language.
 - **Workout Data**: JSON file with programs structure containing multiple workout programs
 - **User Management**: Username-based system with preset users ("swaraj", "demo")
 - **Program Selection**: Users can switch between available workout programs through Settings
+- **Exercise Database**: Dedicated exercises table with 56 unique exercises including metadata (notes, YouTube links, 1RM configs)
+- **Exercise History**: Tracks all working sets with exercise_id foreign keys for data integrity
 
 ## Backend Architecture
 - **Server**: Express.js with TypeScript for API endpoints
@@ -37,11 +43,12 @@ Preferred communication style: Simple, everyday language.
 - **Development**: Vite middleware integration for hot module replacement in development
 
 ## Component Architecture
-- **Page Components**: Home, Workout, Exercise, OneRM, Exercise History, and Settings pages
+- **Page Components**: Home, Workout, Exercise, OneRM, Exercise History, Settings, Exercises (list), and Exercise Info pages
 - **UI Components**: Reusable components for workout cards, progress bars, weight inputs, exercise history modals, and user selector
 - **Custom Hooks**: Mobile detection and toast notifications for enhanced UX
 - **Chart Integration**: Chart.js for rendering exercise history graphs and progress visualization
 - **Settings Page**: Centralized location for user account switching and program selection
+- **Exercise Management**: Full CRUD operations for exercises with YouTube video embeds and 1RM configuration
 
 ## Workout Logic
 - **1RM Integration**: Automatic weight calculation based on user's one-rep max values and exercise load percentages

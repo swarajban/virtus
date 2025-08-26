@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { WorkoutCard } from "@/components/workout-card";
 import { LocalStorage } from "@/lib/storage";
-import { Play, Settings, Activity } from "lucide-react";
+import { Play, Settings, Activity, Dumbbell } from "lucide-react";
 import type { WorkoutWithProgress } from "@/types/workout";
 
 // Import the workout data
@@ -92,14 +92,24 @@ export default function HomePage() {
             <h1 className="text-3xl font-bold tracking-tight font-heading">Virtus</h1>
             <p className="text-purple-100 text-sm mt-1 opacity-90">Powerbuilding Excellence</p>
           </div>
-          <Button 
-            variant="ghost" 
-            size="icon"
-            className="text-white hover:bg-white/20 transition-all duration-200 rounded-lg"
-            onClick={() => setLocation('/settings')}
-          >
-            <Settings className="h-5 w-5" />
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="ghost" 
+              size="icon"
+              className="text-white hover:bg-white/20 transition-all duration-200 rounded-lg"
+              onClick={() => setLocation('/exercises')}
+            >
+              <Dumbbell className="h-5 w-5" />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="icon"
+              className="text-white hover:bg-white/20 transition-all duration-200 rounded-lg"
+              onClick={() => setLocation('/settings')}
+            >
+              <Settings className="h-5 w-5" />
+            </Button>
+          </div>
         </div>
       </header>
 

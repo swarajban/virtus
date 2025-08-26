@@ -8,7 +8,7 @@ import { WeightInput } from "@/components/ui/weight-input";
 import { ExerciseHistoryModal } from "@/components/exercise-history-modal";
 import { PlateCalculator } from "@/components/plate-calculator";
 import { RestTimerBar } from "@/components/rest-timer";
-import { ArrowLeft, Check, CheckCircle, Info } from "lucide-react";
+import { ArrowLeft, Check, CheckCircle, Info, ExternalLink } from "lucide-react";
 import { LocalStorage } from "@/lib/storage";
 import { enhanceExerciseWithCalculations, getActualPercentage } from "@/lib/workout-utils";
 import type { ExerciseWithCalculatedWeight } from "@/types/workout";
@@ -32,6 +32,7 @@ export default function ExercisePage() {
   const [isCompleting, setIsCompleting] = useState(false);
   const [isExerciseCompleted, setIsExerciseCompleted] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [exerciseDbData, setExerciseDbData] = useState<any>(null);
 
   const workoutNumber = params ? parseInt(params.workoutNumber) : 0;
   const exerciseIndex = params ? parseInt(params.exerciseIndex) : 0;
@@ -72,6 +73,22 @@ export default function ExercisePage() {
             setUserReps(enhancedExercise.number_of_reps || 1);
             setUserWeight(enhancedExercise.calculatedWeight || 0);
             setUserNotes(""); // Clear notes for new exercises
+            
+            // Fetch exercise from database to get its ID
+            try {
+              const exercisesResponse = await fetch(`/api/exercises`, {
+                headers: { 'x-username': localStorage.getItem('selected-username') || 'demo' }
+              });
+              if (exercisesResponse.ok) {
+                const allExercises = await exercisesResponse.json();
+                const dbExercise = allExercises.find((e: any) => e.name === exerciseData.name);
+                if (dbExercise) {
+                  setExerciseDbData(dbExercise);
+                }
+              }
+            } catch (error) {
+              console.error('Error fetching exercise data:', error);
+            }
 
             // Check if exercise is already completed
             const currentProgress = workoutProgress[workoutNumber];
@@ -269,7 +286,20 @@ export default function ExercisePage() {
           )}
         </div>
         <div className="flex items-center gap-3 mb-2">
-          <h2 className="text-2xl font-bold text-gray-900">{exercise.name}</h2>
+          <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+            {exercise.name}
+            {exerciseDbData && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setLocation(`/exercise/${exerciseDbData.id}`)}
+                className="hover:bg-purple-100 p-1"
+                title="View exercise details"
+              >
+                <ExternalLink className="h-4 w-4 text-purple-600" />
+              </Button>
+            )}
+          </h2>
           {exercise.superset_label && (
             <Badge className="bg-purple-500 text-white px-3 py-1 text-sm font-bold rounded-full shadow-md">
               Superset {exercise.superset_label}

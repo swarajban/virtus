@@ -154,6 +154,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Exercise management endpoints
+  
+  // Get all exercises
+  app.get('/api/exercises', async (req, res) => {
+    try {
+      const query = req.query.search as string | undefined;
+      const exercises = query 
+        ? await storage.searchExercises(query)
+        : await storage.getAllExercises();
+      res.json(exercises);
+    } catch (error) {
+      console.error('Error fetching exercises:', error);
+      res.status(500).json({ error: 'Failed to fetch exercises' });
+    }
+  });
+
+  // Get single exercise by ID
+  app.get('/api/exercises/:id', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const exercise = await storage.getExercise(id);
+      if (!exercise) {
+        return res.status(404).json({ error: 'Exercise not found' });
+      }
+      res.json(exercise);
+    } catch (error) {
+      console.error('Error fetching exercise:', error);
+      res.status(500).json({ error: 'Failed to fetch exercise' });
+    }
+  });
+
+  // Create new exercise
+  app.post('/api/exercises', async (req, res) => {
+    try {
+      const exercise = req.body;
+      const created = await storage.createExercise(exercise);
+      res.json(created);
+    } catch (error) {
+      console.error('Error creating exercise:', error);
+      res.status(500).json({ error: 'Failed to create exercise' });
+    }
+  });
+
+  // Update exercise
+  app.put('/api/exercises/:id', async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const updates = req.body;
+      await storage.updateExercise(id, updates);
+      res.json({ success: true });
+    } catch (error) {
+      console.error('Error updating exercise:', error);
+      res.status(500).json({ error: 'Failed to update exercise' });
+    }
+  });
+
   // Update user's selected program
   app.post('/api/user/program', async (req, res) => {
     try {

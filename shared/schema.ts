@@ -1,7 +1,23 @@
 import { sql } from "drizzle-orm";
+import { relations } from "drizzle-orm";
 import { pgTable, text, timestamp, varchar, integer, real, boolean, jsonb, serial, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+
+// Exercise table - stores exercise definitions
+export const exercises = pgTable("exercises", {
+  id: serial("id").primaryKey(),
+  name: varchar("name", { length: 255 }).unique().notNull(),
+  notes: text("notes"),
+  youtubeLink: varchar("youtube_link", { length: 500 }),
+  usesBarbell: boolean("uses_barbell").default(true).notNull(),
+  onerm: real("onerm"),
+  onermExerciseId: integer("onerm_exercise_id").references(() => exercises.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => [
+  index("idx_exercise_name").on(table.name),
+  index("idx_exercise_onerm").on(table.onermExerciseId),
+]);
 
 // User table - stores usernames
 export const users = pgTable("users", {
@@ -47,7 +63,8 @@ export const exerciseHistory = pgTable("exercise_history", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
   programName: varchar("program_name", { length: 255 }).notNull().default("Powerbuilding 4x"),
-  exerciseName: varchar("exercise_name", { length: 255 }).notNull(),
+  exerciseId: integer("exercise_id").notNull().references(() => exercises.id),
+  exerciseName: varchar("exercise_name", { length: 255 }), // Keep for migration, will be removed later
   sessionId: varchar("session_id", { length: 255 }), // Links to specific workout session
   sets: integer("sets").notNull(),
   reps: integer("reps").notNull(),
@@ -56,12 +73,39 @@ export const exerciseHistory = pgTable("exercise_history", {
   typeOfSet: varchar("type_of_set", { length: 20 }).default("working"),
   performedAt: timestamp("performed_at").defaultNow().notNull(),
 }, (table) => [
-  index("idx_eh_user_exercise").on(table.userId, table.exerciseName),
+  index("idx_eh_user_exercise").on(table.userId, table.exerciseId),
   index("idx_eh_performed_at").on(table.performedAt),
   index("idx_eh_session").on(table.sessionId),
 ]);
 
+// Define relations
+export const exercisesRelations = relations(exercises, ({ one, many }) => ({
+  exerciseHistories: many(exerciseHistory),
+  parentExercise: one(exercises, {
+    fields: [exercises.onermExerciseId],
+    references: [exercises.id],
+  }),
+}));
+
+export const exerciseHistoryRelations = relations(exerciseHistory, ({ one }) => ({
+  user: one(users, {
+    fields: [exerciseHistory.userId],
+    references: [users.id],
+  }),
+  exercise: one(exercises, {
+    fields: [exerciseHistory.exerciseId],
+    references: [exercises.id],
+  }),
+}));
+
 // Derive schemas and types for database tables
+export const insertExerciseSchema = createInsertSchema(exercises).omit({
+  id: true,
+  createdAt: true,
+});
+export type InsertExercise = z.infer<typeof insertExerciseSchema>;
+export type Exercise = typeof exercises.$inferSelect;
+
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,
   createdAt: true,

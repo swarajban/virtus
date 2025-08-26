@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ExerciseHistoryModal } from "@/components/exercise-history-modal";
-import { ArrowLeft, Search, Activity } from "lucide-react";
+import { ArrowLeft, Search, Activity, ExternalLink } from "lucide-react";
 import { LocalStorage } from "@/lib/storage";
 import type { ExerciseHistoryEntry } from "@shared/schema";
 
@@ -13,6 +13,7 @@ interface ExerciseGroup {
   name: string;
   count: number;
   entries: ExerciseHistoryEntry[];
+  exerciseId?: number;
 }
 
 export default function ExerciseHistoryPage() {
@@ -22,12 +23,28 @@ export default function ExerciseHistoryPage() {
   const [selectedExercise, setSelectedExercise] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [exerciseMap, setExerciseMap] = useState<Record<string, number>>({});
 
   useEffect(() => {
     async function loadHistory() {
       try {
-        const history = await LocalStorage.getExerciseHistory();
+        const [history, exercisesResponse] = await Promise.all([
+          LocalStorage.getExerciseHistory(),
+          fetch('/api/exercises', {
+            headers: { 'x-username': localStorage.getItem('selected-username') || 'demo' }
+          })
+        ]);
+        
         setExerciseHistory(history || []);
+        
+        if (exercisesResponse.ok) {
+          const exercises = await exercisesResponse.json();
+          const map: Record<string, number> = {};
+          exercises.forEach((ex: any) => {
+            map[ex.name] = ex.id;
+          });
+          setExerciseMap(map);
+        }
       } catch (error) {
         console.error("Error loading exercise history:", error);
       } finally {
@@ -139,8 +156,22 @@ export default function ExerciseHistoryPage() {
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between">
                     <div className="flex-1">
-                      <h3 className="font-semibold text-gray-900 mb-1">
+                      <h3 className="font-semibold text-gray-900 mb-1 flex items-center gap-2">
                         {group.name}
+                        {exerciseMap[group.name] && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 p-0 hover:bg-purple-100"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setLocation(`/exercise/${exerciseMap[group.name]}`);
+                            }}
+                            title="View exercise details"
+                          >
+                            <ExternalLink className="h-4 w-4 text-purple-600" />
+                          </Button>
+                        )}
                       </h3>
                       <div className="flex items-center gap-2">
                         <Badge variant="secondary" className="text-xs">

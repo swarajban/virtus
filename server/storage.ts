@@ -3,6 +3,7 @@ import {
   oneRepMaxes,
   workoutProgress,
   exerciseHistory,
+  exercises,
   type User, 
   type InsertUser,
   type OneRepMax,
@@ -13,10 +14,12 @@ import {
   type InsertExerciseHistory,
   type WorkoutProgress,
   type OneRM,
-  type ExerciseHistoryEntry
+  type ExerciseHistoryEntry,
+  type Exercise,
+  type InsertExercise
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, like } from "drizzle-orm";
 
 // Interface for storage operations
 export interface IStorage {
@@ -33,6 +36,14 @@ export interface IStorage {
   // Workout Progress operations
   getWorkoutProgress(userId: number): Promise<Record<number, WorkoutProgress>>;
   saveWorkoutProgress(userId: number, workoutNumber: number, progress: WorkoutProgress): Promise<string>;
+  
+  // Exercise operations
+  getExercise(id: number): Promise<Exercise | undefined>;
+  getExerciseByName(name: string): Promise<Exercise | undefined>;
+  getAllExercises(): Promise<Exercise[]>;
+  searchExercises(query: string): Promise<Exercise[]>;
+  createExercise(exercise: InsertExercise): Promise<Exercise>;
+  updateExercise(id: number, exercise: Partial<InsertExercise>): Promise<void>;
   
   // Exercise History operations  
   getExerciseHistory(userId: number, exerciseName?: string): Promise<ExerciseHistoryEntry[]>;
@@ -183,6 +194,45 @@ export class DatabaseStorage implements IStorage {
     return sessionId || '';
   }
 
+  // Exercise operations
+  async getExercise(id: number): Promise<Exercise | undefined> {
+    const [exercise] = await db.select().from(exercises).where(eq(exercises.id, id));
+    return exercise || undefined;
+  }
+
+  async getExerciseByName(name: string): Promise<Exercise | undefined> {
+    const [exercise] = await db.select().from(exercises).where(eq(exercises.name, name));
+    return exercise || undefined;
+  }
+
+  async getAllExercises(): Promise<Exercise[]> {
+    return await db.select().from(exercises).orderBy(exercises.name);
+  }
+
+  async searchExercises(query: string): Promise<Exercise[]> {
+    if (!query) return this.getAllExercises();
+    return await db
+      .select()
+      .from(exercises)
+      .where(like(exercises.name, `%${query}%`))
+      .orderBy(exercises.name);
+  }
+
+  async createExercise(exercise: InsertExercise): Promise<Exercise> {
+    const [created] = await db
+      .insert(exercises)
+      .values(exercise)
+      .returning();
+    return created;
+  }
+
+  async updateExercise(id: number, exercise: Partial<InsertExercise>): Promise<void> {
+    await db
+      .update(exercises)
+      .set(exercise)
+      .where(eq(exercises.id, id));
+  }
+
   async getExerciseHistory(userId: number, exerciseName?: string): Promise<ExerciseHistoryEntry[]> {
     let query = db
       .select()
@@ -234,8 +284,15 @@ export class DatabaseStorage implements IStorage {
       sessionId = progress[0]?.sessionId || undefined;
     }
     
+    // Get exercise by name to get its ID
+    const exercise = await this.getExerciseByName(history.exerciseName);
+    if (!exercise) {
+      throw new Error(`Exercise not found: ${history.exerciseName}`);
+    }
+    
     console.log("Inserting exercise history:", {
       userId,
+      exerciseId: exercise.id,
       exerciseName: history.exerciseName,
       sessionId,
       sets: history.sets,
@@ -249,7 +306,8 @@ export class DatabaseStorage implements IStorage {
       .insert(exerciseHistory)
       .values({
         userId,
-        exerciseName: history.exerciseName,
+        exerciseId: exercise.id,
+        exerciseName: history.exerciseName, // Keep for backward compatibility
         sessionId,
         sets: history.sets,
         reps: history.reps,
