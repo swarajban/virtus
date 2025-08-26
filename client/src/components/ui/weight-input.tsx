@@ -27,14 +27,14 @@ export function WeightInput({
   }, [value]);
 
   const handleIncrement = () => {
-    const numValue = parseInt(localValue) || 0;
+    const numValue = parseFloat(localValue) || 0;
     const newValue = numValue + step;
     setLocalValue(newValue.toString());
     onChange(newValue);
   };
 
   const handleDecrement = () => {
-    const numValue = parseInt(localValue) || 0;
+    const numValue = parseFloat(localValue) || 0;
     const newValue = Math.max(min, numValue - step);
     setLocalValue(newValue.toString());
     onChange(newValue);
@@ -48,7 +48,7 @@ export function WeightInput({
     
     // Only update parent with valid numbers, but don't force 0 on empty
     if (inputValue !== '') {
-      const numValue = parseInt(inputValue);
+      const numValue = parseFloat(inputValue);
       if (!isNaN(numValue)) {
         onChange(Math.max(min, numValue));
       }
@@ -57,7 +57,7 @@ export function WeightInput({
 
   const handleBlur = () => {
     // On blur, ensure we have a valid number
-    if (localValue === '' || isNaN(parseInt(localValue))) {
+    if (localValue === '' || isNaN(parseFloat(localValue))) {
       setLocalValue('0');
       onChange(0);
     }
