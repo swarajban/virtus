@@ -248,14 +248,14 @@ export default function ExerciseInfo() {
             <div>
               <Label>Use 1RM from Exercise</Label>
               <Select
-                value={onermExerciseId}
-                onValueChange={setOnermExerciseId}
+                value={onermExerciseId || "none"}
+                onValueChange={(value) => setOnermExerciseId(value === "none" ? "" : value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select exercise for 1RM calculation" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">None (use default)</SelectItem>
+                  <SelectItem value="none">None (use default)</SelectItem>
                   {allExercises
                     .filter((ex: any) => ex.id !== exerciseId)
                     .map((ex: any) => (
