@@ -20,7 +20,7 @@ const EXERCISE_DATA = [
   { name: "Cable triceps extensions", usesBarbell: false },
   { name: "Chest supported rows", usesBarbell: false },
   { name: "Close-grip barbell bench press", usesBarbell: true },
-  { name: "Conventional deadlift", usesBarbell: true },
+  { name: "Deadlift", usesBarbell: true },
   { name: "Deficit deadlift", usesBarbell: true },
   { name: "Dumbbell bench press", usesBarbell: false },
   { name: "Dumbbell flyes", usesBarbell: false },
@@ -73,13 +73,13 @@ const EXERCISE_1RM_MAPPING: Record<string, string> = {
   "Wide-grip bench press": "Barbell bench press",
   "Dumbbell bench press": "Barbell bench press",
   "Incline dumbbell bench press": "Barbell bench press",
-  "Romanian deadlift": "Conventional deadlift",
-  "Stiff-legged deadlift": "Conventional deadlift",
-  "Sumo deadlift": "Conventional deadlift",
-  "Deficit deadlift": "Conventional deadlift",
-  "Pause deadlift": "Conventional deadlift",
-  "3\" block pull": "Conventional deadlift",
-  "5\" block pull": "Conventional deadlift",
+  "Romanian deadlift": "Deadlift",
+  "Stiff-legged deadlift": "Deadlift",
+  "Sumo deadlift": "Deadlift",
+  "Deficit deadlift": "Deadlift",
+  "Pause deadlift": "Deadlift",
+  "3\" block pull": "Deadlift",
+  "5\" block pull": "Deadlift",
   "Push press": "Overhead press",
   "Military press": "Overhead press",
   "Seated dumbbell press": "Overhead press"
@@ -92,7 +92,33 @@ export async function seedExercises() {
     // Check if exercises already exist
     const existingExercises = await db.select().from(exercises);
     if (existingExercises.length > 0) {
-      console.log(`Database already has ${existingExercises.length} exercises. Skipping seed.`);
+      console.log(`Database already has ${existingExercises.length} exercises.`);
+      
+      // Special check for critical missing exercises (production fix)
+      const criticalExercises = ["Deadlift", "Back squat", "Barbell bench press", "Overhead press"];
+      for (const exerciseName of criticalExercises) {
+        const [exists] = await db
+          .select()
+          .from(exercises)
+          .where(eq(exercises.name, exerciseName))
+          .limit(1);
+        
+        if (!exists) {
+          const exerciseData = EXERCISE_DATA.find(e => e.name === exerciseName);
+          if (exerciseData) {
+            await db.insert(exercises).values({
+              name: exerciseData.name,
+              usesBarbell: exerciseData.usesBarbell,
+              notes: null,
+              youtubeLink: null,
+              onerm: null,
+              onermExerciseId: null,
+            });
+            console.log(`✅ Added critical missing exercise: ${exerciseName}`);
+          }
+        }
+      }
+      
       return;
     }
     
