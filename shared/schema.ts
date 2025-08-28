@@ -188,6 +188,11 @@ export const exerciseProgressSchema = z.object({
   weight: z.number().optional(),
   notes: z.string().optional(),
   completed: z.boolean().default(false),
+  swappedExercise: z.object({
+    name: z.string(),
+    originalName: z.string(),
+    exerciseId: z.number(),
+  }).optional(),
 });
 
 export const workoutProgressSchema = z.object({

@@ -3,7 +3,7 @@ import { useLocation, useRoute } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Play, Check, CheckCircle, ArrowRight, Circle, RotateCcw } from "lucide-react";
+import { ArrowLeft, Play, Check, CheckCircle, ArrowRight, Circle, RotateCcw, Repeat } from "lucide-react";
 import { LocalStorage } from "@/lib/storage";
 import { getWorkoutStatusBadge, formatDate, enhanceExerciseWithCalculations } from "@/lib/workout-utils";
 import type { WorkoutWithProgress, ExerciseWithCalculatedWeight } from "@/types/workout";
@@ -65,9 +65,29 @@ export default function WorkoutPage() {
             setWorkout(workoutWithProgress);
 
             // Enhance exercises with calculated weights using new 1RM system
-            const enhancedExercises = foundWorkout.exercises.map((exercise: any) => 
-              enhanceExerciseWithCalculations(exercise, oneRM, exerciseOneRMs, allExercises)
-            );
+            // Also handle swapped exercises
+            const enhancedExercises = foundWorkout.exercises.map((exercise: any, index: number) => {
+              const exerciseKey = `${index}`;
+              const swapInfo = workoutProgress[workoutNumber]?.exerciseProgress?.[exerciseKey]?.swappedExercise;
+              
+              let exerciseToEnhance = exercise;
+              if (swapInfo) {
+                // Replace with swapped exercise details
+                const swappedExercise = allExercises.find((e: any) => e.id === swapInfo.exerciseId);
+                if (swappedExercise) {
+                  exerciseToEnhance = {
+                    ...exercise,
+                    name: swappedExercise.name,
+                    notes: swappedExercise.notes || exercise.notes,
+                    id: swappedExercise.id,
+                    onermExerciseId: swappedExercise.onermExerciseId,
+                    swappedFrom: swapInfo.originalName
+                  };
+                }
+              }
+              
+              return enhanceExerciseWithCalculations(exerciseToEnhance, oneRM, exerciseOneRMs, allExercises);
+            });
             setExercises(enhancedExercises);
           }
         } catch (error) {
@@ -275,7 +295,12 @@ export default function WorkoutPage() {
                 <CardContent className="p-4">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
-                      <h4 className="font-semibold text-gray-900">{exercise.name}</h4>
+                      <h4 className="font-semibold text-gray-900 flex items-center gap-1">
+                        {exercise.name}
+                        {(exercise as any).swappedFrom && (
+                          <Repeat className="h-3 w-3 text-purple-600" title={`Swapped from: ${(exercise as any).swappedFrom}`} />
+                        )}
+                      </h4>
                       {exercise.superset_label && (
                         <Badge className="bg-purple-500 text-white px-2 py-0.5 text-xs font-bold rounded">
                           Superset {exercise.superset_label}

@@ -5,10 +5,25 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { WeightInput } from "@/components/ui/weight-input";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
 import { ExerciseHistoryModal } from "@/components/exercise-history-modal";
 import { PlateCalculator } from "@/components/plate-calculator";
 import { RestTimerBar } from "@/components/rest-timer";
-import { ArrowLeft, Check, CheckCircle, Info, ExternalLink } from "lucide-react";
+import { ArrowLeft, Check, CheckCircle, Info, ExternalLink, Repeat } from "lucide-react";
 import { LocalStorage } from "@/lib/storage";
 import { enhanceExerciseWithCalculations, getActualPercentage } from "@/lib/workout-utils";
 import type { ExerciseWithCalculatedWeight } from "@/types/workout";
@@ -33,6 +48,10 @@ export default function ExercisePage() {
   const [isExerciseCompleted, setIsExerciseCompleted] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [exerciseDbData, setExerciseDbData] = useState<any>(null);
+  const [showSwapModal, setShowSwapModal] = useState(false);
+  const [selectedSwapExercise, setSelectedSwapExercise] = useState<any>(null);
+  const [allExercises, setAllExercises] = useState<any[]>([]);
+  const [swappedFromOriginal, setSwappedFromOriginal] = useState<string | null>(null);
 
   const workoutNumber = params ? parseInt(params.workoutNumber) : 0;
   const exerciseIndex = params ? parseInt(params.exerciseIndex) : 0;
@@ -65,6 +84,7 @@ export default function ExercisePage() {
           
           const allExercises = await allExercisesResponse.json();
           const allOneRMs = await allOneRMsResponse.json();
+          setAllExercises(allExercises); // Store all exercises for swap modal
           
           // Create a map of exercise ID to 1RM weight
           const exerciseOneRMs = new Map<number, number>();
@@ -81,15 +101,38 @@ export default function ExercisePage() {
           const foundWorkout = workoutData.find((w: any) => w.workout_number === workoutNumber);
           
           if (foundWorkout && foundWorkout.exercises[exerciseIndex]) {
-            const exerciseData = foundWorkout.exercises[exerciseIndex];
+            let exerciseData = foundWorkout.exercises[exerciseIndex];
+            const originalExerciseName = exerciseData.name;
             
-            // Find the database exercise record
-            const dbExercise = allExercises.find((e: any) => e.name === exerciseData.name);
-            if (dbExercise) {
-              setExerciseDbData(dbExercise);
-              // Add the ID to exercise data for weight calculations
-              exerciseData.id = dbExercise.id;
-              exerciseData.onermExerciseId = dbExercise.onermExerciseId;
+            // Check if this exercise has been swapped
+            const currentProgress = workoutProgress[workoutNumber];
+            const exerciseKey = `${exerciseIndex}`;
+            const swapInfo = currentProgress?.exerciseProgress?.[exerciseKey]?.swappedExercise;
+            
+            if (swapInfo) {
+              // Use swapped exercise data
+              const swappedExercise = allExercises.find((e: any) => e.id === swapInfo.exerciseId);
+              if (swappedExercise) {
+                // Preserve original exercise structure but use swapped exercise details
+                exerciseData = {
+                  ...exerciseData,
+                  name: swappedExercise.name,
+                  notes: swappedExercise.notes || exerciseData.notes,
+                  id: swappedExercise.id,
+                  onermExerciseId: swappedExercise.onermExerciseId
+                };
+                setExerciseDbData(swappedExercise);
+                setSwappedFromOriginal(originalExerciseName);
+              }
+            } else {
+              // Find the database exercise record for original exercise
+              const dbExercise = allExercises.find((e: any) => e.name === exerciseData.name);
+              if (dbExercise) {
+                setExerciseDbData(dbExercise);
+                // Add the ID to exercise data for weight calculations
+                exerciseData.id = dbExercise.id;
+                exerciseData.onermExerciseId = dbExercise.onermExerciseId;
+              }
             }
             
             const enhancedExercise = enhanceExerciseWithCalculations(
@@ -109,8 +152,6 @@ export default function ExercisePage() {
             setUserNotes(""); // Clear notes for new exercises
 
             // Check if exercise is already completed
-            const currentProgress = workoutProgress[workoutNumber];
-            const exerciseKey = `${exerciseIndex}`;
             const isCompleted = currentProgress?.exerciseProgress?.[exerciseKey]?.completed || false;
             setIsExerciseCompleted(isCompleted);
 
@@ -246,6 +287,45 @@ export default function ExercisePage() {
     }
   };
 
+  const handleSwapExercise = async () => {
+    if (!selectedSwapExercise) return;
+    
+    try {
+      // Get current workout progress
+      const workoutProgress = await LocalStorage.getWorkoutProgress();
+      const currentProgress = workoutProgress[workoutNumber] || {};
+      const exerciseKey = `${exerciseIndex}`;
+      
+      // Update the exercise progress with swap info
+      const updatedExerciseProgress = {
+        ...(currentProgress.exerciseProgress || {}),
+        [exerciseKey]: {
+          ...(currentProgress.exerciseProgress?.[exerciseKey] || {}),
+          swappedExercise: {
+            name: selectedSwapExercise.name,
+            originalName: swappedFromOriginal || exercise.name,
+            exerciseId: selectedSwapExercise.id
+          }
+        }
+      };
+      
+      // Save to workout progress
+      await LocalStorage.saveWorkoutProgress(workoutNumber, {
+        ...currentProgress,
+        exerciseProgress: updatedExerciseProgress
+      });
+      
+      // Close modal and reload the page
+      setShowSwapModal(false);
+      setSelectedSwapExercise(null);
+      
+      // Reload the exercise data
+      window.location.reload();
+    } catch (error) {
+      console.error("Error swapping exercise:", error);
+    }
+  };
+
   const getOneRMForExercise = () => {
     if (!oneRM) return 0;
     switch (exercise.name) {
@@ -307,15 +387,26 @@ export default function ExercisePage() {
           <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
             {exercise.name}
             {exerciseDbData && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setLocation(`/exercise/${exerciseDbData.id}`)}
-                className="hover:bg-purple-100 p-1"
-                title="View exercise details"
-              >
-                <ExternalLink className="h-4 w-4 text-purple-600" />
-              </Button>
+              <>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setLocation(`/exercise/${exerciseDbData.id}`)}
+                  className="hover:bg-purple-100 p-1"
+                  title="View exercise details"
+                >
+                  <ExternalLink className="h-4 w-4 text-purple-600" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowSwapModal(true)}
+                  className="hover:bg-purple-100 p-1"
+                  title="Swap exercise"
+                >
+                  <Repeat className="h-4 w-4 text-purple-600" />
+                </Button>
+              </>
             )}
           </h2>
           {exercise.superset_label && (
@@ -329,6 +420,12 @@ export default function ExercisePage() {
           {exercise.load_percentage && ` @ ${exercise.load_percentage}% 1RM`}
           {exercise.rpe && ` (RPE ${exercise.rpe})`}
         </p>
+        {swappedFromOriginal && (
+          <p className="text-xs text-purple-600 mt-1">
+            <Repeat className="h-3 w-3 inline mr-1" />
+            Swapped from: {swappedFromOriginal}
+          </p>
+        )}
       </div>
 
       {/* Set Type Banner with Modern Styling */}
@@ -504,6 +601,61 @@ export default function ExercisePage() {
         onClose={() => setShowHistory(false)}
         exerciseName={exercise.name}
       />
+
+      {/* Exercise Swap Modal */}
+      <Dialog open={showSwapModal} onOpenChange={setShowSwapModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Swap Exercise</DialogTitle>
+            <DialogDescription>
+              Select an exercise to swap with "{exercise.name}"
+            </DialogDescription>
+          </DialogHeader>
+          <Command>
+            <CommandInput placeholder="Search exercises..." />
+            <CommandList>
+              <CommandEmpty>No exercises found.</CommandEmpty>
+              <CommandGroup>
+                {allExercises
+                  .filter((e: any) => e.id !== exerciseDbData?.id)
+                  .map((ex: any) => (
+                    <CommandItem
+                      key={ex.id}
+                      value={ex.name}
+                      onSelect={() => setSelectedSwapExercise(ex)}
+                      className={selectedSwapExercise?.id === ex.id ? "bg-purple-50" : ""}
+                    >
+                      <Check
+                        className={`mr-2 h-4 w-4 ${
+                          selectedSwapExercise?.id === ex.id ? "opacity-100" : "opacity-0"
+                        }`}
+                      />
+                      {ex.name}
+                    </CommandItem>
+                  ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowSwapModal(false);
+                setSelectedSwapExercise(null);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleSwapExercise}
+              disabled={!selectedSwapExercise}
+              className="bg-purple-600 hover:bg-purple-700"
+            >
+              Swap
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
