@@ -254,10 +254,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       console.log('Fixing missing exercises by scanning workout JSON...');
       
-      // Read the powerbuilding data JSON file
+      // Read the powerbuilding data JSON file from public folder (single source of truth)
       const fs = await import('fs');
       const path = await import('path');
-      const jsonPath = path.join(process.cwd(), 'attached_assets', 'powerbuilding_data_v2_1755222339109.json');
+      const jsonPath = path.join(process.cwd(), 'client', 'public', 'powerbuilding_data.json');
       const jsonData = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
       
       // Extract all unique exercise names from the entire JSON structure

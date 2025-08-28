@@ -12,6 +12,8 @@ Virtus is a workout tracking web application designed for powerbuilding/strength
 - **Exercise Info Page**: New page for viewing/editing exercise details including YouTube videos, notes, custom 1RM values
 - **Exercises List Page**: New searchable exercise directory with ability to add custom exercises
 - **Enhanced Navigation**: Exercise names now link to exercise info pages throughout the app for easy access
+- **Dynamic Exercise Seeding**: Replaced hard-coded exercise list with dynamic extraction from workout JSON, ensuring all exercises from workouts are automatically seeded
+- **Single Source of Truth**: Consolidated workout data to use `client/public/powerbuilding_data.json` for both frontend and backend operations
 
 # User Preferences
 

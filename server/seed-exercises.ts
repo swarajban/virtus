@@ -7,8 +7,8 @@ async function seedExercises() {
   console.log('Starting dynamic exercise seeding...');
   
   try {
-    // Read the powerbuilding data JSON file
-    const jsonPath = path.join(process.cwd(), 'attached_assets', 'powerbuilding_data_v2_1755222339109.json');
+    // Read the powerbuilding data JSON file from public folder (single source of truth)
+    const jsonPath = path.join(process.cwd(), 'client', 'public', 'powerbuilding_data.json');
     const jsonData = JSON.parse(fs.readFileSync(jsonPath, 'utf-8'));
     
     // Extract all unique exercise names from the entire JSON structure
