@@ -3,26 +3,28 @@ import { useState, useEffect, useRef } from "react";
 // Load initial state from localStorage
 const loadTimerState = () => {
   if (typeof window === 'undefined') {
-    return { seconds: 0, isRunning: false, lastUpdate: Date.now() };
+    return { isRunning: false, startTime: null };
   }
   
   const saved = localStorage.getItem('restTimerState');
   if (saved) {
     const state = JSON.parse(saved);
-    // If timer was running, calculate elapsed time since last update
-    if (state.isRunning) {
-      const elapsed = Math.floor((Date.now() - state.lastUpdate) / 1000);
-      state.seconds += elapsed;
-    }
-    state.lastUpdate = Date.now();
     return state;
   }
   
-  return { seconds: 0, isRunning: false, lastUpdate: Date.now() };
+  return { isRunning: false, startTime: null };
 };
 
 // Global timer state that persists across components
 let globalTimerState = loadTimerState();
+
+// Calculate elapsed seconds from start time
+const getElapsedSeconds = () => {
+  if (!globalTimerState.isRunning || !globalTimerState.startTime) {
+    return 0;
+  }
+  return Math.floor((Date.now() - globalTimerState.startTime) / 1000);
+};
 
 // Save state to localStorage
 const saveTimerState = () => {
@@ -40,7 +42,7 @@ const notifySubscribers = () => {
 };
 
 export function useRestTimer() {
-  const [seconds, setSeconds] = useState(globalTimerState.seconds);
+  const [seconds, setSeconds] = useState(getElapsedSeconds());
   const [isRunning, setIsRunning] = useState(globalTimerState.isRunning);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const holdTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -48,7 +50,7 @@ export function useRestTimer() {
   // Subscribe to global state changes
   useEffect(() => {
     const updateState = () => {
-      setSeconds(globalTimerState.seconds);
+      setSeconds(getElapsedSeconds());
       setIsRunning(globalTimerState.isRunning);
     };
 
@@ -61,10 +63,13 @@ export function useRestTimer() {
   // Handle timer ticking
   useEffect(() => {
     if (isRunning) {
+      // Update immediately to show current elapsed time
+      setSeconds(getElapsedSeconds());
+      
       intervalRef.current = setInterval(() => {
-        globalTimerState.seconds++;
-        globalTimerState.lastUpdate = Date.now();
-        setSeconds(globalTimerState.seconds);
+        // Always recalculate from start time for accuracy
+        const elapsed = getElapsedSeconds();
+        setSeconds(elapsed);
         notifySubscribers();
       }, 1000);
     } else {
@@ -97,29 +102,20 @@ export function useRestTimer() {
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible' && globalTimerState.isRunning) {
-        // Calculate elapsed time since last update
-        const elapsed = Math.floor((Date.now() - globalTimerState.lastUpdate) / 1000);
-        
-        // Only update if significant time has passed (more than 1 second)
-        if (elapsed > 1) {
-          globalTimerState.seconds += elapsed - 1; // Subtract 1 to account for the current interval
-          globalTimerState.lastUpdate = Date.now();
-          setSeconds(globalTimerState.seconds);
-          notifySubscribers();
-        }
+        // Simply recalculate elapsed time from start time
+        const elapsed = getElapsedSeconds();
+        setSeconds(elapsed);
+        notifySubscribers();
       }
     };
 
     // Also handle focus event for additional reliability
     const handleFocus = () => {
       if (globalTimerState.isRunning) {
-        const elapsed = Math.floor((Date.now() - globalTimerState.lastUpdate) / 1000);
-        if (elapsed > 1) {
-          globalTimerState.seconds += elapsed - 1;
-          globalTimerState.lastUpdate = Date.now();
-          setSeconds(globalTimerState.seconds);
-          notifySubscribers();
-        }
+        // Simply recalculate elapsed time from start time
+        const elapsed = getElapsedSeconds();
+        setSeconds(elapsed);
+        notifySubscribers();
       }
     };
 
@@ -134,20 +130,21 @@ export function useRestTimer() {
 
   const startTimer = () => {
     globalTimerState.isRunning = true;
-    globalTimerState.lastUpdate = Date.now();
+    globalTimerState.startTime = Date.now();
     setIsRunning(true);
+    setSeconds(0);
     notifySubscribers();
   };
 
   const stopTimer = () => {
     globalTimerState.isRunning = false;
+    globalTimerState.startTime = null;
     setIsRunning(false);
     notifySubscribers();
   };
 
   const resetTimer = () => {
-    globalTimerState.seconds = 0;
-    globalTimerState.lastUpdate = Date.now();
+    globalTimerState.startTime = Date.now();
     setSeconds(0);
     notifySubscribers();
   };
