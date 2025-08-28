@@ -58,6 +58,13 @@ export default function ExerciseInfo() {
     retry: false,
   });
   
+  // Fetch 1RM for referenced exercise (if onermExerciseId is set)
+  const { data: referencedOneRM } = useQuery({
+    queryKey: [`/api/one-rm/exercise/${onermExerciseId}`],
+    enabled: !!onermExerciseId && onermExerciseId !== "",
+    retry: false,
+  });
+  
   // Initialize form with exercise data
   useEffect(() => {
     if (exercise) {
@@ -73,6 +80,17 @@ export default function ExerciseInfo() {
       setOneRMWeight(oneRM.weight?.toString() || "");
     }
   }, [oneRM]);
+  
+  // Get the display value for 1RM (either from this exercise or referenced)
+  const getDisplayedOneRM = () => {
+    if (onermExerciseId && referencedOneRM) {
+      return referencedOneRM.weight;
+    }
+    return oneRMWeight ? parseFloat(oneRMWeight) : null;
+  };
+  
+  // Check if 1RM input should be disabled
+  const isOneRMDisabled = !!onermExerciseId && onermExerciseId !== "";
   
   // Update exercise mutation
   const updateMutation = useMutation({
@@ -150,12 +168,14 @@ export default function ExerciseInfo() {
     };
     await updateMutation.mutateAsync(updates);
     
-    // Save or delete 1RM weight
-    if (oneRMWeight) {
-      await save1RMMutation.mutateAsync(parseFloat(oneRMWeight));
-    } else if (oneRM) {
-      // If weight was cleared, delete the 1RM record
-      await delete1RMMutation.mutateAsync();
+    // Save or delete 1RM weight only if not using a referenced exercise
+    if (!onermExerciseId) {
+      if (oneRMWeight) {
+        await save1RMMutation.mutateAsync(parseFloat(oneRMWeight));
+      } else if (oneRM) {
+        // If weight was cleared, delete the 1RM record
+        await delete1RMMutation.mutateAsync();
+      }
     }
   };
   
@@ -291,15 +311,31 @@ export default function ExerciseInfo() {
           <CardContent className="space-y-4">
             <div>
               <Label>1RM Value for this Exercise</Label>
-              <Input
-                type="number"
-                value={oneRMWeight}
-                onChange={(e) => setOneRMWeight(e.target.value)}
-                placeholder="Enter weight in lbs"
-                step="5"
-              />
+              {isOneRMDisabled ? (
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    value={referencedOneRM ? referencedOneRM.weight : "Loading..."}
+                    disabled
+                    className="bg-gray-50 flex-1"
+                  />
+                  <Badge variant="secondary" className="whitespace-nowrap">
+                    From: {allExercises.find((ex: any) => ex.id === parseInt(onermExerciseId))?.name || "Loading..."}
+                  </Badge>
+                </div>
+              ) : (
+                <Input
+                  type="number"
+                  value={oneRMWeight}
+                  onChange={(e) => setOneRMWeight(e.target.value)}
+                  placeholder="Enter weight in lbs"
+                  step="5"
+                />
+              )}
               <p className="text-sm text-gray-500 mt-1">
-                Set your one-rep max for this exercise. This will be used to calculate working weights.
+                {isOneRMDisabled 
+                  ? `This exercise uses the 1RM from ${allExercises.find((ex: any) => ex.id === parseInt(onermExerciseId))?.name || "another exercise"} for weight calculations.`
+                  : "Set your one-rep max for this exercise. This will be used to calculate working weights."}
               </p>
             </div>
             
