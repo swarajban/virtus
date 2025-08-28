@@ -56,14 +56,15 @@ export default function ExercisePage() {
   const workoutNumber = params ? parseInt(params.workoutNumber) : 0;
   const exerciseIndex = params ? parseInt(params.exerciseIndex) : 0;
   const previousExerciseIndexRef = useRef(exerciseIndex);
+  const isInitialMount = useRef(true);
 
-  // Only scroll to top when actually navigating between exercises
+  // Remove automatic scrolling - only scroll on explicit navigation
   useEffect(() => {
-    // Only scroll if we've actually changed exercises, not on every render
-    if (previousExerciseIndexRef.current !== exerciseIndex) {
-      previousExerciseIndexRef.current = exerciseIndex;
-      // Use immediate scroll instead of smooth to prevent scroll issues on mobile
-      window.scrollTo({ top: 0, behavior: 'auto' });
+    // Skip scrolling entirely on mobile to prevent issues
+    // We'll handle scrolling explicitly in navigation functions instead
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
     }
   }, [exerciseIndex]);
 
@@ -266,7 +267,8 @@ export default function ExercisePage() {
       // Show completion animation then navigate - reduced to 500ms
       setTimeout(() => {
         setIsCompleting(false);
-        // Don't scroll here - let the navigation handle it
+        // Scroll to top only when navigating to next exercise
+        window.scrollTo({ top: 0, behavior: 'instant' });
         
         // Navigate to next exercise or back to workout
         if (exerciseIndex < totalExercises - 1) {
@@ -282,6 +284,8 @@ export default function ExercisePage() {
   };
 
   const handlePreviousExercise = () => {
+    // Explicitly scroll to top only when navigating
+    window.scrollTo({ top: 0, behavior: 'instant' });
     if (exerciseIndex > 0) {
       setLocation(`/workout/${workoutNumber}/exercise/${exerciseIndex - 1}`);
     } else {
@@ -291,6 +295,8 @@ export default function ExercisePage() {
 
   const handleNextExercise = () => {
     if (exerciseIndex < totalExercises - 1) {
+      // Explicitly scroll to top only when navigating
+      window.scrollTo({ top: 0, behavior: 'instant' });
       setLocation(`/workout/${workoutNumber}/exercise/${exerciseIndex + 1}`);
     }
   };
@@ -375,8 +381,8 @@ export default function ExercisePage() {
           </div>
         </div>
       )}
-      {/* Modern Header */}
-      <header className="gradient-purple text-white px-4 py-6 sticky top-0 z-50 shadow-lg">
+      {/* Modern Header - Changed from sticky to relative on mobile */}
+      <header className="gradient-purple text-white px-4 py-6 relative shadow-lg">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <Button 
@@ -392,7 +398,7 @@ export default function ExercisePage() {
         </div>
       </header>
 
-      {/* Rest Timer Bar */}
+      {/* Rest Timer Bar - conditionally render */}
       <RestTimerBar />
 
       {/* Exercise Header with Modern Design */}
