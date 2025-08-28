@@ -11,7 +11,7 @@
 import { Pool, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-serverless';
 import { exercises, exerciseHistory } from '../shared/schema';
-import { eq, isNull, and } from 'drizzle-orm';
+import { eq, isNull, and, isNotNull } from 'drizzle-orm';
 import ws from "ws";
 
 // Configure neon for serverless
@@ -58,8 +58,8 @@ async function migrateExerciseHistory() {
       .from(exerciseHistory)
       .where(
         and(
-          isNull(exerciseHistory.exerciseId), // or you could use eq(exerciseHistory.exerciseId, 0) if they're set to 0
-          isNull(exerciseHistory.exerciseName) // records where exerciseName is not null
+          isNull(exerciseHistory.exerciseId), // Records where exerciseId is null
+          isNotNull(exerciseHistory.exerciseName) // BUT exerciseName is not null
         )
       );
     
