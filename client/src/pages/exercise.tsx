@@ -315,14 +315,19 @@ export default function ExercisePage() {
       };
       
       // Save to workout progress with all required fields
-      await LocalStorage.saveWorkoutProgress(workoutNumber, {
+      const progressToSave = {
         programName: currentProgress.programName || localStorage.getItem('selected-program') || 'Powerbuilding 4x',
         workoutNumber: workoutNumber,
         status: currentProgress.status || "not_started",
         startedAt: currentProgress.startedAt,
         completedAt: currentProgress.completedAt,
         exerciseProgress: updatedExerciseProgress
-      });
+      };
+      
+      console.log("Saving workout progress with swap data:", progressToSave);
+      console.log("Exercise progress with swap:", updatedExerciseProgress);
+      
+      await LocalStorage.saveWorkoutProgress(workoutNumber, progressToSave);
       
       // Close modal and reload the page
       setShowSwapModal(false);
