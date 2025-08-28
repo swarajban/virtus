@@ -98,9 +98,9 @@ export default function HomePage() {
   };
 
   return (
-    <div className="max-w-md mx-auto bg-white min-h-screen">
+    <div className="max-w-md mx-auto bg-white h-screen flex flex-col">
       {/* Modern Header with Gradient */}
-      <header className="gradient-purple text-white px-4 py-6 sticky top-0 z-50 shadow-lg">
+      <header className="gradient-purple text-white px-4 py-6 shadow-lg flex-shrink-0">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight font-heading">Virtus</h1>
@@ -127,64 +127,71 @@ export default function HomePage() {
         </div>
       </header>
 
-      {/* Progress Section with Modern Design */}
-      <div className="p-4">
-        <Card className="bg-white shadow-lg border-0 overflow-hidden">
-          <div className="gradient-purple h-2"></div>
-          <CardContent className="p-5">
-            <h2 className="text-xl font-bold text-gray-900 mb-2">Program Progress</h2>
-            <p className="text-sm text-gray-500 mb-4">Track your powerbuilding journey</p>
-            
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium">Workouts Completed</span>
-              <span className="text-sm font-bold">
-                {completedWorkouts} of {totalWorkouts}
-              </span>
-            </div>
-            
-            <ProgressBar value={completedWorkouts} max={totalWorkouts} />
-          </CardContent>
-        </Card>
-      </div>
+      {/* Fixed Content Container */}
+      <div className="flex-shrink-0">
+        {/* Progress Section with Modern Design */}
+        <div className="p-4">
+          <Card className="bg-white shadow-lg border-0 overflow-hidden">
+            <div className="gradient-purple h-2"></div>
+            <CardContent className="p-5">
+              <h2 className="text-xl font-bold text-gray-900 mb-2">Program Progress</h2>
+              <p className="text-sm text-gray-500 mb-4">Track your powerbuilding journey</p>
+              
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-medium">Workouts Completed</span>
+                <span className="text-sm font-bold">
+                  {completedWorkouts} of {totalWorkouts}
+                </span>
+              </div>
+              
+              <ProgressBar value={completedWorkouts} max={totalWorkouts} />
+            </CardContent>
+          </Card>
+        </div>
 
-      {/* Quick Actions */}
-      <div className="p-4">
-        <div className="grid grid-cols-2 gap-3 mb-6">
-          <Button 
-            onClick={handleNextWorkout}
-            className="gradient-purple text-white p-6 h-auto flex-col space-y-3 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-200"
-            disabled={!nextWorkout}
-          >
-            <Play className="h-10 w-10" />
-            <span className="text-sm font-semibold">Next Workout</span>
-          </Button>
-          <Button 
-            variant="outline"
-            onClick={() => setLocation('/exercise-history')}
-            className="p-6 h-auto flex-col space-y-3 rounded-xl border-2 hover:border-primary hover:shadow-lg transform hover:-translate-y-1 transition-all duration-200 bg-white"
-          >
-            <Activity className="h-10 w-10 text-primary" />
-            <span className="text-sm font-semibold text-gray-700">Exercise History</span>
-          </Button>
+        {/* Quick Actions */}
+        <div className="p-4">
+          <div className="grid grid-cols-2 gap-3">
+            <Button 
+              onClick={handleNextWorkout}
+              className="gradient-purple text-white p-6 h-auto flex-col space-y-3 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-200"
+              disabled={!nextWorkout}
+            >
+              <Play className="h-10 w-10" />
+              <span className="text-sm font-semibold">Next Workout</span>
+            </Button>
+            <Button 
+              variant="outline"
+              onClick={() => setLocation('/exercise-history')}
+              className="p-6 h-auto flex-col space-y-3 rounded-xl border-2 hover:border-primary hover:shadow-lg transform hover:-translate-y-1 transition-all duration-200 bg-white"
+            >
+              <Activity className="h-10 w-10 text-primary" />
+              <span className="text-sm font-semibold text-gray-700">Exercise History</span>
+            </Button>
+          </div>
         </div>
       </div>
 
-      {/* Workout List with Modern Styling */}
-      <div className="px-4 pb-6">
-        <h3 className="text-xl font-bold text-gray-900 mb-4">All Workouts</h3>
+      {/* Scrollable Workout List */}
+      <div className="flex-1 overflow-hidden flex flex-col">
+        <div className="px-4 pb-2">
+          <h3 className="text-xl font-bold text-gray-900">All Workouts</h3>
+        </div>
         
-        <div className="space-y-3">
-          {workouts.map((workout) => (
-            <div
-              key={workout.workout_number}
-              ref={workout.workout_number === nextWorkout?.workout_number ? nextWorkoutRef : null}
-            >
-              <WorkoutCard
-                workout={workout}
-                onClick={() => handleWorkoutClick(workout)}
-              />
-            </div>
-          ))}
+        <div className="flex-1 overflow-y-auto px-4 pb-4">
+          <div className="space-y-3">
+            {workouts.map((workout) => (
+              <div
+                key={workout.workout_number}
+                ref={workout.workout_number === nextWorkout?.workout_number ? nextWorkoutRef : null}
+              >
+                <WorkoutCard
+                  workout={workout}
+                  onClick={() => handleWorkoutClick(workout)}
+                />
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>
