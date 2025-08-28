@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,7 @@ export default function HomePage() {
   const [workouts, setWorkouts] = useState<WorkoutWithProgress[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [lastLoadTime, setLastLoadTime] = useState(0);
+  const nextWorkoutRef = useRef<HTMLDivElement>(null);
 
   const loadWorkouts = useCallback(async (force = false) => {
     // Throttle requests to prevent rapid reloading
@@ -60,6 +61,19 @@ export default function HomePage() {
   const nextWorkout = workouts.find(w => 
     !w.progress || w.progress.status === "not_started"
   );
+
+  // Scroll to next workout when workouts are loaded
+  useEffect(() => {
+    if (!isLoading && workouts.length > 0 && nextWorkout && nextWorkoutRef.current) {
+      // Small delay to ensure DOM is fully rendered
+      setTimeout(() => {
+        nextWorkoutRef.current?.scrollIntoView({
+          behavior: 'smooth',
+          block: 'center'
+        });
+      }, 100);
+    }
+  }, [isLoading, workouts.length, nextWorkout]);
 
   // Show loading only on initial load
   if (isLoading && workouts.length === 0) {
@@ -161,11 +175,15 @@ export default function HomePage() {
         
         <div className="space-y-3">
           {workouts.map((workout) => (
-            <WorkoutCard
+            <div
               key={workout.workout_number}
-              workout={workout}
-              onClick={() => handleWorkoutClick(workout)}
-            />
+              ref={workout.workout_number === nextWorkout?.workout_number ? nextWorkoutRef : null}
+            >
+              <WorkoutCard
+                workout={workout}
+                onClick={() => handleWorkoutClick(workout)}
+              />
+            </div>
           ))}
         </div>
       </div>
