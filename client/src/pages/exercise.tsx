@@ -241,9 +241,12 @@ export default function ExercisePage() {
       };
 
       const exerciseKey = `${exerciseIndex}`;
+      // Preserve existing exercise data including swap information
+      const existingExerciseData = currentProgress.exerciseProgress?.[exerciseKey] || {};
       currentProgress.exerciseProgress = {
         ...currentProgress.exerciseProgress,
         [exerciseKey]: {
+          ...existingExerciseData, // Preserve swap data if it exists
           sets: userSets,
           reps: userReps,
           weight: userWeight,
