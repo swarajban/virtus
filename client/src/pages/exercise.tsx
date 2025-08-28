@@ -416,7 +416,7 @@ export default function ExercisePage() {
                 </span>
               </div>
             )}
-            {userWeight > 0 && <PlateCalculator weight={userWeight} />}
+            {userWeight > 0 && exerciseDbData?.usesBarbell && <PlateCalculator weight={userWeight} />}
           </CardContent>
         </Card>
 
