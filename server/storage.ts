@@ -19,7 +19,7 @@ import {
   type InsertExercise
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, like, sql } from "drizzle-orm";
+import { eq, and, desc, like, ilike, sql } from "drizzle-orm";
 
 // Interface for storage operations
 export interface IStorage {
@@ -282,7 +282,7 @@ export class DatabaseStorage implements IStorage {
     return await db
       .select()
       .from(exercises)
-      .where(like(exercises.name, `%${query}%`))
+      .where(ilike(exercises.name, `%${query}%`))
       .orderBy(exercises.name);
   }
 
