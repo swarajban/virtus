@@ -27,12 +27,12 @@ export default function OneRMPage() {
   }>({});
   
   // Fetch exercises to get IDs for the main lifts
-  const { data: exercises = [] } = useQuery({
+  const { data: exercises = [] } = useQuery<any[]>({
     queryKey: ["/api/exercises"],
   });
   
   // Fetch all 1RMs for the user
-  const { data: allOneRMs = [] } = useQuery({
+  const { data: allOneRMs = [] } = useQuery<any[]>({
     queryKey: ["/api/one-rm/all"],
   });
   

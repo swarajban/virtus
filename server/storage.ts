@@ -31,6 +31,7 @@ export interface IStorage {
   
   // One Rep Max operations
   getOneRepMax(userId: number): Promise<OneRM | null>; // Legacy - for old clients
+  saveOneRepMax(userId: number, oneRM: OneRM): Promise<void>; // Legacy - for old clients
   getOneRepMaxForExercise(userId: number, exerciseId: number): Promise<OneRepMax | null>;
   saveOneRepMaxForExercise(userId: number, exerciseId: number, weight: number): Promise<void>;
   getAllOneRepMaxes(userId: number): Promise<OneRepMax[]>;
