@@ -293,7 +293,12 @@ export default function ExercisePage() {
     try {
       // Get current workout progress
       const workoutProgress = await LocalStorage.getWorkoutProgress();
-      const currentProgress = workoutProgress[workoutNumber] || {};
+      const currentProgress = workoutProgress[workoutNumber] || {
+        programName: localStorage.getItem('selected-program') || 'Powerbuilding 4x',
+        workoutNumber: workoutNumber,
+        status: "not_started" as const,
+        exerciseProgress: {}
+      };
       const exerciseKey = `${exerciseIndex}`;
       
       // Update the exercise progress with swap info
@@ -309,9 +314,13 @@ export default function ExercisePage() {
         }
       };
       
-      // Save to workout progress
+      // Save to workout progress with all required fields
       await LocalStorage.saveWorkoutProgress(workoutNumber, {
-        ...currentProgress,
+        programName: currentProgress.programName || localStorage.getItem('selected-program') || 'Powerbuilding 4x',
+        workoutNumber: workoutNumber,
+        status: currentProgress.status || "not_started",
+        startedAt: currentProgress.startedAt,
+        completedAt: currentProgress.completedAt,
         exerciseProgress: updatedExerciseProgress
       });
       
