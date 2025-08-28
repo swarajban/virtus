@@ -1615,7 +1615,7 @@
                     "exercises":
                     [
                         {
-                            "name": "Flat-back\"\" bench press\"",
+                            "name": "Flat-back bench press",
                             "superset_label": null,
                             "type_of_set": "warm-up",
                             "number_of_sets": 3,
@@ -1626,7 +1626,7 @@
                             "notes": "Shoulder blades still retracted and depressed. Slight arch in upper back. Minimize leg drive."
                         },
                         {
-                            "name": "Flat-back\"\" bench press\"",
+                            "name": "Flat-back bench press",
                             "superset_label": null,
                             "type_of_set": "working",
                             "number_of_sets": 3,
@@ -2450,7 +2450,7 @@
                             "notes": "2-3 second pause on the chest"
                         },
                         {
-                            "name": "Chest-supported T-Bar",
+                            "name": "Chest-supported T-Bar row",
                             "superset_label": null,
                             "type_of_set": "warm-up",
                             "number_of_sets": 1,
@@ -2461,7 +2461,7 @@
                             "notes": "Be mindful of lower back fatigue. Stay light, minimize cheating"
                         },
                         {
-                            "name": "Chest-supported T-Bar",
+                            "name": "Chest-supported T-Bar row",
                             "superset_label": null,
                             "type_of_set": "working",
                             "number_of_sets": 3,
@@ -3457,7 +3457,7 @@
                             "notes": "2-3 second pause on the chest"
                         },
                         {
-                            "name": "Chest-supported T-Bar",
+                            "name": "Chest-supported T-Bar row",
                             "superset_label": null,
                             "type_of_set": "warm-up",
                             "number_of_sets": 1,
@@ -3468,7 +3468,7 @@
                             "notes": "Be mindful of lower back fatigue. Stay light, minimize cheating"
                         },
                         {
-                            "name": "Chest-supported T-Bar",
+                            "name": "Chest-supported T-Bar row",
                             "superset_label": null,
                             "type_of_set": "working",
                             "number_of_sets": 3,
@@ -3618,7 +3618,7 @@
                     "exercises":
                     [
                         {
-                            "name": "Flat-back\"\" bench press\"",
+                            "name": "Flat-back bench press",
                             "superset_label": null,
                             "type_of_set": "warm-up",
                             "number_of_sets": 3,
@@ -3629,7 +3629,7 @@
                             "notes": "Shoulder blades still retracted and depressed. Slight arch in upper back. Minimize leg drive."
                         },
                         {
-                            "name": "Flat-back\"\" bench press\"",
+                            "name": "Flat-back bench press",
                             "superset_label": null,
                             "type_of_set": "working",
                             "number_of_sets": 3,
@@ -4453,7 +4453,7 @@
                             "notes": "2-3 second pause on the chest"
                         },
                         {
-                            "name": "Chest-supported T-Bar",
+                            "name": "Chest-supported T-Bar row",
                             "superset_label": null,
                             "type_of_set": "warm-up",
                             "number_of_sets": 1,
@@ -4464,7 +4464,7 @@
                             "notes": "Be mindful of lower back fatigue.\nStay light, minimize cheating"
                         },
                         {
-                            "name": "Chest-supported T-Bar",
+                            "name": "Chest-supported T-Bar row",
                             "superset_label": null,
                             "type_of_set": "working",
                             "number_of_sets": 3,
