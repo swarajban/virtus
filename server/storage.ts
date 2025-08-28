@@ -15,7 +15,7 @@ import {
   type WorkoutProgress,
   type OneRM,
   type ExerciseHistoryEntry,
-  type Exercise,
+  type ExerciseDB,
   type InsertExercise
 } from "@shared/schema";
 import { db } from "./db";
@@ -38,11 +38,11 @@ export interface IStorage {
   saveWorkoutProgress(userId: number, workoutNumber: number, progress: WorkoutProgress): Promise<string>;
   
   // Exercise operations
-  getExercise(id: number): Promise<Exercise | undefined>;
-  getExerciseByName(name: string): Promise<Exercise | undefined>;
-  getAllExercises(): Promise<Exercise[]>;
-  searchExercises(query: string): Promise<Exercise[]>;
-  createExercise(exercise: InsertExercise): Promise<Exercise>;
+  getExercise(id: number): Promise<ExerciseDB | undefined>;
+  getExerciseByName(name: string): Promise<ExerciseDB | undefined>;
+  getAllExercises(): Promise<ExerciseDB[]>;
+  searchExercises(query: string): Promise<ExerciseDB[]>;
+  createExercise(exercise: InsertExercise): Promise<ExerciseDB>;
   updateExercise(id: number, exercise: Partial<InsertExercise>): Promise<void>;
   
   // Exercise History operations  
@@ -195,21 +195,21 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Exercise operations
-  async getExercise(id: number): Promise<Exercise | undefined> {
+  async getExercise(id: number): Promise<ExerciseDB | undefined> {
     const [exercise] = await db.select().from(exercises).where(eq(exercises.id, id));
     return exercise || undefined;
   }
 
-  async getExerciseByName(name: string): Promise<Exercise | undefined> {
+  async getExerciseByName(name: string): Promise<ExerciseDB | undefined> {
     const [exercise] = await db.select().from(exercises).where(eq(exercises.name, name));
     return exercise || undefined;
   }
 
-  async getAllExercises(): Promise<Exercise[]> {
+  async getAllExercises(): Promise<ExerciseDB[]> {
     return await db.select().from(exercises).orderBy(exercises.name);
   }
 
-  async searchExercises(query: string): Promise<Exercise[]> {
+  async searchExercises(query: string): Promise<ExerciseDB[]> {
     if (!query) return this.getAllExercises();
     return await db
       .select()
@@ -218,7 +218,7 @@ export class DatabaseStorage implements IStorage {
       .orderBy(exercises.name);
   }
 
-  async createExercise(exercise: InsertExercise): Promise<Exercise> {
+  async createExercise(exercise: InsertExercise): Promise<ExerciseDB> {
     const [created] = await db
       .insert(exercises)
       .values(exercise)

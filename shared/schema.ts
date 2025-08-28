@@ -104,7 +104,7 @@ export const insertExerciseSchema = createInsertSchema(exercises).omit({
   createdAt: true,
 });
 export type InsertExercise = z.infer<typeof insertExerciseSchema>;
-export type Exercise = typeof exercises.$inferSelect;
+export type ExerciseDB = typeof exercises.$inferSelect;
 
 export const insertUserSchema = createInsertSchema(users).omit({
   id: true,

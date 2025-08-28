@@ -6,10 +6,28 @@ import * as schema from "@shared/schema";
 neonConfig.webSocketConstructor = ws;
 
 if (!process.env.DATABASE_URL) {
-  throw new Error(
-    "DATABASE_URL must be set. Did you forget to provision a database?",
+  const error = new Error(
+    "DATABASE_URL must be set. Did you forget to provision a database? " +
+    "Check your environment variables in the Deployments pane for production, " +
+    "or ensure you have a database configured in your Replit project."
   );
+  console.error("Database configuration error:", error.message);
+  throw error;
 }
 
-export const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-export const db = drizzle({ client: pool, schema });
+// Log database URL status (without exposing the actual URL for security)
+console.log("Database URL configured:", process.env.DATABASE_URL ? "✓" : "✗");
+
+let pool: Pool;
+let db: ReturnType<typeof drizzle>;
+
+try {
+  pool = new Pool({ connectionString: process.env.DATABASE_URL });
+  db = drizzle({ client: pool, schema });
+  console.log("Database client initialized successfully");
+} catch (error) {
+  console.error("Failed to initialize database client:", error);
+  throw new Error(`Database initialization failed: ${error instanceof Error ? error.message : String(error)}`);
+}
+
+export { pool, db };

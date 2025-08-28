@@ -286,7 +286,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         'barbell', 'bar '
       ];
       
-      for (const exerciseName of uniqueExercises) {
+      for (const exerciseName of Array.from(uniqueExercises)) {
         const existing = await storage.getExerciseByName(exerciseName);
         if (!existing) {
           const nameLower = exerciseName.toLowerCase();
@@ -294,7 +294,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           
           await storage.createExercise({
             name: exerciseName,
-            usesBarbell,
+            usesBarbell: usesBarbell,
             notes: null,
             youtubeLink: null,
             onerm: null,
