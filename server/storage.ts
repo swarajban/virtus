@@ -19,7 +19,7 @@ import {
   type InsertExercise
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, like } from "drizzle-orm";
+import { eq, and, desc, like, sql } from "drizzle-orm";
 
 // Interface for storage operations
 export interface IStorage {
@@ -30,8 +30,11 @@ export interface IStorage {
   getAllUsers(): Promise<User[]>;
   
   // One Rep Max operations
-  getOneRepMax(userId: number): Promise<OneRM | null>;
-  saveOneRepMax(userId: number, oneRM: OneRM): Promise<void>;
+  getOneRepMax(userId: number): Promise<OneRM | null>; // Legacy - for old clients
+  getOneRepMaxForExercise(userId: number, exerciseId: number): Promise<OneRepMax | null>;
+  saveOneRepMaxForExercise(userId: number, exerciseId: number, weight: number): Promise<void>;
+  getAllOneRepMaxes(userId: number): Promise<OneRepMax[]>;
+  deleteOneRepMax(userId: number, exerciseId: number): Promise<void>;
   
   // Workout Progress operations
   getWorkoutProgress(userId: number): Promise<Record<number, WorkoutProgress>>;
@@ -79,53 +82,117 @@ export class DatabaseStorage implements IStorage {
     return await db.select().from(users);
   }
 
+  // Legacy method - convert from new schema to old format for backward compatibility
   async getOneRepMax(userId: number): Promise<OneRM | null> {
+    // Get exercise IDs for the standard lifts
+    const backSquatExercise = await this.getExerciseByName("Back squat");
+    const benchExercise = await this.getExerciseByName("Barbell bench press");
+    const deadliftExercise = await this.getExerciseByName("Deadlift");
+    const ohpExercise = await this.getExerciseByName("Overhead press");
+    
+    const result: OneRM = {
+      backSquat: 135,
+      benchPress: 95,
+      deadlift: 185,
+      overheadPress: 65,
+    };
+    
+    if (backSquatExercise) {
+      const orm = await this.getOneRepMaxForExercise(userId, backSquatExercise.id);
+      if (orm) result.backSquat = orm.weight;
+    }
+    if (benchExercise) {
+      const orm = await this.getOneRepMaxForExercise(userId, benchExercise.id);
+      if (orm) result.benchPress = orm.weight;
+    }
+    if (deadliftExercise) {
+      const orm = await this.getOneRepMaxForExercise(userId, deadliftExercise.id);
+      if (orm) result.deadlift = orm.weight;
+    }
+    if (ohpExercise) {
+      const orm = await this.getOneRepMaxForExercise(userId, ohpExercise.id);
+      if (orm) result.overheadPress = orm.weight;
+    }
+    
+    return result;
+  }
+
+  // Legacy method - convert from old format to new schema for backward compatibility
+  async saveOneRepMax(userId: number, oneRM: OneRM): Promise<void> {
+    // Get exercise IDs for the standard lifts
+    const backSquatExercise = await this.getExerciseByName("Back squat");
+    const benchExercise = await this.getExerciseByName("Barbell bench press");
+    const deadliftExercise = await this.getExerciseByName("Deadlift");
+    const ohpExercise = await this.getExerciseByName("Overhead press");
+    
+    // Save each 1RM value
+    if (backSquatExercise && oneRM.backSquat) {
+      await this.saveOneRepMaxForExercise(userId, backSquatExercise.id, oneRM.backSquat);
+    }
+    if (benchExercise && oneRM.benchPress) {
+      await this.saveOneRepMaxForExercise(userId, benchExercise.id, oneRM.benchPress);
+    }
+    if (deadliftExercise && oneRM.deadlift) {
+      await this.saveOneRepMaxForExercise(userId, deadliftExercise.id, oneRM.deadlift);
+    }
+    if (ohpExercise && oneRM.overheadPress) {
+      await this.saveOneRepMaxForExercise(userId, ohpExercise.id, oneRM.overheadPress);
+    }
+  }
+
+  // New methods for the updated schema
+  async getOneRepMaxForExercise(userId: number, exerciseId: number): Promise<OneRepMax | null> {
     const [orm] = await db
       .select()
       .from(oneRepMaxes)
-      .where(eq(oneRepMaxes.userId, userId))
-      .orderBy(desc(oneRepMaxes.updatedAt))
+      .where(and(
+        eq(oneRepMaxes.userId, userId),
+        eq(oneRepMaxes.exerciseId, exerciseId)
+      ))
       .limit(1);
     
-    if (!orm) return null;
-    
-    return {
-      backSquat: orm.backSquat || 135,
-      benchPress: orm.benchPress || 95,
-      deadlift: orm.deadlift || 185,
-      overheadPress: orm.overheadPress || 65,
-    };
+    return orm || null;
   }
 
-  async saveOneRepMax(userId: number, oneRM: OneRM): Promise<void> {
-    const existing = await db
-      .select()
-      .from(oneRepMaxes)
-      .where(eq(oneRepMaxes.userId, userId))
-      .limit(1);
+  async saveOneRepMaxForExercise(userId: number, exerciseId: number, weight: number): Promise<void> {
+    const existing = await this.getOneRepMaxForExercise(userId, exerciseId);
 
-    if (existing.length > 0) {
+    if (existing) {
       await db
         .update(oneRepMaxes)
         .set({
-          backSquat: oneRM.backSquat,
-          benchPress: oneRM.benchPress,
-          deadlift: oneRM.deadlift,
-          overheadPress: oneRM.overheadPress,
+          weight,
           updatedAt: new Date(),
         })
-        .where(eq(oneRepMaxes.userId, userId));
+        .where(and(
+          eq(oneRepMaxes.userId, userId),
+          eq(oneRepMaxes.exerciseId, exerciseId)
+        ));
     } else {
       await db
         .insert(oneRepMaxes)
         .values({
           userId,
-          backSquat: oneRM.backSquat,
-          benchPress: oneRM.benchPress,
-          deadlift: oneRM.deadlift,
-          overheadPress: oneRM.overheadPress,
+          exerciseId,
+          weight,
         });
     }
+  }
+
+  async getAllOneRepMaxes(userId: number): Promise<OneRepMax[]> {
+    return await db
+      .select()
+      .from(oneRepMaxes)
+      .where(eq(oneRepMaxes.userId, userId));
+  }
+
+  async deleteOneRepMax(userId: number, exerciseId: number): Promise<void> {
+    await db
+      .delete(oneRepMaxes)
+      .where(and(
+        eq(oneRepMaxes.userId, userId),
+        eq(oneRepMaxes.exerciseId, exerciseId)
+      ));
   }
 
   async getWorkoutProgress(userId: number): Promise<Record<number, WorkoutProgress>> {

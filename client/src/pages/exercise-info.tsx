@@ -23,7 +23,7 @@ export default function ExerciseInfo() {
   // Form state
   const [notes, setNotes] = useState("");
   const [youtubeLink, setYoutubeLink] = useState("");
-  const [onerm, setOnerm] = useState("");
+  const [oneRMWeight, setOneRMWeight] = useState("");
   const [onermExerciseId, setOnermExerciseId] = useState<string>("");
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   
@@ -51,15 +51,28 @@ export default function ExerciseInfo() {
     queryKey: ["/api/exercises"],
   });
   
+  // Fetch 1RM for this exercise
+  const { data: oneRM } = useQuery({
+    queryKey: [`/api/one-rm/exercise/${exerciseId}`],
+    enabled: !!exerciseId,
+    retry: false,
+  });
+  
   // Initialize form with exercise data
   useEffect(() => {
     if (exercise) {
       setNotes(exercise.notes || "");
       setYoutubeLink(exercise.youtubeLink || "");
-      setOnerm(exercise.onerm?.toString() || "");
       setOnermExerciseId(exercise.onermExerciseId?.toString() || "");
     }
   }, [exercise]);
+  
+  // Initialize 1RM weight
+  useEffect(() => {
+    if (oneRM) {
+      setOneRMWeight(oneRM.weight?.toString() || "");
+    }
+  }, [oneRM]);
   
   // Update exercise mutation
   const updateMutation = useMutation({
@@ -91,14 +104,59 @@ export default function ExerciseInfo() {
     },
   });
   
-  const handleSave = () => {
+  // Mutation to save 1RM weight
+  const save1RMMutation = useMutation({
+    mutationFn: async (weight: number) => {
+      const response = await fetch(`/api/one-rm/exercise/${exerciseId}`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-username': localStorage.getItem('selected-username') || 'demo'
+        },
+        body: JSON.stringify({ weight }),
+      });
+      if (!response.ok) throw new Error('Failed to update 1RM');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/one-rm/exercise/${exerciseId}`] });
+    },
+  });
+  
+  // Mutation to delete 1RM weight
+  const delete1RMMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch(`/api/one-rm/exercise/${exerciseId}`, {
+        method: 'DELETE',
+        headers: { 
+          'x-username': localStorage.getItem('selected-username') || 'demo'
+        },
+      });
+      if (!response.ok) throw new Error('Failed to delete 1RM');
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [`/api/one-rm/exercise/${exerciseId}`] });
+      setOneRMWeight("");
+    },
+  });
+  
+  const handleSave = async () => {
+    // Save exercise details
     const updates = {
       notes,
       youtubeLink: youtubeLink || null,
-      onerm: onerm ? parseFloat(onerm) : null,
       onermExerciseId: onermExerciseId ? parseInt(onermExerciseId) : null,
     };
-    updateMutation.mutate(updates);
+    await updateMutation.mutateAsync(updates);
+    
+    // Save or delete 1RM weight
+    if (oneRMWeight) {
+      await save1RMMutation.mutateAsync(parseFloat(oneRMWeight));
+    } else if (oneRM) {
+      // If weight was cleared, delete the 1RM record
+      await delete1RMMutation.mutateAsync();
+    }
   };
   
   // Extract video ID from YouTube URL
@@ -232,16 +290,16 @@ export default function ExerciseInfo() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <Label>Custom 1RM Value</Label>
+              <Label>1RM Value for this Exercise</Label>
               <Input
                 type="number"
-                value={onerm}
-                onChange={(e) => setOnerm(e.target.value)}
+                value={oneRMWeight}
+                onChange={(e) => setOneRMWeight(e.target.value)}
                 placeholder="Enter weight in lbs"
                 step="5"
               />
               <p className="text-sm text-gray-500 mt-1">
-                Override calculated weights with a custom 1RM value
+                Set your one-rep max for this exercise. This will be used to calculate working weights.
               </p>
             </div>
             

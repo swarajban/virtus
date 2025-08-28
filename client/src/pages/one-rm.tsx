@@ -3,44 +3,132 @@ import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { WeightInput } from "@/components/ui/weight-input";
-
 import { ArrowLeft, Save } from "lucide-react";
-import { LocalStorage } from "@/lib/storage";
 import { useToast } from "@/hooks/use-toast";
-import type { OneRM } from "@shared/schema";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 export default function OneRMPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const [oneRM, setOneRM] = useState<OneRM>({
-    backSquat: 275,
-    benchPress: 210,
-    deadlift: 315,
-    overheadPress: 135,
+  const queryClient = useQueryClient();
+  
+  // State for the four main lifts
+  const [backSquat, setBackSquat] = useState(135);
+  const [benchPress, setBenchPress] = useState(95);
+  const [deadlift, setDeadlift] = useState(185);
+  const [overheadPress, setOverheadPress] = useState(65);
+  
+  // Exercise IDs for the four main lifts
+  const [exerciseIds, setExerciseIds] = useState<{
+    backSquat?: number;
+    benchPress?: number;
+    deadlift?: number;
+    overheadPress?: number;
+  }>({});
+  
+  // Fetch exercises to get IDs for the main lifts
+  const { data: exercises = [] } = useQuery({
+    queryKey: ["/api/exercises"],
   });
-
+  
+  // Fetch all 1RMs for the user
+  const { data: allOneRMs = [] } = useQuery({
+    queryKey: ["/api/one-rm/all"],
+  });
+  
+  // Initialize exercise IDs and 1RM values
   useEffect(() => {
-    async function loadOneRM() {
-      try {
-        const savedOneRM = await LocalStorage.getOneRM();
-        setOneRM(savedOneRM);
-      } catch (error) {
-        console.error("Error loading OneRM:", error);
-      }
+    if (exercises.length > 0) {
+      const ids: typeof exerciseIds = {};
+      const backSquatEx = exercises.find((e: any) => e.name === "Back squat");
+      const benchEx = exercises.find((e: any) => e.name === "Barbell bench press");
+      const deadliftEx = exercises.find((e: any) => e.name === "Deadlift");
+      const ohpEx = exercises.find((e: any) => e.name === "Overhead press");
+      
+      if (backSquatEx) ids.backSquat = backSquatEx.id;
+      if (benchEx) ids.benchPress = benchEx.id;
+      if (deadliftEx) ids.deadlift = deadliftEx.id;
+      if (ohpEx) ids.overheadPress = ohpEx.id;
+      
+      setExerciseIds(ids);
     }
-    loadOneRM();
-  }, []);
-
+  }, [exercises]);
+  
+  // Load existing 1RM values
+  useEffect(() => {
+    if (allOneRMs.length > 0 && Object.keys(exerciseIds).length > 0) {
+      allOneRMs.forEach((orm: any) => {
+        if (orm.exerciseId === exerciseIds.backSquat) {
+          setBackSquat(orm.weight);
+        } else if (orm.exerciseId === exerciseIds.benchPress) {
+          setBenchPress(orm.weight);
+        } else if (orm.exerciseId === exerciseIds.deadlift) {
+          setDeadlift(orm.weight);
+        } else if (orm.exerciseId === exerciseIds.overheadPress) {
+          setOverheadPress(orm.weight);
+        }
+      });
+    }
+  }, [allOneRMs, exerciseIds]);
+  
+  // Mutation to save 1RM
+  const save1RMMutation = useMutation({
+    mutationFn: async ({ exerciseId, weight }: { exerciseId: number; weight: number }) => {
+      const response = await fetch(`/api/one-rm/exercise/${exerciseId}`, {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'x-username': localStorage.getItem('selected-username') || 'demo'
+        },
+        body: JSON.stringify({ weight }),
+      });
+      if (!response.ok) throw new Error('Failed to update 1RM');
+      return response.json();
+    },
+  });
+  
   const handleSave = async () => {
     try {
-      await LocalStorage.saveOneRM(oneRM);
+      const promises = [];
+      
+      if (exerciseIds.backSquat) {
+        promises.push(save1RMMutation.mutateAsync({ 
+          exerciseId: exerciseIds.backSquat, 
+          weight: backSquat 
+        }));
+      }
+      if (exerciseIds.benchPress) {
+        promises.push(save1RMMutation.mutateAsync({ 
+          exerciseId: exerciseIds.benchPress, 
+          weight: benchPress 
+        }));
+      }
+      if (exerciseIds.deadlift) {
+        promises.push(save1RMMutation.mutateAsync({ 
+          exerciseId: exerciseIds.deadlift, 
+          weight: deadlift 
+        }));
+      }
+      if (exerciseIds.overheadPress) {
+        promises.push(save1RMMutation.mutateAsync({ 
+          exerciseId: exerciseIds.overheadPress, 
+          weight: overheadPress 
+        }));
+      }
+      
+      await Promise.all(promises);
+      
+      // Invalidate queries
+      queryClient.invalidateQueries({ queryKey: ["/api/one-rm/all"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/one-rm"] });
+      
       toast({
         title: "Success",
         description: "1RM values have been saved successfully.",
       });
-      setLocation('/');
+      setLocation('/settings');
     } catch (error) {
-      console.error("Error saving OneRM:", error);
+      console.error("Error saving 1RM:", error);
       toast({
         title: "Error",
         description: "Failed to save 1RM values. Please try again.",
@@ -49,18 +137,11 @@ export default function OneRMPage() {
     }
   };
 
-  const updateOneRM = (lift: keyof OneRM, value: number) => {
-    setOneRM(prev => ({
-      ...prev,
-      [lift]: value,
-    }));
-  };
-
   const lifts = [
-    { key: 'backSquat' as const, name: 'Back squat', value: oneRM.backSquat },
-    { key: 'benchPress' as const, name: 'Barbell bench press', value: oneRM.benchPress },
-    { key: 'deadlift' as const, name: 'Deadlift', value: oneRM.deadlift },
-    { key: 'overheadPress' as const, name: 'Overhead press', value: oneRM.overheadPress },
+    { key: 'backSquat', name: 'Back squat', value: backSquat, setValue: setBackSquat },
+    { key: 'benchPress', name: 'Barbell bench press', value: benchPress, setValue: setBenchPress },
+    { key: 'deadlift', name: 'Deadlift', value: deadlift, setValue: setDeadlift },
+    { key: 'overheadPress', name: 'Overhead press', value: overheadPress, setValue: setOverheadPress },
   ];
 
   return (
@@ -98,7 +179,7 @@ export default function OneRMPage() {
                 </div>
                 <WeightInput
                   value={lift.value}
-                  onChange={(value) => updateOneRM(lift.key, value)}
+                  onChange={(value) => lift.setValue(value)}
                   step={5}
                   min={0}
                 />
@@ -109,6 +190,7 @@ export default function OneRMPage() {
 
         <Button 
           onClick={handleSave}
+          disabled={save1RMMutation.isPending}
           className="w-full gradient-purple text-white mt-6 h-14 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 font-semibold text-base"
         >
           <Save className="h-5 w-5 mr-2" />

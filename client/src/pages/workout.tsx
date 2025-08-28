@@ -32,6 +32,25 @@ export default function WorkoutPage() {
             LocalStorage.getOneRM()
           ]);
           
+          // Fetch all exercises and their 1RMs
+          const [allExercisesResponse, allOneRMsResponse] = await Promise.all([
+            fetch('/api/exercises', {
+              headers: { 'x-username': localStorage.getItem('selected-username') || 'demo' }
+            }),
+            fetch('/api/one-rm/all', {
+              headers: { 'x-username': localStorage.getItem('selected-username') || 'demo' }
+            })
+          ]);
+          
+          const allExercises = await allExercisesResponse.json();
+          const allOneRMs = await allOneRMsResponse.json();
+          
+          // Create a map of exercise ID to 1RM weight
+          const exerciseOneRMs = new Map<number, number>();
+          allOneRMs.forEach((orm: any) => {
+            exerciseOneRMs.set(orm.exerciseId, orm.weight);
+          });
+          
           const data = await response.json();
           // Handle new JSON structure with programs
           const programData = data.programs ? data.programs[0] : { workouts: data };
@@ -45,9 +64,9 @@ export default function WorkoutPage() {
             };
             setWorkout(workoutWithProgress);
 
-            // Enhance exercises with calculated weights
+            // Enhance exercises with calculated weights using new 1RM system
             const enhancedExercises = foundWorkout.exercises.map((exercise: any) => 
-              enhanceExerciseWithCalculations(exercise, oneRM)
+              enhanceExerciseWithCalculations(exercise, oneRM, exerciseOneRMs, allExercises)
             );
             setExercises(enhancedExercises);
           }
@@ -78,6 +97,7 @@ export default function WorkoutPage() {
 
   const handleStartWorkout = async () => {
     const progress = {
+      programName: localStorage.getItem('selected-program') || 'Powerbuilding 4x',
       workoutNumber,
       status: "in_progress" as const,
       startedAt: new Date().toISOString(),
@@ -89,6 +109,7 @@ export default function WorkoutPage() {
 
   const handleCompleteWorkout = async () => {
     const progress = {
+      programName: localStorage.getItem('selected-program') || 'Powerbuilding 4x',
       workoutNumber,
       status: "completed" as const,
       startedAt: workout.progress?.startedAt || new Date().toISOString(),

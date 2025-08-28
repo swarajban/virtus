@@ -11,7 +11,6 @@ export const exercises = pgTable("exercises", {
   notes: text("notes"),
   youtubeLink: varchar("youtube_link", { length: 500 }),
   usesBarbell: boolean("uses_barbell").default(true).notNull(),
-  onerm: real("onerm"),
   onermExerciseId: integer("onerm_exercise_id").references(() => exercises.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (table) => [
@@ -27,17 +26,15 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
-// One Rep Max table - stores user's 1RM values
+// One Rep Max table - stores user's 1RM values per exercise
 export const oneRepMaxes = pgTable("one_rep_maxes", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
-  backSquat: real("back_squat").default(135),
-  benchPress: real("bench_press").default(95),
-  deadlift: real("deadlift").default(185),
-  overheadPress: real("overhead_press").default(65),
+  exerciseId: integer("exercise_id").notNull().references(() => exercises.id),
+  weight: real("weight").notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
-  index("idx_orm_user_id").on(table.userId),
+  index("idx_orm_user_exercise").on(table.userId, table.exerciseId),
 ]);
 
 // Workout Progress table - stores workout completion status and progress
@@ -81,6 +78,7 @@ export const exerciseHistory = pgTable("exercise_history", {
 // Define relations
 export const exercisesRelations = relations(exercises, ({ one, many }) => ({
   exerciseHistories: many(exerciseHistory),
+  oneRepMaxes: many(oneRepMaxes),
   parentExercise: one(exercises, {
     fields: [exercises.onermExerciseId],
     references: [exercises.id],
@@ -96,6 +94,23 @@ export const exerciseHistoryRelations = relations(exerciseHistory, ({ one }) => 
     fields: [exerciseHistory.exerciseId],
     references: [exercises.id],
   }),
+}));
+
+export const oneRepMaxRelations = relations(oneRepMaxes, ({ one }) => ({
+  user: one(users, {
+    fields: [oneRepMaxes.userId],
+    references: [users.id],
+  }),
+  exercise: one(exercises, {
+    fields: [oneRepMaxes.exerciseId],
+    references: [exercises.id],
+  }),
+}));
+
+export const usersRelations = relations(users, ({ many }) => ({
+  oneRepMaxes: many(oneRepMaxes),
+  exerciseHistories: many(exerciseHistory),
+  workoutProgress: many(workoutProgress),
 }));
 
 // Derive schemas and types for database tables
@@ -137,6 +152,7 @@ export type ExerciseHistoryDB = typeof exerciseHistory.$inferSelect;
 
 // Keep original Zod schemas for JSON data and client-side types
 export const exerciseSchema = z.object({
+  id: z.number().optional(), // Added for database reference
   name: z.string(),
   superset_label: z.string().nullable(),
   type_of_set: z.enum(["warm-up", "working"]),
@@ -146,6 +162,7 @@ export const exerciseSchema = z.object({
   load_percentage: z.number().nullable(),
   rpe: z.number().nullable(),
   notes: z.string(),
+  onermExerciseId: z.number().nullable().optional(), // Added for 1RM reference
 });
 
 export const workoutSchema = z.object({

@@ -53,6 +53,25 @@ export default function ExercisePage() {
             LocalStorage.getWorkoutProgress()
           ]);
           
+          // Fetch all exercises and their 1RMs
+          const [allExercisesResponse, allOneRMsResponse] = await Promise.all([
+            fetch('/api/exercises', {
+              headers: { 'x-username': localStorage.getItem('selected-username') || 'demo' }
+            }),
+            fetch('/api/one-rm/all', {
+              headers: { 'x-username': localStorage.getItem('selected-username') || 'demo' }
+            })
+          ]);
+          
+          const allExercises = await allExercisesResponse.json();
+          const allOneRMs = await allOneRMsResponse.json();
+          
+          // Create a map of exercise ID to 1RM weight
+          const exerciseOneRMs = new Map<number, number>();
+          allOneRMs.forEach((orm: any) => {
+            exerciseOneRMs.set(orm.exerciseId, orm.weight);
+          });
+          
           const data = await workoutResponse.json();
           setOneRM(oneRMData);
           
@@ -63,7 +82,22 @@ export default function ExercisePage() {
           
           if (foundWorkout && foundWorkout.exercises[exerciseIndex]) {
             const exerciseData = foundWorkout.exercises[exerciseIndex];
-            const enhancedExercise = enhanceExerciseWithCalculations(exerciseData, oneRMData);
+            
+            // Find the database exercise record
+            const dbExercise = allExercises.find((e: any) => e.name === exerciseData.name);
+            if (dbExercise) {
+              setExerciseDbData(dbExercise);
+              // Add the ID to exercise data for weight calculations
+              exerciseData.id = dbExercise.id;
+              exerciseData.onermExerciseId = dbExercise.onermExerciseId;
+            }
+            
+            const enhancedExercise = enhanceExerciseWithCalculations(
+              exerciseData, 
+              oneRMData, 
+              exerciseOneRMs, 
+              allExercises
+            );
             setExercise(enhancedExercise);
             setWorkoutName(foundWorkout.workout_name);
             setTotalExercises(foundWorkout.exercises.length);
@@ -73,22 +107,6 @@ export default function ExercisePage() {
             setUserReps(enhancedExercise.number_of_reps || 1);
             setUserWeight(enhancedExercise.calculatedWeight || 0);
             setUserNotes(""); // Clear notes for new exercises
-            
-            // Fetch exercise from database to get its ID
-            try {
-              const exercisesResponse = await fetch(`/api/exercises`, {
-                headers: { 'x-username': localStorage.getItem('selected-username') || 'demo' }
-              });
-              if (exercisesResponse.ok) {
-                const allExercises = await exercisesResponse.json();
-                const dbExercise = allExercises.find((e: any) => e.name === exerciseData.name);
-                if (dbExercise) {
-                  setExerciseDbData(dbExercise);
-                }
-              }
-            } catch (error) {
-              console.error('Error fetching exercise data:', error);
-            }
 
             // Check if exercise is already completed
             const currentProgress = workoutProgress[workoutNumber];

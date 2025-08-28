@@ -71,6 +71,61 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // New 1RM routes for per-exercise system
+  app.get("/api/one-rm/exercise/:exerciseId", async (req, res) => {
+    try {
+      const user = await getUserFromRequest(req);
+      const exerciseId = parseInt(req.params.exerciseId);
+      const oneRM = await storage.getOneRepMaxForExercise(user.id, exerciseId);
+      
+      if (!oneRM) {
+        return res.status(404).json({ error: "No 1RM found for this exercise" });
+      }
+      res.json(oneRM);
+    } catch (error) {
+      console.error("Error fetching exercise 1RM:", error);
+      res.status(500).json({ error: "Failed to fetch exercise 1RM" });
+    }
+  });
+
+  app.post("/api/one-rm/exercise/:exerciseId", async (req, res) => {
+    try {
+      const user = await getUserFromRequest(req);
+      const exerciseId = parseInt(req.params.exerciseId);
+      const { weight } = req.body;
+      
+      await storage.saveOneRepMaxForExercise(user.id, exerciseId, weight);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error saving exercise 1RM:", error);
+      res.status(500).json({ error: "Failed to save exercise 1RM" });
+    }
+  });
+
+  app.delete("/api/one-rm/exercise/:exerciseId", async (req, res) => {
+    try {
+      const user = await getUserFromRequest(req);
+      const exerciseId = parseInt(req.params.exerciseId);
+      
+      await storage.deleteOneRepMax(user.id, exerciseId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting exercise 1RM:", error);
+      res.status(500).json({ error: "Failed to delete exercise 1RM" });
+    }
+  });
+
+  app.get("/api/one-rm/all", async (req, res) => {
+    try {
+      const user = await getUserFromRequest(req);
+      const allOneRMs = await storage.getAllOneRepMaxes(user.id);
+      res.json(allOneRMs);
+    } catch (error) {
+      console.error("Error fetching all 1RMs:", error);
+      res.status(500).json({ error: "Failed to fetch all 1RM values" });
+    }
+  });
+
   // Get workout progress
   app.get("/api/workout-progress", async (req, res) => {
     try {
