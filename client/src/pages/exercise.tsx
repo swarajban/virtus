@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation, useRoute } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -55,10 +55,16 @@ export default function ExercisePage() {
 
   const workoutNumber = params ? parseInt(params.workoutNumber) : 0;
   const exerciseIndex = params ? parseInt(params.exerciseIndex) : 0;
+  const previousExerciseIndexRef = useRef(exerciseIndex);
 
-  // Scroll to top when exercise loads
+  // Only scroll to top when actually navigating between exercises
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Only scroll if we've actually changed exercises, not on every render
+    if (previousExerciseIndexRef.current !== exerciseIndex) {
+      previousExerciseIndexRef.current = exerciseIndex;
+      // Use immediate scroll instead of smooth to prevent scroll issues on mobile
+      window.scrollTo({ top: 0, behavior: 'auto' });
+    }
   }, [exerciseIndex]);
 
   useEffect(() => {
@@ -260,8 +266,7 @@ export default function ExercisePage() {
       // Show completion animation then navigate - reduced to 500ms
       setTimeout(() => {
         setIsCompleting(false);
-        // Scroll to top before navigation
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        // Don't scroll here - let the navigation handle it
         
         // Navigate to next exercise or back to workout
         if (exerciseIndex < totalExercises - 1) {
@@ -309,6 +314,9 @@ export default function ExercisePage() {
         ...(currentProgress.exerciseProgress || {}),
         [exerciseKey]: {
           ...(currentProgress.exerciseProgress?.[exerciseKey] || {}),
+          completed: currentProgress.exerciseProgress?.[exerciseKey]?.completed || false,
+          sets: currentProgress.exerciseProgress?.[exerciseKey]?.sets || 1,
+          reps: currentProgress.exerciseProgress?.[exerciseKey]?.reps || 1,
           swappedExercise: {
             name: selectedSwapExercise.name,
             originalName: swappedFromOriginal || exercise.name,

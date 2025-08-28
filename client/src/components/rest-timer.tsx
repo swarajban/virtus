@@ -259,7 +259,7 @@ export function RestTimerBar() {
   };
 
   return (
-    <div className="bg-gray-900 text-white px-4 py-3 flex items-center justify-between sticky top-[84px] z-40 shadow-lg border-t border-gray-700">
+    <div className="bg-gray-900 text-white px-4 py-3 flex items-center justify-between sticky top-[84px] z-30 shadow-lg border-t border-gray-700">
       <div className="flex items-center gap-3">
         <span className="text-xs uppercase tracking-wide text-gray-400 font-medium">Rest Timer</span>
         <span className="font-mono text-xl font-bold text-white">{formattedTime}</span>
