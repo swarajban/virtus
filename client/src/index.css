@@ -237,4 +237,28 @@
       opacity: 1;
     }
   }
+  
+  /* Mobile button focus fix - remove all focus states on touch devices */
+  @media (hover: none) and (pointer: coarse) {
+    button:focus,
+    button:focus-visible,
+    button:active,
+    button:focus-within {
+      outline: none !important;
+      box-shadow: none !important;
+      border-color: inherit !important;
+    }
+    
+    button {
+      -webkit-tap-highlight-color: transparent !important;
+      -webkit-touch-callout: none !important;
+      -webkit-user-select: none !important;
+      touch-action: manipulation !important;
+    }
+    
+    button:focus::after,
+    button:active::after {
+      content: none !important;
+    }
+  }
 }

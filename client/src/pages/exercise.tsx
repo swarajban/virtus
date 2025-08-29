@@ -279,18 +279,7 @@ export default function ExercisePage() {
     }
   };
 
-  const handlePreviousExercise = (event?: React.MouseEvent) => {
-    // Remove focus from button on mobile to prevent "stuck" appearance
-    setTimeout(() => {
-      if (event?.currentTarget) {
-        (event.currentTarget as HTMLElement).blur();
-      }
-      // Also remove focus from any focused element
-      if (document.activeElement) {
-        (document.activeElement as HTMLElement).blur();
-      }
-    }, 0);
-    
+  const handlePreviousExercise = () => {
     // Set transitioning state before navigation
     setIsTransitioning(true);
     // Scroll to top only when user clicks Previous button
@@ -302,19 +291,8 @@ export default function ExercisePage() {
     }
   };
 
-  const handleNextExercise = (event?: React.MouseEvent) => {
+  const handleNextExercise = () => {
     if (exerciseIndex < totalExercises - 1) {
-      // Remove focus from button on mobile to prevent "stuck" appearance
-      setTimeout(() => {
-        if (event?.currentTarget) {
-          (event.currentTarget as HTMLElement).blur();
-        }
-        // Also remove focus from any focused element
-        if (document.activeElement) {
-          (document.activeElement as HTMLElement).blur();
-        }
-      }, 0);
-      
       // Set transitioning state before navigation
       setIsTransitioning(true);
       // Scroll to top only when user clicks Next button
@@ -523,31 +501,17 @@ export default function ExercisePage() {
           </Button>
           <Button
             variant="outline"
-            onClick={(e) => handlePreviousExercise(e)}
+            onClick={handlePreviousExercise}
             disabled={exerciseIndex === 0}
-            tabIndex={-1}
-            className="text-sm touch-manipulation select-none focus:outline-none focus-visible:outline-none focus:ring-0 active:scale-95 transition-transform"
-            style={{ 
-              WebkitTapHighlightColor: 'transparent',
-              WebkitUserSelect: 'none',
-              WebkitTouchCallout: 'none',
-              outline: 'none'
-            }}
+            className="text-sm"
           >
             Previous
           </Button>
           <Button
             variant="outline"
-            onClick={(e) => handleNextExercise(e)}
+            onClick={handleNextExercise}
             disabled={exerciseIndex >= totalExercises - 1}
-            tabIndex={-1}
-            className="text-sm touch-manipulation select-none focus:outline-none focus-visible:outline-none focus:ring-0 active:scale-95 transition-transform"
-            style={{ 
-              WebkitTapHighlightColor: 'transparent',
-              WebkitUserSelect: 'none',
-              WebkitTouchCallout: 'none',
-              outline: 'none'
-            }}
+            className="text-sm"
           >
             Next
           </Button>
