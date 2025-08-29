@@ -63,10 +63,7 @@ export default function ExercisePage() {
     async function loadExerciseData() {
       if (workoutNumber && exerciseIndex >= 0) {
         try {
-          // Clear transition state when starting to load new data
-          if (isTransitioning) {
-            setIsTransitioning(false);
-          }
+          // Keep transition state active while loading new data
           // Load all required data
           const [workoutResponse, oneRMData, workoutProgress] = await Promise.all([
             fetch('/powerbuilding_data.json'),
@@ -170,7 +167,10 @@ export default function ExercisePage() {
           console.error('Error loading exercise data:', error);
         } finally {
           setIsInitialLoading(false);
-          setIsTransitioning(false);
+          // Add minimum transition duration to ensure loading animation is visible
+          setTimeout(() => {
+            setIsTransitioning(false);
+          }, 300);
         }
       }
     }
