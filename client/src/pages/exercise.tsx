@@ -470,6 +470,55 @@ export default function ExercisePage() {
         </span>
       </div>
 
+      {/* Exercise Navigation - Moved to top for better accessibility */}
+      <div className="p-4 bg-white border-b">
+        <div className="grid grid-cols-3 gap-2 mb-4">
+          <Button
+            variant="outline"
+            onClick={() => setLocation(`/workout/${workoutNumber}`)}
+            className="text-sm"
+          >
+            Workout
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handlePreviousExercise}
+            disabled={exerciseIndex === 0}
+            className="text-sm"
+          >
+            Previous
+          </Button>
+          <Button
+            variant="outline"
+            onClick={handleNextExercise}
+            disabled={exerciseIndex >= totalExercises - 1}
+            className="text-sm"
+          >
+            Next
+          </Button>
+        </div>
+        <Button 
+          onClick={handleCompleteExercise}
+          disabled={isCompleting}
+          className={`w-full h-12 transition-all duration-300 ${
+            isCompleting 
+              ? "bg-green-600 scale-105 shadow-lg" 
+              : isExerciseCompleted 
+                ? "bg-green-600 hover:bg-green-700" 
+                : "bg-secondary hover:bg-green-700"
+          } text-white`}
+        >
+          <Check className={`h-4 w-4 mr-2 transition-transform duration-300 ${
+            isCompleting ? "scale-125" : ""
+          }`} />
+          {isCompleting 
+            ? "Exercise Completed!" 
+            : isExerciseCompleted 
+              ? "Mark Complete Again" 
+              : "Complete Exercise"}
+        </Button>
+      </div>
+
       {/* Weight Calculator */}
       {exercise.calculatedWeight && (
         <div className="p-4 bg-yellow-50 border-b">
@@ -569,54 +618,6 @@ export default function ExercisePage() {
         </Card>
       </div>
 
-      {/* Exercise Navigation */}
-      <div className="p-4 bg-gray-50 border-t">
-        <div className="grid grid-cols-3 gap-2 mb-4">
-          <Button
-            variant="outline"
-            onClick={() => setLocation(`/workout/${workoutNumber}`)}
-            className="text-sm"
-          >
-            Workout
-          </Button>
-          <Button
-            variant="outline"
-            onClick={handlePreviousExercise}
-            disabled={exerciseIndex === 0}
-            className="text-sm"
-          >
-            Previous
-          </Button>
-          <Button
-            variant="outline"
-            onClick={handleNextExercise}
-            disabled={exerciseIndex >= totalExercises - 1}
-            className="text-sm"
-          >
-            Next
-          </Button>
-        </div>
-        <Button 
-          onClick={handleCompleteExercise}
-          disabled={isCompleting}
-          className={`w-full h-12 transition-all duration-300 ${
-            isCompleting 
-              ? "bg-green-600 scale-105 shadow-lg" 
-              : isExerciseCompleted 
-                ? "bg-green-600 hover:bg-green-700" 
-                : "bg-secondary hover:bg-green-700"
-          } text-white`}
-        >
-          <Check className={`h-4 w-4 mr-2 transition-transform duration-300 ${
-            isCompleting ? "scale-125" : ""
-          }`} />
-          {isCompleting 
-            ? "Exercise Completed!" 
-            : isExerciseCompleted 
-              ? "Mark Complete Again" 
-              : "Complete Exercise"}
-        </Button>
-      </div>
 
       {/* Exercise History Modal */}
       <ExerciseHistoryModal
