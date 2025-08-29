@@ -23,7 +23,7 @@ import {
 import { ExerciseHistoryModal } from "@/components/exercise-history-modal";
 import { PlateCalculator } from "@/components/plate-calculator";
 import { RestTimerBar } from "@/components/rest-timer";
-import { ArrowLeft, Check, CheckCircle, Info, ExternalLink, Repeat } from "lucide-react";
+import { ArrowLeft, Check, CheckCircle, Info, ExternalLink, Repeat, Clock } from "lucide-react";
 import { LocalStorage } from "@/lib/storage";
 import { enhanceExerciseWithCalculations, getActualPercentage } from "@/lib/workout-utils";
 import type { ExerciseWithCalculatedWeight } from "@/types/workout";
@@ -427,6 +427,15 @@ export default function ExercisePage() {
                 >
                   <Repeat className="h-4 w-4 text-purple-600" />
                 </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowHistory(true)}
+                  className="hover:bg-purple-100 p-1"
+                  title="View exercise history"
+                >
+                  <Clock className="h-4 w-4 text-purple-600" />
+                </Button>
               </>
             )}
           </h2>
@@ -562,7 +571,7 @@ export default function ExercisePage() {
 
       {/* Exercise Navigation */}
       <div className="p-4 bg-gray-50 border-t">
-        <div className="grid grid-cols-4 gap-2 mb-4">
+        <div className="grid grid-cols-3 gap-2 mb-4">
           <Button
             variant="outline"
             onClick={() => setLocation(`/workout/${workoutNumber}`)}
@@ -577,13 +586,6 @@ export default function ExercisePage() {
             className="text-sm"
           >
             Previous
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => setShowHistory(true)}
-            className="text-sm"
-          >
-            History
           </Button>
           <Button
             variant="outline"
