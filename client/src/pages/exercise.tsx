@@ -170,7 +170,7 @@ export default function ExercisePage() {
           // Add minimum transition duration to ensure loading animation is visible
           setTimeout(() => {
             setIsTransitioning(false);
-          }, 100);
+          }, 40);
         }
       }
     }
