@@ -47,6 +47,7 @@ export default function ExercisePage() {
   const [isCompleting, setIsCompleting] = useState(false);
   const [isExerciseCompleted, setIsExerciseCompleted] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const [exerciseDbData, setExerciseDbData] = useState<any>(null);
   const [showSwapModal, setShowSwapModal] = useState(false);
   const [selectedSwapExercise, setSelectedSwapExercise] = useState<any>(null);
@@ -62,6 +63,10 @@ export default function ExercisePage() {
     async function loadExerciseData() {
       if (workoutNumber && exerciseIndex >= 0) {
         try {
+          // Clear transition state when starting to load new data
+          if (isTransitioning) {
+            setIsTransitioning(false);
+          }
           // Load all required data
           const [workoutResponse, oneRMData, workoutProgress] = await Promise.all([
             fetch('/powerbuilding_data.json'),
@@ -165,6 +170,7 @@ export default function ExercisePage() {
           console.error('Error loading exercise data:', error);
         } finally {
           setIsInitialLoading(false);
+          setIsTransitioning(false);
         }
       }
     }
@@ -274,6 +280,8 @@ export default function ExercisePage() {
   };
 
   const handlePreviousExercise = () => {
+    // Set transitioning state before navigation
+    setIsTransitioning(true);
     // Scroll to top only when user clicks Previous button
     window.scrollTo({ top: 0, behavior: 'smooth' });
     if (exerciseIndex > 0) {
@@ -285,6 +293,8 @@ export default function ExercisePage() {
 
   const handleNextExercise = () => {
     if (exerciseIndex < totalExercises - 1) {
+      // Set transitioning state before navigation
+      setIsTransitioning(true);
       // Scroll to top only when user clicks Next button
       window.scrollTo({ top: 0, behavior: 'smooth' });
       setLocation(`/workout/${workoutNumber}/exercise/${exerciseIndex + 1}`);
@@ -362,6 +372,15 @@ export default function ExercisePage() {
 
   return (
     <div className="max-w-md mx-auto bg-white min-h-screen relative">
+      {/* Transition Loading Animation */}
+      {isTransitioning && (
+        <div className="fixed inset-0 bg-white bg-opacity-90 flex items-center justify-center z-50 transition-opacity duration-300">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading exercise...</p>
+          </div>
+        </div>
+      )}
       {/* Simplified Completion Animation - Faster and Cleaner */}
       {isCompleting && (
         <div className="fixed inset-0 bg-green-500 bg-opacity-90 flex items-center justify-center z-50 transition-opacity duration-300">
