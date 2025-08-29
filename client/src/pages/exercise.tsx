@@ -279,7 +279,11 @@ export default function ExercisePage() {
     }
   };
 
-  const handlePreviousExercise = () => {
+  const handlePreviousExercise = (event?: React.MouseEvent) => {
+    // Remove focus from button on mobile to prevent "stuck" appearance
+    if (event?.target) {
+      (event.target as HTMLElement).blur();
+    }
     // Set transitioning state before navigation
     setIsTransitioning(true);
     // Scroll to top only when user clicks Previous button
@@ -291,8 +295,12 @@ export default function ExercisePage() {
     }
   };
 
-  const handleNextExercise = () => {
+  const handleNextExercise = (event?: React.MouseEvent) => {
     if (exerciseIndex < totalExercises - 1) {
+      // Remove focus from button on mobile to prevent "stuck" appearance
+      if (event?.target) {
+        (event.target as HTMLElement).blur();
+      }
       // Set transitioning state before navigation
       setIsTransitioning(true);
       // Scroll to top only when user clicks Next button
@@ -501,7 +509,7 @@ export default function ExercisePage() {
           </Button>
           <Button
             variant="outline"
-            onClick={handlePreviousExercise}
+            onClick={(e) => handlePreviousExercise(e)}
             disabled={exerciseIndex === 0}
             className="text-sm"
           >
@@ -509,7 +517,7 @@ export default function ExercisePage() {
           </Button>
           <Button
             variant="outline"
-            onClick={handleNextExercise}
+            onClick={(e) => handleNextExercise(e)}
             disabled={exerciseIndex >= totalExercises - 1}
             className="text-sm"
           >
