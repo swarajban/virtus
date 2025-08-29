@@ -525,8 +525,14 @@ export default function ExercisePage() {
             variant="outline"
             onClick={(e) => handlePreviousExercise(e)}
             disabled={exerciseIndex === 0}
-            className="text-sm touch-manipulation select-none focus:outline-none active:scale-95 transition-transform"
-            style={{ WebkitTapHighlightColor: 'transparent' }}
+            tabIndex={-1}
+            className="text-sm touch-manipulation select-none focus:outline-none focus-visible:outline-none focus:ring-0 active:scale-95 transition-transform"
+            style={{ 
+              WebkitTapHighlightColor: 'transparent',
+              WebkitUserSelect: 'none',
+              WebkitTouchCallout: 'none',
+              outline: 'none'
+            }}
           >
             Previous
           </Button>
@@ -534,8 +540,14 @@ export default function ExercisePage() {
             variant="outline"
             onClick={(e) => handleNextExercise(e)}
             disabled={exerciseIndex >= totalExercises - 1}
-            className="text-sm touch-manipulation select-none focus:outline-none active:scale-95 transition-transform"
-            style={{ WebkitTapHighlightColor: 'transparent' }}
+            tabIndex={-1}
+            className="text-sm touch-manipulation select-none focus:outline-none focus-visible:outline-none focus:ring-0 active:scale-95 transition-transform"
+            style={{ 
+              WebkitTapHighlightColor: 'transparent',
+              WebkitUserSelect: 'none',
+              WebkitTouchCallout: 'none',
+              outline: 'none'
+            }}
           >
             Next
           </Button>
