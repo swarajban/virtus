@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useLocation, useRoute } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -55,18 +55,8 @@ export default function ExercisePage() {
 
   const workoutNumber = params ? parseInt(params.workoutNumber) : 0;
   const exerciseIndex = params ? parseInt(params.exerciseIndex) : 0;
-  const previousExerciseIndexRef = useRef(exerciseIndex);
-  const isInitialMount = useRef(true);
 
-  // Remove automatic scrolling - only scroll on explicit navigation
-  useEffect(() => {
-    // Skip scrolling entirely on mobile to prevent issues
-    // We'll handle scrolling explicitly in navigation functions instead
-    if (isInitialMount.current) {
-      isInitialMount.current = false;
-      return;
-    }
-  }, [exerciseIndex]);
+  // All auto-scrolling behavior removed for better mobile experience
 
   useEffect(() => {
     async function loadExerciseData() {
@@ -267,10 +257,8 @@ export default function ExercisePage() {
       // Show completion animation then navigate - reduced to 500ms
       setTimeout(() => {
         setIsCompleting(false);
-        // Scroll to top only when navigating to next exercise
-        window.scrollTo({ top: 0, behavior: 'instant' });
         
-        // Navigate to next exercise or back to workout
+        // Navigate to next exercise or back to workout - no scrolling
         if (exerciseIndex < totalExercises - 1) {
           setLocation(`/workout/${workoutNumber}/exercise/${exerciseIndex + 1}`);
         } else {
@@ -284,8 +272,6 @@ export default function ExercisePage() {
   };
 
   const handlePreviousExercise = () => {
-    // Explicitly scroll to top only when navigating
-    window.scrollTo({ top: 0, behavior: 'instant' });
     if (exerciseIndex > 0) {
       setLocation(`/workout/${workoutNumber}/exercise/${exerciseIndex - 1}`);
     } else {
@@ -295,8 +281,6 @@ export default function ExercisePage() {
 
   const handleNextExercise = () => {
     if (exerciseIndex < totalExercises - 1) {
-      // Explicitly scroll to top only when navigating
-      window.scrollTo({ top: 0, behavior: 'instant' });
       setLocation(`/workout/${workoutNumber}/exercise/${exerciseIndex + 1}`);
     }
   };
