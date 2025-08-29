@@ -199,7 +199,18 @@ export default function ExercisePage() {
     );
   }
 
-  const handleCompleteExercise = async () => {
+  const handleCompleteExercise = async (e?: React.MouseEvent | React.TouchEvent) => {
+    // Prevent default and stop propagation
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
+    // Force blur on any active element
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+    
     setIsCompleting(true);
 
     console.log("Completing exercise:", {
@@ -550,16 +561,19 @@ export default function ExercisePage() {
             Next
           </button>
         </div>
-        <Button 
+        <button
           onClick={handleCompleteExercise}
+          onTouchEnd={(e) => e.currentTarget.blur()}
+          onMouseUp={(e) => e.currentTarget.blur()}
           disabled={isCompleting}
-          className={`w-full h-12 transition-all duration-300 ${
+          className={`w-full h-12 px-4 flex items-center justify-center font-medium rounded-md transition-all duration-300 ${
             isCompleting 
               ? "bg-green-600 scale-105 shadow-lg" 
               : isExerciseCompleted 
                 ? "bg-green-600 hover:bg-green-700" 
-                : "bg-secondary hover:bg-green-700"
-          } text-white`}
+                : "bg-green-500 hover:bg-green-700"
+          } text-white disabled:opacity-50 disabled:cursor-not-allowed nav-button-mobile`}
+          type="button"
         >
           <Check className={`h-4 w-4 mr-2 transition-transform duration-300 ${
             isCompleting ? "scale-125" : ""
@@ -569,7 +583,7 @@ export default function ExercisePage() {
             : isExerciseCompleted 
               ? "Mark Complete Again" 
               : "Complete Exercise"}
-        </Button>
+        </button>
       </div>
 
       {/* Weight Calculator */}
