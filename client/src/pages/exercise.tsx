@@ -279,25 +279,55 @@ export default function ExercisePage() {
     }
   };
 
-  const handlePreviousExercise = () => {
+  const handlePreviousExercise = (e?: React.MouseEvent | React.TouchEvent) => {
+    // Prevent default and stop propagation
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    
+    // Force blur on any active element
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+    
     // Set transitioning state before navigation
     setIsTransitioning(true);
-    // Scroll to top only when user clicks Previous button
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-    if (exerciseIndex > 0) {
-      setLocation(`/workout/${workoutNumber}/exercise/${exerciseIndex - 1}`);
-    } else {
-      setLocation(`/workout/${workoutNumber}`);
-    }
+    
+    // Small delay to ensure blur happens before navigation
+    setTimeout(() => {
+      // Scroll to top only when user clicks Previous button
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      if (exerciseIndex > 0) {
+        setLocation(`/workout/${workoutNumber}/exercise/${exerciseIndex - 1}`);
+      } else {
+        setLocation(`/workout/${workoutNumber}`);
+      }
+    }, 10);
   };
 
-  const handleNextExercise = () => {
+  const handleNextExercise = (e?: React.MouseEvent | React.TouchEvent) => {
     if (exerciseIndex < totalExercises - 1) {
+      // Prevent default and stop propagation
+      if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+      }
+      
+      // Force blur on any active element
+      if (document.activeElement instanceof HTMLElement) {
+        document.activeElement.blur();
+      }
+      
       // Set transitioning state before navigation
       setIsTransitioning(true);
-      // Scroll to top only when user clicks Next button
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      setLocation(`/workout/${workoutNumber}/exercise/${exerciseIndex + 1}`);
+      
+      // Small delay to ensure blur happens before navigation
+      setTimeout(() => {
+        // Scroll to top only when user clicks Next button
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        setLocation(`/workout/${workoutNumber}/exercise/${exerciseIndex + 1}`);
+      }, 10);
     }
   };
 
@@ -371,7 +401,7 @@ export default function ExercisePage() {
   const exerciseOneRM = getOneRMForExercise();
 
   return (
-    <div className="max-w-md mx-auto bg-white min-h-screen relative">
+    <div className={`max-w-md mx-auto bg-white min-h-screen relative ${isTransitioning ? 'nav-transitioning' : ''}`}>
       {/* Transition Loading Animation */}
       {isTransitioning && (
         <div className="fixed inset-0 bg-white bg-opacity-90 flex items-center justify-center z-50 transition-opacity duration-300">
@@ -499,22 +529,26 @@ export default function ExercisePage() {
           >
             Workout
           </Button>
-          <Button
-            variant="outline"
+          <button
             onClick={handlePreviousExercise}
+            onTouchEnd={(e) => e.currentTarget.blur()}
+            onMouseUp={(e) => e.currentTarget.blur()}
             disabled={exerciseIndex === 0}
-            className="text-sm"
+            className="px-3 py-1.5 text-sm font-medium rounded-md border border-gray-300 bg-white text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed nav-button-mobile"
+            type="button"
           >
             Previous
-          </Button>
-          <Button
-            variant="outline"
+          </button>
+          <button
             onClick={handleNextExercise}
+            onTouchEnd={(e) => e.currentTarget.blur()}
+            onMouseUp={(e) => e.currentTarget.blur()}
             disabled={exerciseIndex >= totalExercises - 1}
-            className="text-sm"
+            className="px-3 py-1.5 text-sm font-medium rounded-md border border-gray-300 bg-white text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed nav-button-mobile"
+            type="button"
           >
             Next
-          </Button>
+          </button>
         </div>
         <Button 
           onClick={handleCompleteExercise}

@@ -261,4 +261,32 @@
       content: none !important;
     }
   }
+  
+  /* Specific fix for navigation buttons */
+  .nav-button-mobile {
+    -webkit-tap-highlight-color: transparent !important;
+    -webkit-touch-callout: none !important;
+    -webkit-user-select: none !important;
+    user-select: none !important;
+    outline: none !important;
+    touch-action: manipulation !important;
+  }
+  
+  .nav-button-mobile:focus,
+  .nav-button-mobile:focus-visible,
+  .nav-button-mobile:focus-within,
+  .nav-button-mobile:active {
+    outline: none !important;
+    box-shadow: none !important;
+    background-color: inherit !important;
+    border-color: inherit !important;
+    transform: none !important;
+  }
+  
+  /* Prevent any hover/focus states during transition */
+  .nav-transitioning button {
+    pointer-events: none !important;
+    outline: none !important;
+    box-shadow: none !important;
+  }
 }
