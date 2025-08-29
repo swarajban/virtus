@@ -257,8 +257,10 @@ export default function ExercisePage() {
       // Show completion animation then navigate - reduced to 500ms
       setTimeout(() => {
         setIsCompleting(false);
+        // Scroll to top only when user completes exercise
+        window.scrollTo({ top: 0, behavior: 'smooth' });
         
-        // Navigate to next exercise or back to workout - no scrolling
+        // Navigate to next exercise or back to workout
         if (exerciseIndex < totalExercises - 1) {
           setLocation(`/workout/${workoutNumber}/exercise/${exerciseIndex + 1}`);
         } else {
@@ -272,6 +274,8 @@ export default function ExercisePage() {
   };
 
   const handlePreviousExercise = () => {
+    // Scroll to top only when user clicks Previous button
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     if (exerciseIndex > 0) {
       setLocation(`/workout/${workoutNumber}/exercise/${exerciseIndex - 1}`);
     } else {
@@ -281,6 +285,8 @@ export default function ExercisePage() {
 
   const handleNextExercise = () => {
     if (exerciseIndex < totalExercises - 1) {
+      // Scroll to top only when user clicks Next button
+      window.scrollTo({ top: 0, behavior: 'smooth' });
       setLocation(`/workout/${workoutNumber}/exercise/${exerciseIndex + 1}`);
     }
   };
