@@ -104,7 +104,7 @@ export default function HomePage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight font-heading">Virtus</h1>
-            <p className="text-purple-100 text-sm mt-1 opacity-90">Powerbuilding Excellence</p>
+            <p className="text-purple-100 text-sm mt-1 opacity-90">Powerbuilding</p>
           </div>
           <div className="flex gap-2">
             <Button 
