@@ -71,7 +71,7 @@ export default function ExerciseHistoryPage() {
     });
 
     return Object.values(groups)
-      .sort((a, b) => b.count - a.count); // Sort by most performed first
+      .sort((a, b) => a.name.localeCompare(b.name)); // Sort alphabetically by name
   }, [exerciseHistory]);
 
   // Filter exercises based on search query
