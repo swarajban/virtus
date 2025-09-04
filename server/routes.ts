@@ -181,6 +181,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Delete individual exercise history entry
+  app.delete("/api/exercise-history/:entryId", async (req, res) => {
+    try {
+      const user = await getUserFromRequest(req);
+      const entryId = parseInt(req.params.entryId);
+      
+      await storage.deleteExerciseHistoryEntry(user.id, entryId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting exercise history entry:", error);
+      res.status(500).json({ error: "Failed to delete exercise history entry" });
+    }
+  });
+
   // Clear workout progress
   app.delete('/api/workout-progress/:workoutNumber', async (req, res) => {
     try {

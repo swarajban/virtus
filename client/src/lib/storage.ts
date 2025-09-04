@@ -115,6 +115,18 @@ export class DatabaseStorage {
     }
   }
 
+  // Delete exercise history entry directly from API
+  static async deleteExerciseHistoryEntry(entryId: number): Promise<void> {
+    try {
+      console.log("Deleting exercise history entry:", entryId);
+      await api.deleteExerciseHistoryEntry(entryId);
+      console.log("Exercise history entry deleted successfully");
+    } catch (error) {
+      console.error("Failed to delete exercise history entry:", error);
+      throw error;
+    }
+  }
+
   // Clear workout progress directly from API
   static async clearWorkoutProgress(workoutNumber: number): Promise<void> {
     try {

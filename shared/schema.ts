@@ -212,6 +212,7 @@ export const oneRMSchema = z.object({
 });
 
 export const exerciseHistoryEntrySchema = z.object({
+  id: z.number().optional(), // Include database ID for deletion
   date: z.string(),
   programName: z.string().default("Powerbuilding 4x"),
   exerciseName: z.string(),

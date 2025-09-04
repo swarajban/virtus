@@ -78,6 +78,12 @@ export const api = {
     });
   },
 
+  async deleteExerciseHistoryEntry(entryId: number): Promise<void> {
+    await apiRequest(`/api/exercise-history/${entryId}`, {
+      method: 'DELETE',
+    });
+  },
+
   async clearWorkoutProgress(workoutNumber: number): Promise<void> {
     await apiRequest(`/api/workout-progress/${workoutNumber}`, {
       method: 'DELETE',

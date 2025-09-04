@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { LocalStorage } from "@/lib/storage";
 import { formatDate } from "@/lib/workout-utils";
+import { Trash2 } from "lucide-react";
 import type { ExerciseHistoryEntry } from "@shared/schema";
 
 interface ExerciseHistoryModalProps {
@@ -18,6 +19,7 @@ export function ExerciseHistoryModal({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [exerciseHistory, setExerciseHistory] = useState<ExerciseHistoryEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [deletingEntryId, setDeletingEntryId] = useState<number | null>(null);
 
   useEffect(() => {
     async function loadExerciseHistory() {
@@ -120,6 +122,28 @@ export function ExerciseHistoryModal({
     };
   }, [isOpen, exerciseHistory]);
 
+  const handleDeleteEntry = async (entryId: number) => {
+    if (!entryId || !confirm('Are you sure you want to delete this exercise record?')) {
+      return;
+    }
+    
+    setDeletingEntryId(entryId);
+    try {
+      await LocalStorage.deleteExerciseHistoryEntry(entryId);
+      // Reload the exercise history after deletion
+      const history = await LocalStorage.getExerciseHistory();
+      const filteredHistory = history
+        .filter(entry => entry.exerciseName === exerciseName)
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+      setExerciseHistory(filteredHistory);
+    } catch (error) {
+      console.error('Failed to delete exercise history entry:', error);
+      alert('Failed to delete exercise record. Please try again.');
+    } finally {
+      setDeletingEntryId(null);
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="max-w-md">
@@ -145,10 +169,23 @@ export function ExerciseHistoryModal({
             {/* History List */}
             <div className="overflow-y-auto max-h-64 space-y-3 pr-2">
               {exerciseHistory.map((entry, index) => (
-                <div key={index} className="bg-gray-50 p-3 rounded-lg">
+                <div key={entry.id || index} className="bg-gray-50 p-3 rounded-lg relative">
                   <div className="flex justify-between items-start mb-1">
                     <span className="font-medium">{formatDate(entry.date)}</span>
-                    <span className="text-sm text-gray-600">{entry.weight} lbs</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-gray-600">{entry.weight} lbs</span>
+                      {entry.id && (
+                        <button
+                          onClick={() => handleDeleteEntry(entry.id!)}
+                          disabled={deletingEntryId === entry.id}
+                          className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                          title="Delete this record"
+                          data-testid={`button-delete-history-${entry.id}`}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <div className="text-sm text-gray-600">
                     <span>{entry.sets} x {entry.reps}</span>

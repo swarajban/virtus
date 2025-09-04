@@ -52,6 +52,7 @@ export interface IStorage {
   // Exercise History operations  
   getExerciseHistory(userId: number, exerciseName?: string): Promise<ExerciseHistoryEntry[]>;
   saveExerciseHistory(userId: number, history: ExerciseHistoryEntry, workoutNumber?: number): Promise<void>;
+  deleteExerciseHistoryEntry(userId: number, entryId: number): Promise<void>;
   clearWorkoutProgress(userId: number, workoutNumber: number): Promise<void>;
   clearExerciseHistoryForWorkout(userId: number, workoutNumber: number): Promise<void>;
   updateUserProgram(userId: number, programName: string): Promise<void>;
@@ -326,6 +327,7 @@ export class DatabaseStorage implements IStorage {
     const histories = await query;
     
     return histories.map(h => ({
+      id: h.id, // Include database ID for deletion
       date: h.performedAt.toISOString(),
       exerciseName: h.exerciseName,
       sets: h.sets,
@@ -385,6 +387,16 @@ export class DatabaseStorage implements IStorage {
       });
     
     console.log("Exercise history saved successfully with sessionId:", sessionId);
+  }
+
+  async deleteExerciseHistoryEntry(userId: number, entryId: number): Promise<void> {
+    await db
+      .delete(exerciseHistory)
+      .where(and(
+        eq(exerciseHistory.id, entryId),
+        eq(exerciseHistory.userId, userId)
+      ));
+    console.log(`Deleted exercise history entry ${entryId} for user ${userId}`);
   }
 
   async clearWorkoutProgress(userId: number, workoutNumber: number): Promise<void> {
