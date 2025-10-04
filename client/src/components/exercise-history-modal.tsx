@@ -29,7 +29,7 @@ export function ExerciseHistoryModal({
           const history = await LocalStorage.getExerciseHistory();
           const filteredHistory = history
             .filter(entry => entry.exerciseName === exerciseName)
-            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
           setExerciseHistory(filteredHistory);
         } catch (error) {
           console.error("Error loading exercise history:", error);
