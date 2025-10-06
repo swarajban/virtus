@@ -57,8 +57,10 @@ export function ExerciseHistoryModal({
           existingChart.destroy();
         }
 
-        const dates = exerciseHistory.map(entry => formatDate(entry.date));
-        const weights = exerciseHistory.map(entry => entry.weight);
+        // Sort chart data in ascending order (oldest to newest for left to right)
+        const chartData = [...exerciseHistory].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        const dates = chartData.map(entry => formatDate(entry.date));
+        const weights = chartData.map(entry => entry.weight);
 
         chartInstance = new Chart(ctx, {
           type: 'line',
