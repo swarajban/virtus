@@ -219,12 +219,13 @@ export default function ExercisePage() {
       userWeight,
       userSets,
       userReps,
-      shouldSaveHistory: userWeight > 0 && exercise.type_of_set === "working"
+      shouldSaveHistory: userWeight !== null && userWeight !== undefined && exercise.type_of_set === "working"
     });
 
     try {
       // Save exercise history only for working sets (not warm-ups)
-      if (userWeight > 0 && exercise.type_of_set === "working") {
+      // Allow weight of 0 (for bodyweight exercises), but require a numeric value
+      if (userWeight !== null && userWeight !== undefined && exercise.type_of_set === "working") {
         const historyEntry = {
           programName: "Powerbuilding 4x", // Default program name
           date: new Date().toISOString(),
@@ -239,7 +240,7 @@ export default function ExercisePage() {
         await LocalStorage.saveExerciseHistory(historyEntry, workoutNumber);
       } else {
         console.log("Not saving exercise history because:", {
-          hasWeight: userWeight > 0,
+          hasWeight: userWeight !== null && userWeight !== undefined,
           isWorkingSet: exercise.type_of_set === "working",
           typeOfSet: exercise.type_of_set
         });
