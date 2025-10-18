@@ -28,6 +28,7 @@ import { LocalStorage } from "@/lib/storage";
 import { enhanceExerciseWithCalculations, getActualPercentage } from "@/lib/workout-utils";
 import type { ExerciseWithCalculatedWeight } from "@/types/workout";
 import type { OneRM } from "@shared/schema";
+import { useToast } from "@/hooks/use-toast";
 
 // Import types
 import { Workout } from "@shared/schema";
@@ -35,6 +36,7 @@ import { Workout } from "@shared/schema";
 export default function ExercisePage() {
   const [, setLocation] = useLocation();
   const [match, params] = useRoute("/workout/:workoutNumber/exercise/:exerciseIndex");
+  const { toast } = useToast();
   const [exercise, setExercise] = useState<ExerciseWithCalculatedWeight | null>(null);
   const [workoutName, setWorkoutName] = useState<string>("");
   const [userSets, setUserSets] = useState(1);
@@ -244,6 +246,15 @@ export default function ExercisePage() {
           isWorkingSet: exercise.type_of_set === "working",
           typeOfSet: exercise.type_of_set
         });
+        
+        // Show warning if this is a working set without weight entered
+        if (exercise.type_of_set === "working" && (userWeight === null || userWeight === undefined)) {
+          toast({
+            title: "No weight entered",
+            description: "Exercise marked complete, but history was not saved because no weight was entered.",
+            variant: "default",
+          });
+        }
       }
 
       // Save exercise completion to workout progress
