@@ -460,9 +460,6 @@ export default function ExercisePage() {
         </div>
       </header>
 
-      {/* Rest Timer Bar - conditionally render */}
-      <RestTimerBar />
-
       {/* Exercise Header with Modern Design */}
       <div className="bg-gradient-to-b from-purple-50 to-white p-6">
         <div className="flex items-center justify-between mb-3">
@@ -573,6 +570,10 @@ export default function ExercisePage() {
             Next
           </button>
         </div>
+        
+        {/* Rest Timer */}
+        <RestTimerBar />
+        
         <button
           onClick={handleCompleteExercise}
           onTouchEnd={(e) => e.currentTarget.blur()}
