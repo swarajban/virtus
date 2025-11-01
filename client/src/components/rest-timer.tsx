@@ -3,16 +3,20 @@ import { useState, useEffect, useRef } from "react";
 // Load initial state from localStorage
 const loadTimerState = () => {
   if (typeof window === 'undefined') {
-    return { isRunning: false, startTime: null };
+    return { isRunning: false, startTime: null, setCounter: 0 };
   }
   
   const saved = localStorage.getItem('restTimerState');
   if (saved) {
     const state = JSON.parse(saved);
+    // Ensure setCounter exists for backward compatibility
+    if (state.setCounter === undefined) {
+      state.setCounter = 0;
+    }
     return state;
   }
   
-  return { isRunning: false, startTime: null };
+  return { isRunning: false, startTime: null, setCounter: 0 };
 };
 
 // Global timer state that persists across components
@@ -44,6 +48,7 @@ const notifySubscribers = () => {
 export function useRestTimer() {
   const [seconds, setSeconds] = useState(getElapsedSeconds());
   const [isRunning, setIsRunning] = useState(globalTimerState.isRunning);
+  const [setCounter, setSetCounter] = useState(globalTimerState.setCounter || 0);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const holdTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -52,6 +57,7 @@ export function useRestTimer() {
     const updateState = () => {
       setSeconds(getElapsedSeconds());
       setIsRunning(globalTimerState.isRunning);
+      setSetCounter(globalTimerState.setCounter || 0);
     };
 
     subscribers.add(updateState);
@@ -149,6 +155,18 @@ export function useRestTimer() {
     notifySubscribers();
   };
 
+  const incrementSetCounter = () => {
+    globalTimerState.setCounter = (globalTimerState.setCounter || 0) + 1;
+    setSetCounter(globalTimerState.setCounter);
+    notifySubscribers();
+  };
+
+  const resetSetCounter = () => {
+    globalTimerState.setCounter = 0;
+    setSetCounter(0);
+    notifySubscribers();
+  };
+
   const handleClick = () => {
     if (!isRunning) {
       // Start timer if not running
@@ -195,6 +213,7 @@ export function useRestTimer() {
   return {
     seconds,
     isRunning,
+    setCounter,
     formattedTime: formatTime(seconds),
     handleMouseDown,
     handleMouseUp,
@@ -202,7 +221,9 @@ export function useRestTimer() {
     handleClick,
     startTimer,
     stopTimer,
-    resetTimer
+    resetTimer,
+    incrementSetCounter,
+    resetSetCounter
   };
 }
 
@@ -235,15 +256,19 @@ export function RestTimerBar() {
   const { 
     formattedTime, 
     isRunning,
+    setCounter,
     startTimer,
     stopTimer,
-    resetTimer
+    resetTimer,
+    incrementSetCounter,
+    resetSetCounter
   } = useRestTimer();
 
   const handleStartStop = () => {
     if (isRunning) {
       // Restart: reset and immediately start again
       resetTimer();
+      incrementSetCounter();
       setTimeout(() => startTimer(), 50);
     } else {
       startTimer();
@@ -253,13 +278,20 @@ export function RestTimerBar() {
   const handleReset = () => {
     resetTimer();
     stopTimer();
+    resetSetCounter();
   };
 
   return (
     <div className="bg-gray-900 text-white px-4 py-3 flex items-center justify-between relative shadow-lg border-t border-gray-700">
-      <div className="flex items-center gap-3">
-        <span className="text-xs uppercase tracking-wide text-gray-400 font-medium">Rest Timer</span>
-        <span className="font-mono text-xl font-bold text-white">{formattedTime}</span>
+      <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
+          <span className="text-xs uppercase tracking-wide text-gray-400 font-medium">Rest Timer</span>
+          <span className="font-mono text-xl font-bold text-white">{formattedTime}</span>
+        </div>
+        <div className="flex items-center gap-2 pl-4 border-l border-gray-700">
+          <span className="text-xs uppercase tracking-wide text-gray-400 font-medium">Sets</span>
+          <span className="font-mono text-xl font-bold text-white">{setCounter}</span>
+        </div>
       </div>
       <div className="flex items-center gap-2">
         <button
