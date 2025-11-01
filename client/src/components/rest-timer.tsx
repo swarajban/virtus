@@ -282,35 +282,35 @@ export function RestTimerBar() {
   };
 
   return (
-    <div className="my-4 bg-gradient-to-br from-gray-800 to-gray-900 text-white rounded-2xl p-5 shadow-xl border border-gray-700">
+    <div className="my-3 bg-gradient-to-br from-gray-800 to-gray-900 text-white rounded-xl p-3 shadow-lg border border-gray-700">
       {/* Timer and Set Counter Display */}
-      <div className="flex items-center justify-center gap-6 mb-4">
+      <div className="flex items-center justify-center gap-4 mb-2">
         <div className="flex flex-col items-center">
-          <span className="text-xs uppercase tracking-wide text-gray-400 font-medium mb-1">Rest Timer</span>
-          <span className="font-mono text-4xl font-bold text-white tabular-nums">{formattedTime}</span>
+          <span className="text-[10px] uppercase tracking-wide text-gray-400 font-medium mb-0.5">Rest Timer</span>
+          <span className="font-mono text-2xl font-bold text-white tabular-nums">{formattedTime}</span>
         </div>
-        <div className="w-px h-16 bg-gray-600"></div>
+        <div className="w-px h-10 bg-gray-600"></div>
         <div className="flex flex-col items-center">
-          <span className="text-xs uppercase tracking-wide text-gray-400 font-medium mb-1">Sets</span>
-          <span className="font-mono text-4xl font-bold text-white tabular-nums">{setCounter}</span>
+          <span className="text-[10px] uppercase tracking-wide text-gray-400 font-medium mb-0.5">Sets</span>
+          <span className="font-mono text-2xl font-bold text-white tabular-nums">{setCounter}</span>
         </div>
       </div>
       
       {/* Control Buttons */}
-      <div className="flex items-center justify-center gap-3">
+      <div className="flex items-center justify-center gap-2">
         <button
           onClick={handleReset}
-          className="px-6 py-2.5 bg-gray-700 hover:bg-gray-600 active:bg-gray-500 rounded-lg text-sm font-semibold transition-all duration-150 active:scale-95 min-w-[100px]"
+          className="px-4 py-1.5 bg-gray-700 hover:bg-gray-600 active:bg-gray-500 rounded-md text-xs font-semibold transition-all duration-150 active:scale-95 min-w-[80px]"
           type="button"
         >
           Reset
         </button>
         <button
           onClick={handleStartStop}
-          className={`px-8 py-2.5 rounded-lg text-sm font-bold transition-all duration-150 active:scale-95 min-w-[120px] ${
+          className={`px-6 py-1.5 rounded-md text-xs font-bold transition-all duration-150 active:scale-95 min-w-[100px] ${
             isRunning 
-              ? 'bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white shadow-lg' 
-              : 'bg-green-500 hover:bg-green-600 active:bg-green-700 text-white shadow-lg'
+              ? 'bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white shadow-md' 
+              : 'bg-green-500 hover:bg-green-600 active:bg-green-700 text-white shadow-md'
           }`}
           type="button"
         >
