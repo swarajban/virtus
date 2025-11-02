@@ -444,7 +444,7 @@ export default function ExercisePage() {
         </div>
       )}
       {/* Modern Header - Changed from sticky to relative on mobile */}
-      <header className="gradient-purple text-white px-4 py-6 relative shadow-lg">
+      <header className="gradient-green text-white px-4 py-6 relative shadow-lg">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <Button 
@@ -461,7 +461,7 @@ export default function ExercisePage() {
       </header>
 
       {/* Exercise Header with Modern Design */}
-      <div className="bg-gradient-to-b from-purple-50 to-white p-6">
+      <div className="bg-gradient-to-b from-green-50 to-white p-6">
         <div className="flex items-center justify-between mb-3">
           <span className="text-sm text-gray-600 font-medium uppercase tracking-wide">
             Exercise {exerciseIndex + 1} of {totalExercises}
@@ -482,34 +482,34 @@ export default function ExercisePage() {
                   variant="ghost"
                   size="icon"
                   onClick={() => setLocation(`/exercise/${exerciseDbData.id}`)}
-                  className="hover:bg-purple-100 p-1"
+                  className="hover:bg-green-100 p-1"
                   title="View exercise details"
                 >
-                  <ExternalLink className="h-4 w-4 text-purple-600" />
+                  <ExternalLink className="h-4 w-4 text-green-600" />
                 </Button>
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => setShowSwapModal(true)}
-                  className="hover:bg-purple-100 p-1"
+                  className="hover:bg-green-100 p-1"
                   title="Swap exercise"
                 >
-                  <Repeat className="h-4 w-4 text-purple-600" />
+                  <Repeat className="h-4 w-4 text-green-600" />
                 </Button>
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={() => setShowHistory(true)}
-                  className="hover:bg-purple-100 p-1"
+                  className="hover:bg-green-100 p-1"
                   title="View exercise history"
                 >
-                  <Clock className="h-4 w-4 text-purple-600" />
+                  <Clock className="h-4 w-4 text-green-600" />
                 </Button>
               </>
             )}
           </h2>
           {exercise.superset_label && (
-            <Badge className="bg-purple-500 text-white px-3 py-1 text-sm font-bold rounded-full shadow-md">
+            <Badge className="bg-green-600 text-white px-3 py-1 text-sm font-bold rounded-full shadow-md">
               Superset {exercise.superset_label}
             </Badge>
           )}
@@ -520,7 +520,7 @@ export default function ExercisePage() {
           {exercise.rpe && ` (RPE ${exercise.rpe})`}
         </p>
         {swappedFromOriginal && (
-          <p className="text-xs text-purple-600 mt-1">
+          <p className="text-xs text-green-600 mt-1">
             <Repeat className="h-3 w-3 inline mr-1" />
             Swapped from: {swappedFromOriginal}
           </p>
@@ -530,8 +530,8 @@ export default function ExercisePage() {
       {/* Set Type Banner with Modern Styling */}
       <div className={`w-full py-3 px-4 text-center font-semibold text-white shadow-md ${
         exercise.type_of_set === "working" 
-          ? "gradient-green" 
-          : "bg-gradient-to-r from-yellow-500 to-orange-500"
+          ? "gradient-green-deep" 
+          : "bg-gradient-to-r from-amber-400 to-orange-400"
       }`}>
         <span className="uppercase tracking-wide text-sm">
           {exercise.type_of_set} set
@@ -727,7 +727,7 @@ export default function ExercisePage() {
                       key={ex.id}
                       value={ex.name}
                       onSelect={() => setSelectedSwapExercise(ex)}
-                      className={selectedSwapExercise?.id === ex.id ? "bg-purple-50" : ""}
+                      className={selectedSwapExercise?.id === ex.id ? "bg-green-50" : ""}
                     >
                       <Check
                         className={`mr-2 h-4 w-4 ${
@@ -753,7 +753,7 @@ export default function ExercisePage() {
             <Button
               onClick={handleSwapExercise}
               disabled={!selectedSwapExercise}
-              className="bg-purple-600 hover:bg-purple-700"
+              className="bg-green-600 hover:bg-green-700"
             >
               Swap
             </Button>
