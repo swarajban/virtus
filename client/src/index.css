@@ -12,39 +12,39 @@
   --popover: hsl(0, 0%, 100%);
   --popover-foreground: hsl(222, 47%, 11%);
   
-  /* Premium Purple Gradient */
-  --primary: hsl(259, 100%, 65%);
+  /* Modern Athletic Green */
+  --primary: hsl(145, 63%, 42%);
   --primary-foreground: hsl(0, 0%, 100%);
   
-  /* Success Green */
-  --secondary: hsl(142, 76%, 36%);
+  /* Supporting Green Tones */
+  --secondary: hsl(145, 63%, 55%);
   --secondary-foreground: hsl(0, 0%, 100%);
   
   /* Status Colors */
-  --warning: hsl(38, 92%, 50%);
-  --warning-foreground: hsl(20, 14%, 4%);
+  --warning: hsl(32, 95%, 65%);
+  --warning-foreground: hsl(0, 0%, 100%);
   --danger: hsl(0, 72%, 51%);
   --danger-foreground: hsl(0, 0%, 100%);
   
   /* Neutral Tones */
   --muted: hsl(210, 40%, 96%);
   --muted-foreground: hsl(215, 16%, 47%);
-  --accent: hsl(259, 100%, 95%);
-  --accent-foreground: hsl(259, 100%, 65%);
+  --accent: hsl(145, 63%, 96%);
+  --accent-foreground: hsl(145, 63%, 42%);
   
   /* System Colors */
   --destructive: hsl(0, 72%, 51%);
   --destructive-foreground: hsl(0, 0%, 100%);
   --border: hsl(214, 32%, 91%);
   --input: hsl(214, 32%, 91%);
-  --ring: hsl(259, 100%, 65%);
+  --ring: hsl(145, 63%, 42%);
   
   /* Chart Colors */
-  --chart-1: hsl(259, 100%, 65%);
-  --chart-2: hsl(142, 76%, 36%);
-  --chart-3: hsl(38, 92%, 50%);
-  --chart-4: hsl(280, 85%, 65%);
-  --chart-5: hsl(340, 75%, 55%);
+  --chart-1: hsl(145, 63%, 42%);
+  --chart-2: hsl(160, 65%, 45%);
+  --chart-3: hsl(32, 95%, 65%);
+  --chart-4: hsl(200, 75%, 55%);
+  --chart-5: hsl(280, 65%, 60%);
   
   /* Typography */
   --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
@@ -62,8 +62,8 @@
   --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.35);
   
   /* Custom Gradient Shadow */
-  --shadow-purple: 0 10px 40px -10px hsl(259, 100%, 65%, 0.35);
-  --shadow-green: 0 10px 40px -10px hsl(142, 76%, 36%, 0.35);
+  --shadow-green: 0 10px 40px -10px hsl(145, 63%, 42%, 0.35);
+  --shadow-green-light: 0 10px 40px -10px hsl(145, 63%, 55%, 0.25);
 }
 
 .dark {
@@ -181,12 +181,16 @@
   }
 
   /* Modern Gradient Backgrounds */
-  .gradient-purple {
-    background: linear-gradient(135deg, hsl(259, 100%, 65%) 0%, hsl(280, 85%, 65%) 100%);
+  .gradient-green {
+    background: linear-gradient(135deg, hsl(145, 63%, 42%) 0%, hsl(160, 65%, 45%) 100%);
   }
 
-  .gradient-green {
-    background: linear-gradient(135deg, hsl(142, 76%, 36%) 0%, hsl(160, 70%, 40%) 100%);
+  .gradient-green-vibrant {
+    background: linear-gradient(135deg, hsl(145, 70%, 48%) 0%, hsl(160, 70%, 50%) 100%);
+  }
+  
+  .gradient-green-deep {
+    background: linear-gradient(135deg, hsl(145, 65%, 35%) 0%, hsl(155, 60%, 38%) 100%);
   }
 
   .gradient-dark {
@@ -213,7 +217,7 @@
 
   /* Text Gradient */
   .text-gradient {
-    background: linear-gradient(135deg, hsl(259, 100%, 65%) 0%, hsl(280, 85%, 65%) 100%);
+    background: linear-gradient(135deg, hsl(145, 63%, 42%) 0%, hsl(160, 65%, 45%) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
