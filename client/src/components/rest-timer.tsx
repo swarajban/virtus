@@ -265,10 +265,12 @@ export function RestTimerBar() {
   } = useRestTimer();
 
   const handleStartStop = () => {
+    // Always increment set counter when logging a set
+    incrementSetCounter();
+    
     if (isRunning) {
       // Restart: reset and immediately start again
       resetTimer();
-      incrementSetCounter();
       setTimeout(() => startTimer(), 50);
     } else {
       startTimer();
@@ -308,14 +310,10 @@ export function RestTimerBar() {
           </button>
           <button
             onClick={handleStartStop}
-            className={`px-5 py-2.5 rounded-md text-sm font-bold transition-all duration-150 active:scale-95 ${
-              isRunning 
-                ? 'bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white shadow-md' 
-                : 'bg-green-500 hover:bg-green-600 active:bg-green-700 text-white shadow-md'
-            }`}
+            className="px-5 py-2.5 rounded-md text-sm font-bold transition-all duration-150 active:scale-95 bg-green-500 hover:bg-green-600 active:bg-green-700 text-white shadow-md"
             type="button"
           >
-            {isRunning ? 'Restart' : 'Start'}
+            Log Set
           </button>
         </div>
       </div>
