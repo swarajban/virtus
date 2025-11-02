@@ -35,7 +35,7 @@ export function WorkoutCard({ workout, onClick }: WorkoutCardProps) {
       className={`workout-card bg-white shadow-md hover:shadow-xl border-0 cursor-pointer transition-all duration-300 hover:-translate-y-1 active:scale-98 overflow-hidden`}
       onClick={onClick}
     >
-      <div className={`h-1 ${status === 'completed' ? 'gradient-green' : status === 'in_progress' ? 'gradient-purple' : 'bg-gray-200'}`}></div>
+      <div className={`h-1 ${status === 'completed' ? 'gradient-green' : status === 'in_progress' ? 'gradient-green-vibrant' : 'bg-gray-200'}`}></div>
       <div className="p-5">
         <div className="flex items-center justify-between">
           <div className="flex-1">

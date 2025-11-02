@@ -106,7 +106,7 @@ export default function SettingsPage() {
   return (
     <div className="max-w-md mx-auto bg-white min-h-screen">
       {/* Header */}
-      <header className="gradient-purple text-white px-4 py-6 sticky top-0 z-50 shadow-lg">
+      <header className="gradient-green text-white px-4 py-6 sticky top-0 z-50 shadow-lg">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <Button 

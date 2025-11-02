@@ -204,7 +204,7 @@ export default function ExerciseInfo() {
   return (
     <div className="max-w-4xl mx-auto bg-white min-h-screen">
       {/* Header */}
-      <header className="gradient-purple text-white px-4 py-6 sticky top-0 z-50 shadow-lg">
+      <header className="gradient-green text-white px-4 py-6 sticky top-0 z-50 shadow-lg">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <Button 
@@ -220,7 +220,7 @@ export default function ExerciseInfo() {
           <Button
             onClick={handleSave}
             disabled={updateMutation.isPending}
-            className="bg-white text-purple-600 hover:bg-gray-100"
+            className="bg-white text-green-600 hover:bg-gray-100"
           >
             <Save className="h-4 w-4 mr-2" />
             Save Changes

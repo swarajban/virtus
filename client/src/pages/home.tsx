@@ -100,11 +100,11 @@ export default function HomePage() {
   return (
     <div className="max-w-md mx-auto bg-white h-screen flex flex-col">
       {/* Modern Header with Gradient */}
-      <header className="gradient-purple text-white px-4 py-6 shadow-lg flex-shrink-0">
+      <header className="gradient-green text-white px-4 py-6 shadow-lg flex-shrink-0">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight font-heading">Virtus</h1>
-            <p className="text-purple-100 text-sm mt-1 opacity-90">Powerbuilding</p>
+            <p className="text-green-100 text-sm mt-1 opacity-90">Powerbuilding</p>
           </div>
           <div className="flex gap-2">
             <Button 
@@ -132,7 +132,7 @@ export default function HomePage() {
         {/* Progress Section with Modern Design */}
         <div className="p-4">
           <Card className="bg-white shadow-lg border-0 overflow-hidden">
-            <div className="gradient-purple h-2"></div>
+            <div className="gradient-green h-2"></div>
             <CardContent className="p-5">
               <h2 className="text-xl font-bold text-gray-900 mb-2">Program Progress</h2>
               <p className="text-sm text-gray-500 mb-4">Track your powerbuilding journey</p>
@@ -154,7 +154,7 @@ export default function HomePage() {
           <div className="grid grid-cols-2 gap-3">
             <Button 
               onClick={handleNextWorkout}
-              className="gradient-purple text-white p-6 h-auto flex-col space-y-3 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-200"
+              className="gradient-green text-white p-6 h-auto flex-col space-y-3 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-200"
               disabled={!nextWorkout}
             >
               <Play className="h-10 w-10" />

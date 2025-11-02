@@ -147,7 +147,7 @@ export default function OneRMPage() {
   return (
     <div className="max-w-md mx-auto bg-white min-h-screen">
       {/* Modern Header */}
-      <header className="gradient-purple text-white px-4 py-6 sticky top-0 z-50 shadow-lg">
+      <header className="gradient-green text-white px-4 py-6 sticky top-0 z-50 shadow-lg">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <Button 
@@ -191,7 +191,7 @@ export default function OneRMPage() {
         <Button 
           onClick={handleSave}
           disabled={save1RMMutation.isPending}
-          className="w-full gradient-purple text-white mt-6 h-14 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 font-semibold text-base"
+          className="w-full gradient-green text-white mt-6 h-14 rounded-xl shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 transition-all duration-200 font-semibold text-base"
         >
           <Save className="h-5 w-5 mr-2" />
           Save Changes

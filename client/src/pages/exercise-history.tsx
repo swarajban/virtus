@@ -103,7 +103,7 @@ export default function ExerciseHistoryPage() {
   return (
     <div className="max-w-md mx-auto bg-white min-h-screen">
       {/* Header */}
-      <header className="gradient-purple text-white px-4 py-6 sticky top-0 z-50 shadow-lg">
+      <header className="gradient-green text-white px-4 py-6 sticky top-0 z-50 shadow-lg">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <Button 
@@ -120,7 +120,7 @@ export default function ExerciseHistoryPage() {
       </header>
 
       {/* Search Bar */}
-      <div className="p-4 bg-gradient-to-b from-purple-50 to-white">
+      <div className="p-4 bg-gradient-to-b from-green-50 to-white">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
           <Input
