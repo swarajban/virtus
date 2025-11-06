@@ -338,13 +338,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const fileContent = readFileSync(jsonPath, 'utf-8');
       const data = JSON.parse(fileContent);
       
-      // Extract program names from the JSON
+      // Extract program data including workouts array for the modal
       const programs = data.programs.map((program: any) => ({
         name: program.name,
-        totalWorkouts: program.workouts.length,
+        workouts: program.workouts,
       }));
       
-      res.json(programs);
+      res.json({ programs });
     } catch (error) {
       console.error('Error reading programs:', error);
       res.status(500).json({ error: 'Failed to fetch programs' });
