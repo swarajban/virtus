@@ -38,8 +38,10 @@ export interface IStorage {
   deleteOneRepMax(userId: number, exerciseId: number): Promise<void>;
   
   // Workout Progress operations
-  getWorkoutProgress(userId: number): Promise<Record<number, WorkoutProgress>>;
-  saveWorkoutProgress(userId: number, workoutNumber: number, progress: WorkoutProgress): Promise<string>;
+  getWorkoutProgress(userId: number, programCycle?: number): Promise<Record<number, WorkoutProgress>>;
+  saveWorkoutProgress(userId: number, workoutNumber: number, progress: WorkoutProgress, programCycle?: number): Promise<string>;
+  getMaxProgramCycle(userId: number, programName: string): Promise<number>;
+  updateUserProgramAndCycle(userId: number, programName: string, cycle: number): Promise<void>;
   
   // Exercise operations
   getExercise(id: number): Promise<ExerciseDB | undefined>;
@@ -197,11 +199,21 @@ export class DatabaseStorage implements IStorage {
       ));
   }
 
-  async getWorkoutProgress(userId: number): Promise<Record<number, WorkoutProgress>> {
+  async getWorkoutProgress(userId: number, programCycle?: number): Promise<Record<number, WorkoutProgress>> {
+    // If programCycle is provided, filter by it; otherwise get current cycle from user
+    let targetCycle = programCycle;
+    if (!targetCycle) {
+      const user = await this.getUser(userId);
+      targetCycle = user?.currentProgramCycle || 1;
+    }
+    
     const progresses = await db
       .select()
       .from(workoutProgress)
-      .where(eq(workoutProgress.userId, userId));
+      .where(and(
+        eq(workoutProgress.userId, userId),
+        eq(workoutProgress.programCycle, targetCycle)
+      ));
     
     const result: Record<number, WorkoutProgress> = {};
     for (const progress of progresses) {
@@ -216,13 +228,21 @@ export class DatabaseStorage implements IStorage {
     return result;
   }
 
-  async saveWorkoutProgress(userId: number, workoutNumber: number, progress: WorkoutProgress): Promise<string> {
+  async saveWorkoutProgress(userId: number, workoutNumber: number, progress: WorkoutProgress, programCycle?: number): Promise<string> {
+    // If programCycle is not provided, get it from the user
+    let targetCycle = programCycle;
+    if (!targetCycle) {
+      const user = await this.getUser(userId);
+      targetCycle = user?.currentProgramCycle || 1;
+    }
+    
     const existing = await db
       .select()
       .from(workoutProgress)
       .where(and(
         eq(workoutProgress.userId, userId),
-        eq(workoutProgress.workoutNumber, workoutNumber)
+        eq(workoutProgress.workoutNumber, workoutNumber),
+        eq(workoutProgress.programCycle, targetCycle)
       ))
       .limit(1);
 
@@ -230,12 +250,13 @@ export class DatabaseStorage implements IStorage {
     let sessionId = existing[0]?.sessionId;
     if (!sessionId || (progress.status === 'in_progress' && existing[0]?.status === 'not_started')) {
       sessionId = `session_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-      console.log(`Generated new session ID: ${sessionId} for workout ${workoutNumber}`);
+      console.log(`Generated new session ID: ${sessionId} for workout ${workoutNumber}, cycle ${targetCycle}`);
     }
 
     const dbProgress = {
       userId,
       workoutNumber,
+      programCycle: targetCycle,
       sessionId,
       status: progress.status,
       startedAt: progress.startedAt ? new Date(progress.startedAt) : null,
@@ -252,7 +273,8 @@ export class DatabaseStorage implements IStorage {
         })
         .where(and(
           eq(workoutProgress.userId, userId),
-          eq(workoutProgress.workoutNumber, workoutNumber)
+          eq(workoutProgress.workoutNumber, workoutNumber),
+          eq(workoutProgress.programCycle, targetCycle)
         ));
     } else {
       await db
@@ -450,6 +472,31 @@ export class DatabaseStorage implements IStorage {
       .set({ selectedProgram: programName })
       .where(eq(users.id, userId));
     console.log(`Updated user ${userId} program to ${programName}`);
+  }
+
+  async getMaxProgramCycle(userId: number, programName: string): Promise<number> {
+    const result = await db
+      .select({ maxCycle: sql<number>`MAX(${workoutProgress.programCycle})` })
+      .from(workoutProgress)
+      .where(and(
+        eq(workoutProgress.userId, userId),
+        eq(workoutProgress.programName, programName)
+      ));
+    
+    const maxCycle = result[0]?.maxCycle || 0;
+    console.log(`Max cycle for user ${userId} in program ${programName}: ${maxCycle}`);
+    return maxCycle;
+  }
+
+  async updateUserProgramAndCycle(userId: number, programName: string, cycle: number): Promise<void> {
+    await db
+      .update(users)
+      .set({ 
+        selectedProgram: programName,
+        currentProgramCycle: cycle
+      })
+      .where(eq(users.id, userId));
+    console.log(`Updated user ${userId} to program ${programName}, cycle ${cycle}`);
   }
 
   async clearAllProgress(userId: number): Promise<void> {
