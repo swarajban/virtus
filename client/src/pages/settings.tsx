@@ -4,10 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { ArrowLeft, Settings as SettingsIcon, User } from "lucide-react";
+import { ArrowLeft, Settings as SettingsIcon, User, RefreshCw } from "lucide-react";
 import { api } from "@/lib/api-client";
 import { useToast } from "@/hooks/use-toast";
 import { UserSelector } from "@/components/user-selector";
+import { ProgramSelectionModal } from "@/components/program-selection-modal";
 
 interface Program {
   name: string;
@@ -20,6 +21,7 @@ export default function SettingsPage() {
   const [selectedProgram, setSelectedProgram] = useState<string>("");
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isModalOpen, setIsModalOpen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -90,6 +92,11 @@ export default function SettingsPage() {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleProgramCycleSuccess = () => {
+    // Reload settings to show updated program/cycle
+    window.location.reload();
   };
 
   if (isLoading) {
@@ -176,6 +183,22 @@ export default function SettingsPage() {
                   </p>
                 </div>
               )}
+
+              {/* Start New Program Button */}
+              <div className="pt-2 border-t">
+                <Button
+                  onClick={() => setIsModalOpen(true)}
+                  variant="default"
+                  className="w-full"
+                  data-testid="button-start-new-program"
+                >
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                  Start New Program
+                </Button>
+                <p className="text-xs text-gray-500 mt-2">
+                  Start a fresh cycle of your current program or switch to a different one
+                </p>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -209,6 +232,14 @@ export default function SettingsPage() {
         </Card>
 
       </div>
+
+      {/* Program Selection Modal */}
+      <ProgramSelectionModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSuccess={handleProgramCycleSuccess}
+        currentProgram={selectedProgram}
+      />
     </div>
   );
 }
