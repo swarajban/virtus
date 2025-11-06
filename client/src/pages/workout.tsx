@@ -5,8 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Play, Check, CheckCircle, ArrowRight, Circle, RotateCcw, Repeat } from "lucide-react";
 import { LocalStorage } from "@/lib/storage";
+import { api } from "@/lib/api-client";
 import { getWorkoutStatusBadge, formatDate, enhanceExerciseWithCalculations } from "@/lib/workout-utils";
 import type { WorkoutWithProgress, ExerciseWithCalculatedWeight } from "@/types/workout";
+import type { User } from "@shared/schema";
 
 // Import types
 import { Workout } from "@shared/schema";
@@ -18,6 +20,7 @@ export default function WorkoutPage() {
   const [exercises, setExercises] = useState<ExerciseWithCalculatedWeight[]>([]);
   const [showReset, setShowReset] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   const workoutNumber = params ? parseInt(params.workoutNumber) : 0;
 
@@ -26,11 +29,16 @@ export default function WorkoutPage() {
       if (workoutNumber) {
         try {
           setIsLoading(true);
-          const [response, workoutProgress, oneRM] = await Promise.all([
+          const [response, workoutProgress, oneRM, user] = await Promise.all([
             fetch('/powerbuilding_data.json'),
             LocalStorage.getWorkoutProgress(),
-            LocalStorage.getOneRM()
+            LocalStorage.getOneRM(),
+            api.getCurrentUser().catch(() => null)
           ]);
+          
+          if (user) {
+            setCurrentUser(user);
+          }
           
           // Fetch all exercises and their 1RMs
           const [allExercisesResponse, allOneRMsResponse] = await Promise.all([
@@ -205,7 +213,12 @@ export default function WorkoutPage() {
             >
               <ArrowLeft className="h-5 w-5" />
             </Button>
-            <h1 className="text-2xl font-bold tracking-tight">Workout</h1>
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight">Workout</h1>
+              {currentUser?.currentProgramCycle && currentUser.currentProgramCycle > 1 && (
+                <p className="text-green-100 text-xs opacity-90">Cycle {currentUser.currentProgramCycle}</p>
+              )}
+            </div>
           </div>
         </div>
       </header>

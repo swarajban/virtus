@@ -40,6 +40,10 @@ export const api = {
   async getUsers(): Promise<User[]> {
     return apiRequest('/api/users');
   },
+
+  async getCurrentUser(): Promise<User> {
+    return apiRequest('/api/user/current');
+  },
   
   // One Rep Max
   async getOneRM(): Promise<OneRM> {

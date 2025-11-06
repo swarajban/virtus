@@ -36,6 +36,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get current user (based on x-username header)
+  app.get("/api/user/current", async (req, res) => {
+    try {
+      const user = await getUserFromRequest(req);
+      res.json(user);
+    } catch (error) {
+      console.error("Error fetching current user:", error);
+      res.status(500).json({ error: "Failed to fetch current user" });
+    }
+  });
+
   // Get user's 1RM values
   app.get("/api/one-rm", async (req, res) => {
     try {

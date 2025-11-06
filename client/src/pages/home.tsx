@@ -5,8 +5,10 @@ import { Button } from "@/components/ui/button";
 import { ProgressBar } from "@/components/ui/progress-bar";
 import { WorkoutCard } from "@/components/workout-card";
 import { LocalStorage } from "@/lib/storage";
+import { api } from "@/lib/api-client";
 import { Play, Settings, Activity, Dumbbell } from "lucide-react";
 import type { WorkoutWithProgress } from "@/types/workout";
+import type { User } from "@shared/schema";
 
 // Import the workout data
 import { Workout } from "@shared/schema";
@@ -16,6 +18,7 @@ export default function HomePage() {
   const [workouts, setWorkouts] = useState<WorkoutWithProgress[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [lastLoadTime, setLastLoadTime] = useState(0);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const nextWorkoutRef = useRef<HTMLDivElement>(null);
 
   const loadWorkouts = useCallback(async (force = false) => {
@@ -27,10 +30,15 @@ export default function HomePage() {
     
     try {
       setIsLoading(true);
-      const [response, workoutProgress] = await Promise.all([
+      const [response, workoutProgress, user] = await Promise.all([
         fetch('/powerbuilding_data.json'),
-        LocalStorage.getWorkoutProgress()
+        LocalStorage.getWorkoutProgress(),
+        api.getCurrentUser().catch(() => null)
       ]);
+      
+      if (user) {
+        setCurrentUser(user);
+      }
       
       const data = await response.json();
       // Handle new JSON structure with programs
@@ -104,7 +112,9 @@ export default function HomePage() {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold tracking-tight font-heading">Virtus</h1>
-            <p className="text-green-100 text-sm mt-1 opacity-90">Powerbuilding</p>
+            <p className="text-green-100 text-sm mt-1 opacity-90">
+              Powerbuilding {currentUser?.currentProgramCycle && currentUser.currentProgramCycle > 1 && `• Cycle ${currentUser.currentProgramCycle}`}
+            </p>
           </div>
           <div className="flex gap-2">
             <Button 
