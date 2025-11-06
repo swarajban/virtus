@@ -26,7 +26,7 @@ export function ProgramSelectionModal({
   const [programs, setPrograms] = useState<Program[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isStarting, setIsStarting] = useState(false);
-  const [selectedProgram, setSelectedProgram] = useState<string | null>(null);
+  const [selectedProgramForStart, setSelectedProgramForStart] = useState<string | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -56,17 +56,24 @@ export function ProgramSelectionModal({
     loadPrograms();
   }, [isOpen, toast]);
 
-  const handleStartNewProgram = async (programName: string) => {
-    setSelectedProgram(programName);
+  const handleConfirmStart = async () => {
+    if (!selectedProgramForStart) return;
+    
     setIsStarting(true);
     
     try {
+      const username = localStorage.getItem('selected-username');
+      if (!username) {
+        throw new Error('No user selected');
+      }
+      
       const response = await fetch('/api/start-new-program', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'x-username': username,
         },
-        body: JSON.stringify({ programName }),
+        body: JSON.stringify({ programName: selectedProgramForStart }),
       });
 
       if (!response.ok) {
@@ -78,7 +85,7 @@ export function ProgramSelectionModal({
       
       toast({
         title: "Success!",
-        description: `Started ${programName} - Cycle ${result.cycle}`,
+        description: `Started ${selectedProgramForStart} - Cycle ${result.cycle}`,
       });
       
       onSuccess();
@@ -92,7 +99,6 @@ export function ProgramSelectionModal({
       });
     } finally {
       setIsStarting(false);
-      setSelectedProgram(null);
     }
   };
 
@@ -120,9 +126,13 @@ export function ProgramSelectionModal({
               <Card 
                 key={program.name}
                 className={`cursor-pointer transition-all duration-200 hover:shadow-md ${
-                  program.name === currentProgram ? 'border-primary bg-primary/5' : ''
+                  selectedProgramForStart === program.name 
+                    ? 'border-primary bg-primary/10 ring-2 ring-primary' 
+                    : program.name === currentProgram 
+                    ? 'border-primary bg-primary/5' 
+                    : ''
                 }`}
-                onClick={() => handleStartNewProgram(program.name)}
+                onClick={() => setSelectedProgramForStart(program.name)}
                 data-testid={`card-program-${program.name.toLowerCase().replace(/\s+/g, '-')}`}
               >
                 <CardContent className="p-4">
@@ -145,10 +155,10 @@ export function ProgramSelectionModal({
                         </p>
                       )}
                     </div>
-                    {isStarting && selectedProgram === program.name ? (
-                      <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                    {selectedProgramForStart === program.name ? (
+                      <CheckCircle2 className="h-6 w-6 text-primary fill-primary/20" />
                     ) : (
-                      <CheckCircle2 className="h-5 w-5 text-gray-400" />
+                      <CheckCircle2 className="h-6 w-6 text-gray-300" />
                     )}
                   </div>
                 </CardContent>
@@ -157,14 +167,30 @@ export function ProgramSelectionModal({
           )}
         </div>
 
-        <div className="mt-4 flex justify-end">
+        <div className="mt-4 flex justify-between gap-3">
           <Button
             variant="outline"
             onClick={onClose}
             disabled={isStarting}
             data-testid="button-cancel"
+            className="flex-1"
           >
             Cancel
+          </Button>
+          <Button
+            onClick={handleConfirmStart}
+            disabled={!selectedProgramForStart || isStarting}
+            data-testid="button-confirm-start"
+            className="flex-1"
+          >
+            {isStarting ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Starting...
+              </>
+            ) : (
+              'Start Program'
+            )}
           </Button>
         </div>
       </DialogContent>
