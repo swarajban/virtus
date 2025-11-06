@@ -3,6 +3,12 @@
 Virtus is a workout tracking web application designed for powerbuilding/strength training programs. The app allows users to track their workout progress, view exercise history with performance charts, manage 1RM (one-rep max) values, and follow structured workout programs. Built as a mobile-first Progressive Web App (PWA), it provides an intuitive interface for gym-goers to log exercises, track weights, sets, and reps, and monitor their strength progression over time. The app supports multiple workout programs and user accounts with database synchronization.
 
 ## Recent Updates (January 2025)
+- **Program Cycle Tracking**: Added ability to repeat programs through multiple cycles with full history preservation
+  - New "Start New Program" button in Settings to begin fresh program cycles
+  - Cycle indicator displayed on home page and workout headers (e.g., "Cycle 2")
+  - Automatic cycle increment when repeating same program, or cycle reset when switching programs
+  - All workout progress is isolated by cycle, allowing users to compare performance across cycles
+  - Backend tracks max cycle per program and calculates next cycle intelligently
 - **Session ID Implementation**: Added unique session tracking (format: session_[timestamp]_[random]) to precisely identify each workout attempt
 - **Fixed Reset Bug**: Reset workout now only clears data for the current session, preserving historical workout data
 - **Fixed Complete Workout Bug**: Resolved issue where completing a workout was clearing all exercise progress data
@@ -35,6 +41,10 @@ Preferred communication style: Simple, everyday language.
 - **Workout Data**: JSON file with programs structure containing multiple workout programs
 - **User Management**: Username-based system with preset users ("swaraj", "demo")
 - **Program Selection**: Users can switch between available workout programs through Settings
+- **Program Cycle Tracking**: Each user has a currentProgramCycle field tracking their active cycle number
+  - Workout progress is isolated by both userId and programCycle for historical comparison
+  - Users can repeat programs indefinitely, with each cycle tracked separately
+  - API endpoint `/api/start-new-program` handles cycle calculation and user updates
 - **Exercise Database**: Dedicated exercises table with 56 unique exercises including metadata (notes, YouTube links, 1RM configs)
 - **Exercise History**: Tracks all working sets with exercise_id foreign keys for data integrity
 
@@ -55,6 +65,7 @@ Preferred communication style: Simple, everyday language.
 ## Workout Logic
 - **1RM Integration**: Automatic weight calculation based on user's one-rep max values and exercise load percentages
 - **Progress Tracking**: Three workout states (not started, in progress, completed) with timestamp tracking
+- **Cycle-Based Progress**: Workout progress is scoped to the current program cycle, allowing clean restarts
 - **Exercise History**: Historical data tracking with date-based performance charts
 - **Weight Calculations**: Smart rounding to nearest 5lbs for practical weight plate combinations
 

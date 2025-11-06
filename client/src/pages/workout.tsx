@@ -311,7 +311,9 @@ export default function WorkoutPage() {
                       <h4 className="font-semibold text-gray-900 flex items-center gap-1">
                         {exercise.name}
                         {(exercise as any).swappedFrom && (
-                          <Repeat className="h-3 w-3 text-purple-600" title={`Swapped from: ${(exercise as any).swappedFrom}`} />
+                          <span title={`Swapped from: ${(exercise as any).swappedFrom}`}>
+                            <Repeat className="h-3 w-3 text-purple-600" />
+                          </span>
                         )}
                       </h4>
                       {exercise.superset_label && (
