@@ -23,6 +23,7 @@ export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: varchar("username", { length: 255 }).unique().notNull(),
   selectedProgram: varchar("selected_program", { length: 255 }).notNull().default("Powerbuilding 4x"),
+  currentProgramCycle: integer("current_program_cycle").notNull().default(1),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -43,6 +44,7 @@ export const workoutProgress = pgTable("workout_progress", {
   userId: integer("user_id").notNull().references(() => users.id),
   programName: varchar("program_name", { length: 255 }).notNull().default("Powerbuilding 4x"),
   workoutNumber: integer("workout_number").notNull(),
+  programCycle: integer("program_cycle").notNull().default(1),
   sessionId: varchar("session_id", { length: 255 }), // Unique ID for each workout attempt
   status: varchar("status", { length: 20 }).notNull(), // 'not_started', 'in_progress', 'completed'
   startedAt: timestamp("started_at"),
@@ -51,7 +53,7 @@ export const workoutProgress = pgTable("workout_progress", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (table) => [
-  index("idx_wp_user_workout").on(table.userId, table.workoutNumber),
+  index("idx_wp_user_workout_cycle").on(table.userId, table.workoutNumber, table.programCycle),
   index("idx_wp_session").on(table.sessionId),
 ]);
 
