@@ -3,6 +3,8 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertOneRepMaxSchema, insertWorkoutProgressSchema, insertExerciseHistorySchema } from "@shared/schema";
 import { z } from "zod";
+import { readFileSync } from "fs";
+import { join } from "path";
 
 // Helper to get user based on username from headers
 async function getUserFromRequest(req: any) {
@@ -318,6 +320,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get available programs from powerbuilding_data.json
+  app.get('/api/programs', async (req, res) => {
+    try {
+      const jsonPath = join(process.cwd(), 'client', 'public', 'powerbuilding_data.json');
+      const fileContent = readFileSync(jsonPath, 'utf-8');
+      const data = JSON.parse(fileContent);
+      
+      // Extract program names from the JSON
+      const programs = data.programs.map((program: any) => ({
+        name: program.name,
+        totalWorkouts: program.workouts.length,
+      }));
+      
+      res.json(programs);
+    } catch (error) {
+      console.error('Error reading programs:', error);
+      res.status(500).json({ error: 'Failed to fetch programs' });
+    }
+  });
+
+  // Start a new program (repeat current or switch to different program)
+  app.post('/api/start-new-program', async (req, res) => {
+    try {
+      const user = await getUserFromRequest(req);
+      const { programName } = req.body;
+      
+      if (!programName) {
+        return res.status(400).json({ error: 'Program name is required' });
+      }
+      
+      // Get max cycle for this program from historical workout_progress
+      const maxCycle = await storage.getMaxProgramCycle(user.id, programName);
+      
+      // Determine next cycle
+      let nextCycle = 1;
+      if (user.selectedProgram === programName) {
+        // Same program: increment to next cycle
+        nextCycle = maxCycle + 1;
+      } else {
+        // Different program: start at cycle 1 or continue from max if history exists
+        nextCycle = maxCycle > 0 ? maxCycle + 1 : 1;
+      }
+      
+      // Update user's selected program and current cycle
+      await storage.updateUserProgramAndCycle(user.id, programName, nextCycle);
+      
+      res.json({ 
+        success: true, 
+        programName,
+        programCycle: nextCycle 
+      });
+    } catch (error) {
+      console.error('Error starting new program:', error);
+      res.status(500).json({ error: 'Failed to start new program' });
+    }
+  });
 
   const httpServer = createServer(app);
   return httpServer;
