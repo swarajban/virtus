@@ -113,7 +113,7 @@ export default function HomePage() {
           <div>
             <h1 className="text-3xl font-bold tracking-tight font-heading">Virtus</h1>
             <p className="text-green-100 text-sm mt-1 opacity-90">
-              Powerbuilding {currentUser?.currentProgramCycle && currentUser.currentProgramCycle > 1 && `• Cycle ${currentUser.currentProgramCycle}`}
+              {currentUser?.selectedProgram || 'Powerbuilding'} {currentUser?.currentProgramCycle && currentUser.currentProgramCycle > 1 && `• Cycle ${currentUser.currentProgramCycle}`}
             </p>
           </div>
           <div className="flex gap-2">
