@@ -146,17 +146,42 @@ export default function ExercisePage() {
             setWorkoutName(foundWorkout.workout_name);
             setTotalExercises(foundWorkout.exercises.length);
             
-            // Set initial values
-            setUserSets(enhancedExercise.number_of_sets);
-            setUserReps(enhancedExercise.number_of_reps || 1);
-            setUserWeight(enhancedExercise.calculatedWeight || 0);
-            setUserNotes(""); // Clear notes for new exercises
-
             // Check if exercise is already completed
             const isCompleted = currentProgress?.exerciseProgress?.[exerciseKey]?.completed || false;
             setIsExerciseCompleted(isCompleted);
 
-            // If completed, load the saved values
+            // Fetch exercise history to get most recent weight if no calculatedWeight
+            let defaultWeight = enhancedExercise.calculatedWeight || 0;
+            
+            if (!enhancedExercise.calculatedWeight && !isCompleted) {
+              try {
+                const historyResponse = await fetch(
+                  `/api/exercise-history?exerciseName=${encodeURIComponent(enhancedExercise.name)}`,
+                  { headers: { 'x-username': localStorage.getItem('selected-username') || 'demo' } }
+                );
+                
+                if (historyResponse.ok) {
+                  const history = await historyResponse.json();
+                  if (history && history.length > 0) {
+                    // Sort by date descending to get most recent
+                    const sortedHistory = history.sort((a: any, b: any) => 
+                      new Date(b.date).getTime() - new Date(a.date).getTime()
+                    );
+                    defaultWeight = sortedHistory[0].weight || 0;
+                  }
+                }
+              } catch (error) {
+                console.error('Error fetching exercise history for default weight:', error);
+              }
+            }
+            
+            // Set initial values
+            setUserSets(enhancedExercise.number_of_sets);
+            setUserReps(enhancedExercise.number_of_reps || 1);
+            setUserWeight(defaultWeight);
+            setUserNotes(""); // Clear notes for new exercises
+
+            // If completed, load the saved values (overrides history-based default)
             if (isCompleted && currentProgress?.exerciseProgress?.[exerciseKey]) {
               const savedProgress = currentProgress.exerciseProgress[exerciseKey];
               setUserSets(savedProgress.sets);
