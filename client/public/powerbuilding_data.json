@@ -1,17 +1,14 @@
 {
-    "programs":
-    [
+    "programs": [
         {
             "name": "Powerbuilding 4x",
-            "workouts":
-            [
+            "workouts": [
                 {
                     "workout_number": 1,
                     "week_number": 1,
                     "day_number": 1,
                     "workout_name": "Full Body 1: Squat, OHP",
-                    "exercises":
-                    [
+                    "exercises": [
                         {
                             "name": "Back squat",
                             "superset_label": null,
@@ -129,8 +126,7 @@
                     "week_number": 1,
                     "day_number": 2,
                     "workout_name": "Full Body 2: Deadlift, Bench Press",
-                    "exercises":
-                    [
+                    "exercises": [
                         {
                             "name": "Deadlift",
                             "superset_label": null,
@@ -270,8 +266,7 @@
                     "week_number": 1,
                     "day_number": 3,
                     "workout_name": "Full Body 3: Squat, Dip",
-                    "exercises":
-                    [
+                    "exercises": [
                         {
                             "name": "Back squat",
                             "superset_label": null,
@@ -389,8 +384,7 @@
                     "week_number": 1,
                     "day_number": 4,
                     "workout_name": "Full Body 4: Deadlift, Bench Press",
-                    "exercises":
-                    [
+                    "exercises": [
                         {
                             "name": "Pause deadlift",
                             "superset_label": null,
@@ -486,8 +480,7 @@
                     "week_number": 2,
                     "day_number": 1,
                     "workout_name": "Lower #1",
-                    "exercises":
-                    [
+                    "exercises": [
                         {
                             "name": "Deadlift",
                             "superset_label": null,
@@ -594,8 +587,7 @@
                     "week_number": 2,
                     "day_number": 2,
                     "workout_name": "Upper #1",
-                    "exercises":
-                    [
+                    "exercises": [
                         {
                             "name": "Barbell bench press",
                             "superset_label": null,
@@ -746,8 +738,7 @@
                     "week_number": 2,
                     "day_number": 3,
                     "workout_name": "Lower #2",
-                    "exercises":
-                    [
+                    "exercises": [
                         {
                             "name": "Back squat",
                             "superset_label": null,
@@ -876,8 +867,7 @@
                     "week_number": 2,
                     "day_number": 4,
                     "workout_name": "Upper #2",
-                    "exercises":
-                    [
+                    "exercises": [
                         {
                             "name": "Close-grip bench press",
                             "superset_label": null,
@@ -1017,8 +1007,7 @@
                     "week_number": 3,
                     "day_number": 1,
                     "workout_name": "Full Body 1: Squat, OHP",
-                    "exercises":
-                    [
+                    "exercises": [
                         {
                             "name": "Back squat",
                             "superset_label": null,
@@ -1136,8 +1125,7 @@
                     "week_number": 3,
                     "day_number": 2,
                     "workout_name": "Full Body 2: Deadlift, Bench Press",
-                    "exercises":
-                    [
+                    "exercises": [
                         {
                             "name": "Deadlift",
                             "superset_label": null,
@@ -1277,8 +1265,7 @@
                     "week_number": 3,
                     "day_number": 3,
                     "workout_name": "Full Body 3: Squat, Dip",
-                    "exercises":
-                    [
+                    "exercises": [
                         {
                             "name": "Back squat",
                             "superset_label": null,
@@ -1396,8 +1383,7 @@
                     "week_number": 3,
                     "day_number": 4,
                     "workout_name": "Full Body 4: Deadlift, Bench Press",
-                    "exercises":
-                    [
+                    "exercises": [
                         {
                             "name": "Pause deadlift",
                             "superset_label": null,
@@ -1493,8 +1479,7 @@
                     "week_number": 4,
                     "day_number": 1,
                     "workout_name": "Lower #1",
-                    "exercises":
-                    [
+                    "exercises": [
                         {
                             "name": "Deadlift",
                             "superset_label": null,
@@ -1612,8 +1597,7 @@
                     "week_number": 4,
                     "day_number": 2,
                     "workout_name": "Upper #1",
-                    "exercises":
-                    [
+                    "exercises": [
                         {
                             "name": "Flat-back bench press",
                             "superset_label": null,
@@ -1753,8 +1737,7 @@
                     "week_number": 4,
                     "day_number": 3,
                     "workout_name": "Lower #2",
-                    "exercises":
-                    [
+                    "exercises": [
                         {
                             "name": "Back squat",
                             "superset_label": null,
@@ -1883,8 +1866,7 @@
                     "week_number": 4,
                     "day_number": 4,
                     "workout_name": "Upper #2",
-                    "exercises":
-                    [
+                    "exercises": [
                         {
                             "name": "Weighted dip",
                             "superset_label": null,
@@ -2024,8 +2006,7 @@
                     "week_number": 5,
                     "day_number": 1,
                     "workout_name": "Full Body 1: \nSquat, OHP",
-                    "exercises":
-                    [
+                    "exercises": [
                         {
                             "name": "Back squat",
                             "superset_label": null,
@@ -2143,8 +2124,7 @@
                     "week_number": 5,
                     "day_number": 2,
                     "workout_name": "Full Body 2: Deadlift, Bench Press",
-                    "exercises":
-                    [
+                    "exercises": [
                         {
                             "name": "Deadlift",
                             "superset_label": null,
@@ -2284,8 +2264,7 @@
                     "week_number": 5,
                     "day_number": 3,
                     "workout_name": "Full Body 3: Squat, Dip",
-                    "exercises":
-                    [
+                    "exercises": [
                         {
                             "name": "Back squat",
                             "superset_label": null,
@@ -2403,8 +2382,7 @@
                     "week_number": 5,
                     "day_number": 4,
                     "workout_name": "Full Body 4: Deadlift, Bench Press",
-                    "exercises":
-                    [
+                    "exercises": [
                         {
                             "name": "Pause deadlift",
                             "superset_label": null,
@@ -2500,8 +2478,7 @@
                     "week_number": 6,
                     "day_number": 1,
                     "workout_name": "Lower #1",
-                    "exercises":
-                    [
+                    "exercises": [
                         {
                             "name": "Deadlift",
                             "superset_label": null,
@@ -2608,8 +2585,7 @@
                     "week_number": 6,
                     "day_number": 2,
                     "workout_name": "Upper #1",
-                    "exercises":
-                    [
+                    "exercises": [
                         {
                             "name": "Barbell bench press",
                             "superset_label": null,
@@ -2749,8 +2725,7 @@
                     "week_number": 6,
                     "day_number": 3,
                     "workout_name": "Lower #2",
-                    "exercises":
-                    [
+                    "exercises": [
                         {
                             "name": "Back squat",
                             "superset_label": null,
@@ -2890,8 +2865,7 @@
                     "week_number": 6,
                     "day_number": 4,
                     "workout_name": "Upper #2",
-                    "exercises":
-                    [
+                    "exercises": [
                         {
                             "name": "Barbell floor press",
                             "superset_label": null,
@@ -3031,8 +3005,7 @@
                     "week_number": 7,
                     "day_number": 1,
                     "workout_name": "Full Body 1: Squat, OHP",
-                    "exercises":
-                    [
+                    "exercises": [
                         {
                             "name": "Back squat",
                             "superset_label": null,
@@ -3150,8 +3123,7 @@
                     "week_number": 7,
                     "day_number": 2,
                     "workout_name": "Full Body 2: Deadlift, Bench Press",
-                    "exercises":
-                    [
+                    "exercises": [
                         {
                             "name": "Pause deadlift",
                             "superset_label": null,
@@ -3291,8 +3263,7 @@
                     "week_number": 7,
                     "day_number": 3,
                     "workout_name": "Full Body 3: Squat, Dip",
-                    "exercises":
-                    [
+                    "exercises": [
                         {
                             "name": "Back squat",
                             "superset_label": null,
@@ -3410,8 +3381,7 @@
                     "week_number": 7,
                     "day_number": 4,
                     "workout_name": "Full Body 4: Deadlift, Bench Press",
-                    "exercises":
-                    [
+                    "exercises": [
                         {
                             "name": "Deadlift",
                             "superset_label": null,
@@ -3507,8 +3477,7 @@
                     "week_number": 8,
                     "day_number": 1,
                     "workout_name": "Lower #1",
-                    "exercises":
-                    [
+                    "exercises": [
                         {
                             "name": "Deadlift",
                             "superset_label": null,
@@ -3615,8 +3584,7 @@
                     "week_number": 8,
                     "day_number": 2,
                     "workout_name": "Upper #1",
-                    "exercises":
-                    [
+                    "exercises": [
                         {
                             "name": "Flat-back bench press",
                             "superset_label": null,
@@ -3756,8 +3724,7 @@
                     "week_number": 8,
                     "day_number": 3,
                     "workout_name": "Lower #2",
-                    "exercises":
-                    [
+                    "exercises": [
                         {
                             "name": "Low-bar back squat",
                             "superset_label": null,
@@ -3886,8 +3853,7 @@
                     "week_number": 8,
                     "day_number": 4,
                     "workout_name": "Upper #2",
-                    "exercises":
-                    [
+                    "exercises": [
                         {
                             "name": "Dumbbell Incline Press",
                             "superset_label": null,
@@ -3897,7 +3863,7 @@
                             "is_amrap": false,
                             "load_percentage": null,
                             "rpe": 8.0,
-                            "notes": "45° incline, keep shoulder blades retracted and depressed"
+                            "notes": "45\u00b0 incline, keep shoulder blades retracted and depressed"
                         },
                         {
                             "name": "Dumbbell Incline Press",
@@ -3908,7 +3874,7 @@
                             "is_amrap": false,
                             "load_percentage": null,
                             "rpe": 8.0,
-                            "notes": "45° incline, keep shoulder blades retracted and depressed"
+                            "notes": "45\u00b0 incline, keep shoulder blades retracted and depressed"
                         },
                         {
                             "name": "Pendlay row",
@@ -4027,8 +3993,7 @@
                     "week_number": 9,
                     "day_number": 1,
                     "workout_name": "Full Body 1: Squat, OHP",
-                    "exercises":
-                    [
+                    "exercises": [
                         {
                             "name": "Back squat",
                             "superset_label": null,
@@ -4146,8 +4111,7 @@
                     "week_number": 9,
                     "day_number": 2,
                     "workout_name": "Full Body 2: Deadlift, Bench Press",
-                    "exercises":
-                    [
+                    "exercises": [
                         {
                             "name": "Deadlift",
                             "superset_label": null,
@@ -4287,8 +4251,7 @@
                     "week_number": 9,
                     "day_number": 3,
                     "workout_name": "Full Body 3: Squat, Dip",
-                    "exercises":
-                    [
+                    "exercises": [
                         {
                             "name": "Back squat",
                             "superset_label": null,
@@ -4406,8 +4369,7 @@
                     "week_number": 9,
                     "day_number": 4,
                     "workout_name": "Full Body 4: Deadlift, Bench Press",
-                    "exercises":
-                    [
+                    "exercises": [
                         {
                             "name": "Pause deadlift",
                             "superset_label": null,
@@ -4503,8 +4465,7 @@
                     "week_number": 10,
                     "day_number": 1,
                     "workout_name": "Squat test",
-                    "exercises":
-                    [
+                    "exercises": [
                         {
                             "name": "Back squat",
                             "superset_label": null,
@@ -4589,8 +4550,7 @@
                     "week_number": 10,
                     "day_number": 2,
                     "workout_name": "Bench test",
-                    "exercises":
-                    [
+                    "exercises": [
                         {
                             "name": "Barbell bench press",
                             "superset_label": null,
@@ -4675,8 +4635,7 @@
                     "week_number": 10,
                     "day_number": 3,
                     "workout_name": "Deadlift test",
-                    "exercises":
-                    [
+                    "exercises": [
                         {
                             "name": "Deadlift",
                             "superset_label": null,
@@ -4761,8 +4720,7 @@
                     "week_number": 11,
                     "day_number": 1,
                     "workout_name": "Lower #1",
-                    "exercises":
-                    [
+                    "exercises": [
                         {
                             "name": "Deadlift",
                             "superset_label": null,
@@ -4869,8 +4827,7 @@
                     "week_number": 11,
                     "day_number": 2,
                     "workout_name": "Upper #1",
-                    "exercises":
-                    [
+                    "exercises": [
                         {
                             "name": "Barbell bench press",
                             "superset_label": null,
@@ -5010,8 +4967,7 @@
                     "week_number": 11,
                     "day_number": 3,
                     "workout_name": "Lower #2",
-                    "exercises":
-                    [
+                    "exercises": [
                         {
                             "name": "Back squat",
                             "superset_label": null,
@@ -5140,8 +5096,7 @@
                     "week_number": 11,
                     "day_number": 4,
                     "workout_name": "Upper #2",
-                    "exercises":
-                    [
+                    "exercises": [
                         {
                             "name": "Close-grip bench press",
                             "superset_label": null,
@@ -5273,6 +5228,1406 @@
                             "load_percentage": null,
                             "rpe": 8.0,
                             "notes": "Barbell or EZ bar, do these on a bench, constant tension on triceps"
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "name": "Opus 5-Week Peaking Program",
+            "goal": "Hit 315 squat / 225 bench / 405 deadlift",
+            "workouts": [
+                {
+                    "workout_number": 1,
+                    "week_number": 1,
+                    "day_number": 1,
+                    "workout_name": "Week 1 Day 1: Squat Heavy",
+                    "exercises": [
+                        {
+                            "name": "Back squat",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 4,
+                            "number_of_reps": 5,
+                            "is_amrap": false,
+                            "load_percentage": 80.0,
+                            "rpe": null,
+                            "notes": "Warm up: Bar x 10, 40% x 5, 60% x 3, 70% x 2. Rest 3-5 min between working sets."
+                        },
+                        {
+                            "name": "Pause squat",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 3,
+                            "number_of_reps": 3,
+                            "is_amrap": false,
+                            "load_percentage": 70.0,
+                            "rpe": null,
+                            "notes": "2-3 second pause in the hole. Focus on staying tight."
+                        },
+                        {
+                            "name": "Barbell bench press",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 3,
+                            "number_of_reps": 6,
+                            "is_amrap": false,
+                            "load_percentage": 70.0,
+                            "rpe": null,
+                            "notes": "Light bench to maintain frequency. No need for extensive warmup."
+                        },
+                        {
+                            "name": "Leg press",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 2,
+                            "number_of_reps": 10,
+                            "is_amrap": false,
+                            "load_percentage": null,
+                            "rpe": null,
+                            "notes": "Moderate weight. Not to failure."
+                        },
+                        {
+                            "name": "Hanging leg raise",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 3,
+                            "number_of_reps": 12,
+                            "is_amrap": false,
+                            "load_percentage": null,
+                            "rpe": null,
+                            "notes": "Control the movement. No swinging."
+                        }
+                    ]
+                },
+                {
+                    "workout_number": 2,
+                    "week_number": 1,
+                    "day_number": 2,
+                    "workout_name": "Week 1 Day 2: Bench Heavy",
+                    "exercises": [
+                        {
+                            "name": "Barbell bench press",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 4,
+                            "number_of_reps": 5,
+                            "is_amrap": false,
+                            "load_percentage": 80.0,
+                            "rpe": null,
+                            "notes": "Warm up: Bar x 10, 40% x 5, 60% x 3, 70% x 2. Rest 3-5 min between working sets."
+                        },
+                        {
+                            "name": "Close-grip bench press",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 3,
+                            "number_of_reps": 6,
+                            "is_amrap": false,
+                            "load_percentage": 70.0,
+                            "rpe": null,
+                            "notes": "Hands shoulder-width apart. Tricep focus."
+                        },
+                        {
+                            "name": "Pendlay row",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 3,
+                            "number_of_reps": 8,
+                            "is_amrap": false,
+                            "load_percentage": null,
+                            "rpe": null,
+                            "notes": "Moderate-heavy weight. Reset each rep from floor."
+                        },
+                        {
+                            "name": "Lat pulldown",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 3,
+                            "number_of_reps": 10,
+                            "is_amrap": false,
+                            "load_percentage": null,
+                            "rpe": null,
+                            "notes": "Moderate weight. Full stretch at top."
+                        },
+                        {
+                            "name": "Tricep pressdown",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 2,
+                            "number_of_reps": 12,
+                            "is_amrap": false,
+                            "load_percentage": null,
+                            "rpe": null,
+                            "notes": "Light weight. Maintenance volume only."
+                        },
+                        {
+                            "name": "Barbell or EZ bar curl",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 2,
+                            "number_of_reps": 12,
+                            "is_amrap": false,
+                            "load_percentage": null,
+                            "rpe": null,
+                            "notes": "Light weight. Maintenance volume only."
+                        }
+                    ]
+                },
+                {
+                    "workout_number": 3,
+                    "week_number": 1,
+                    "day_number": 4,
+                    "workout_name": "Week 1 Day 4: Deadlift Heavy",
+                    "exercises": [
+                        {
+                            "name": "Deadlift",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 4,
+                            "number_of_reps": 4,
+                            "is_amrap": false,
+                            "load_percentage": 80.0,
+                            "rpe": null,
+                            "notes": "Warm up: 135 x 5, 40% x 5, 60% x 3, 70% x 2. Rest 3-5 min between working sets."
+                        },
+                        {
+                            "name": "Pause deadlift",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 2,
+                            "number_of_reps": 3,
+                            "is_amrap": false,
+                            "load_percentage": 70.0,
+                            "rpe": null,
+                            "notes": "Pause 1-2 inches off floor for 2 seconds. Maintain back position."
+                        },
+                        {
+                            "name": "Front squat",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 3,
+                            "number_of_reps": 5,
+                            "is_amrap": false,
+                            "load_percentage": 55.0,
+                            "rpe": null,
+                            "notes": "Based on back squat max. Keep torso upright."
+                        },
+                        {
+                            "name": "Weighted pull-up",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 2,
+                            "number_of_reps": 8,
+                            "is_amrap": false,
+                            "load_percentage": null,
+                            "rpe": null,
+                            "notes": "Bodyweight. Sub lat pulldown if needed."
+                        },
+                        {
+                            "name": "Dead bugs",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 3,
+                            "number_of_reps": 10,
+                            "is_amrap": false,
+                            "load_percentage": null,
+                            "rpe": null,
+                            "notes": "10 reps per side. Keep lower back pressed to floor."
+                        }
+                    ]
+                },
+                {
+                    "workout_number": 4,
+                    "week_number": 1,
+                    "day_number": 5,
+                    "workout_name": "Week 1 Day 5: Bench Volume",
+                    "exercises": [
+                        {
+                            "name": "Barbell bench press",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 3,
+                            "number_of_reps": 6,
+                            "is_amrap": false,
+                            "load_percentage": 75.0,
+                            "rpe": null,
+                            "notes": "Lighter day. Focus on speed and technique."
+                        },
+                        {
+                            "name": "Dumbbell Incline Press",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 3,
+                            "number_of_reps": 8,
+                            "is_amrap": false,
+                            "load_percentage": null,
+                            "rpe": null,
+                            "notes": "Moderate weight. Full ROM."
+                        },
+                        {
+                            "name": "Iso lateral row",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 3,
+                            "number_of_reps": 10,
+                            "is_amrap": false,
+                            "load_percentage": null,
+                            "rpe": null,
+                            "notes": "Moderate weight. Squeeze at contraction."
+                        },
+                        {
+                            "name": "Face pull",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 3,
+                            "number_of_reps": 15,
+                            "is_amrap": false,
+                            "load_percentage": null,
+                            "rpe": null,
+                            "notes": "Light weight. Shoulder health and rear delts."
+                        },
+                        {
+                            "name": "Hammer curl",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 2,
+                            "number_of_reps": 12,
+                            "is_amrap": false,
+                            "load_percentage": null,
+                            "rpe": null,
+                            "notes": "Light weight. Maintenance volume."
+                        },
+                        {
+                            "name": "Overhead tricep extension",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 2,
+                            "number_of_reps": 12,
+                            "is_amrap": false,
+                            "load_percentage": null,
+                            "rpe": null,
+                            "notes": "Light weight. Cable or dumbbell."
+                        }
+                    ]
+                },
+                {
+                    "workout_number": 5,
+                    "week_number": 1,
+                    "day_number": 6,
+                    "workout_name": "Week 1 Day 6: Squat Volume",
+                    "exercises": [
+                        {
+                            "name": "Back squat",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 3,
+                            "number_of_reps": 6,
+                            "is_amrap": false,
+                            "load_percentage": 75.0,
+                            "rpe": null,
+                            "notes": "Lighter day. Focus on speed and technique."
+                        },
+                        {
+                            "name": "Back extension",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 3,
+                            "number_of_reps": 12,
+                            "is_amrap": false,
+                            "load_percentage": null,
+                            "rpe": null,
+                            "notes": "Hold 25 lb plate. Squeeze glutes at top."
+                        },
+                        {
+                            "name": "Walking lunges",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 2,
+                            "number_of_reps": 10,
+                            "is_amrap": false,
+                            "load_percentage": null,
+                            "rpe": null,
+                            "notes": "10 reps per leg. Light weight or bodyweight."
+                        },
+                        {
+                            "name": "Pallof press",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 3,
+                            "number_of_reps": 12,
+                            "is_amrap": false,
+                            "load_percentage": null,
+                            "rpe": null,
+                            "notes": "12 reps per side. Anti-rotation core work."
+                        },
+                        {
+                            "name": "Plank",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 2,
+                            "number_of_reps": 1,
+                            "is_amrap": false,
+                            "load_percentage": null,
+                            "rpe": null,
+                            "notes": "45 seconds per set."
+                        }
+                    ]
+                },
+                {
+                    "workout_number": 6,
+                    "week_number": 2,
+                    "day_number": 1,
+                    "workout_name": "Week 2 Day 1: Squat Heavy",
+                    "exercises": [
+                        {
+                            "name": "Back squat",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 4,
+                            "number_of_reps": 4,
+                            "is_amrap": false,
+                            "load_percentage": 85.0,
+                            "rpe": null,
+                            "notes": "Warm up: Bar x 10, 40% x 5, 60% x 3, 75% x 2. Rest 3-5 min between working sets."
+                        },
+                        {
+                            "name": "Pause squat",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 3,
+                            "number_of_reps": 2,
+                            "is_amrap": false,
+                            "load_percentage": 75.0,
+                            "rpe": null,
+                            "notes": "2-3 second pause in the hole."
+                        },
+                        {
+                            "name": "Barbell bench press",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 3,
+                            "number_of_reps": 5,
+                            "is_amrap": false,
+                            "load_percentage": 75.0,
+                            "rpe": null,
+                            "notes": "Light bench to maintain frequency."
+                        },
+                        {
+                            "name": "Leg press",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 2,
+                            "number_of_reps": 8,
+                            "is_amrap": false,
+                            "load_percentage": null,
+                            "rpe": null,
+                            "notes": "Moderate weight. Not to failure."
+                        },
+                        {
+                            "name": "Hanging leg raise",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 3,
+                            "number_of_reps": 12,
+                            "is_amrap": false,
+                            "load_percentage": null,
+                            "rpe": null,
+                            "notes": "Control the movement. No swinging."
+                        }
+                    ]
+                },
+                {
+                    "workout_number": 7,
+                    "week_number": 2,
+                    "day_number": 2,
+                    "workout_name": "Week 2 Day 2: Bench Heavy",
+                    "exercises": [
+                        {
+                            "name": "Barbell bench press",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 4,
+                            "number_of_reps": 4,
+                            "is_amrap": false,
+                            "load_percentage": 85.0,
+                            "rpe": null,
+                            "notes": "Warm up: Bar x 10, 40% x 5, 60% x 3, 75% x 2. Rest 3-5 min between working sets."
+                        },
+                        {
+                            "name": "Close-grip bench press",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 3,
+                            "number_of_reps": 5,
+                            "is_amrap": false,
+                            "load_percentage": 75.0,
+                            "rpe": null,
+                            "notes": "Hands shoulder-width apart. Tricep focus."
+                        },
+                        {
+                            "name": "Pendlay row",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 3,
+                            "number_of_reps": 6,
+                            "is_amrap": false,
+                            "load_percentage": null,
+                            "rpe": null,
+                            "notes": "Heavy weight. Reset each rep from floor."
+                        },
+                        {
+                            "name": "Lat pulldown",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 3,
+                            "number_of_reps": 8,
+                            "is_amrap": false,
+                            "load_percentage": null,
+                            "rpe": null,
+                            "notes": "Moderate weight. Full stretch at top."
+                        },
+                        {
+                            "name": "Tricep pressdown",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 2,
+                            "number_of_reps": 10,
+                            "is_amrap": false,
+                            "load_percentage": null,
+                            "rpe": null,
+                            "notes": "Light weight. Maintenance volume."
+                        },
+                        {
+                            "name": "Barbell or EZ bar curl",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 2,
+                            "number_of_reps": 10,
+                            "is_amrap": false,
+                            "load_percentage": null,
+                            "rpe": null,
+                            "notes": "Light weight. Maintenance volume."
+                        }
+                    ]
+                },
+                {
+                    "workout_number": 8,
+                    "week_number": 2,
+                    "day_number": 4,
+                    "workout_name": "Week 2 Day 4: Deadlift Heavy",
+                    "exercises": [
+                        {
+                            "name": "Deadlift",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 4,
+                            "number_of_reps": 3,
+                            "is_amrap": false,
+                            "load_percentage": 85.0,
+                            "rpe": null,
+                            "notes": "Warm up: 135 x 5, 40% x 5, 60% x 3, 75% x 2. Rest 3-5 min between working sets."
+                        },
+                        {
+                            "name": "Deficit deadlift",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 2,
+                            "number_of_reps": 3,
+                            "is_amrap": false,
+                            "load_percentage": 75.0,
+                            "rpe": null,
+                            "notes": "Stand on 1-2 inch plate. Builds off-floor strength."
+                        },
+                        {
+                            "name": "Front squat",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 3,
+                            "number_of_reps": 4,
+                            "is_amrap": false,
+                            "load_percentage": 60.0,
+                            "rpe": null,
+                            "notes": "Based on back squat max. Keep torso upright."
+                        },
+                        {
+                            "name": "Weighted pull-up",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 2,
+                            "number_of_reps": 8,
+                            "is_amrap": false,
+                            "load_percentage": null,
+                            "rpe": null,
+                            "notes": "Bodyweight. Sub lat pulldown if needed."
+                        },
+                        {
+                            "name": "Dead bugs",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 3,
+                            "number_of_reps": 10,
+                            "is_amrap": false,
+                            "load_percentage": null,
+                            "rpe": null,
+                            "notes": "10 reps per side. Keep lower back pressed to floor."
+                        }
+                    ]
+                },
+                {
+                    "workout_number": 9,
+                    "week_number": 2,
+                    "day_number": 5,
+                    "workout_name": "Week 2 Day 5: Bench Volume",
+                    "exercises": [
+                        {
+                            "name": "Barbell bench press",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 3,
+                            "number_of_reps": 5,
+                            "is_amrap": false,
+                            "load_percentage": 80.0,
+                            "rpe": null,
+                            "notes": "Moderate day. Focus on bar speed."
+                        },
+                        {
+                            "name": "Dumbbell Incline Press",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 3,
+                            "number_of_reps": 8,
+                            "is_amrap": false,
+                            "load_percentage": null,
+                            "rpe": null,
+                            "notes": "Moderate weight. Full ROM."
+                        },
+                        {
+                            "name": "Iso lateral row",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 3,
+                            "number_of_reps": 8,
+                            "is_amrap": false,
+                            "load_percentage": null,
+                            "rpe": null,
+                            "notes": "Moderate weight."
+                        },
+                        {
+                            "name": "Face pull",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 2,
+                            "number_of_reps": 15,
+                            "is_amrap": false,
+                            "load_percentage": null,
+                            "rpe": null,
+                            "notes": "Light weight. Shoulder health."
+                        },
+                        {
+                            "name": "Hammer curl",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 2,
+                            "number_of_reps": 10,
+                            "is_amrap": false,
+                            "load_percentage": null,
+                            "rpe": null,
+                            "notes": "Light weight. Maintenance volume."
+                        },
+                        {
+                            "name": "Overhead tricep extension",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 2,
+                            "number_of_reps": 10,
+                            "is_amrap": false,
+                            "load_percentage": null,
+                            "rpe": null,
+                            "notes": "Light weight."
+                        }
+                    ]
+                },
+                {
+                    "workout_number": 10,
+                    "week_number": 2,
+                    "day_number": 6,
+                    "workout_name": "Week 2 Day 6: Squat Volume",
+                    "exercises": [
+                        {
+                            "name": "Back squat",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 3,
+                            "number_of_reps": 5,
+                            "is_amrap": false,
+                            "load_percentage": 80.0,
+                            "rpe": null,
+                            "notes": "Moderate day. Focus on speed and technique."
+                        },
+                        {
+                            "name": "Back extension",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 3,
+                            "number_of_reps": 10,
+                            "is_amrap": false,
+                            "load_percentage": null,
+                            "rpe": null,
+                            "notes": "Hold 35 lb plate. Squeeze glutes at top."
+                        },
+                        {
+                            "name": "Walking lunges",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 2,
+                            "number_of_reps": 8,
+                            "is_amrap": false,
+                            "load_percentage": null,
+                            "rpe": null,
+                            "notes": "8 reps per leg. Light weight."
+                        },
+                        {
+                            "name": "Pallof press",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 3,
+                            "number_of_reps": 10,
+                            "is_amrap": false,
+                            "load_percentage": null,
+                            "rpe": null,
+                            "notes": "10 reps per side."
+                        },
+                        {
+                            "name": "Plank",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 2,
+                            "number_of_reps": 1,
+                            "is_amrap": false,
+                            "load_percentage": null,
+                            "rpe": null,
+                            "notes": "45 seconds per set."
+                        }
+                    ]
+                },
+                {
+                    "workout_number": 11,
+                    "week_number": 3,
+                    "day_number": 1,
+                    "workout_name": "Week 3 Day 1: Squat Heavy",
+                    "exercises": [
+                        {
+                            "name": "Back squat",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 5,
+                            "number_of_reps": 3,
+                            "is_amrap": false,
+                            "load_percentage": 90.0,
+                            "rpe": null,
+                            "notes": "Warm up: Bar x 10, 40% x 5, 60% x 3, 75% x 2, 85% x 1. Rest 4-5 min between working sets."
+                        },
+                        {
+                            "name": "Pause squat",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 2,
+                            "number_of_reps": 2,
+                            "is_amrap": false,
+                            "load_percentage": 80.0,
+                            "rpe": null,
+                            "notes": "2-3 second pause in the hole."
+                        },
+                        {
+                            "name": "Barbell bench press",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 3,
+                            "number_of_reps": 4,
+                            "is_amrap": false,
+                            "load_percentage": 80.0,
+                            "rpe": null,
+                            "notes": "Moderate bench to maintain frequency."
+                        },
+                        {
+                            "name": "Leg press",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 2,
+                            "number_of_reps": 8,
+                            "is_amrap": false,
+                            "load_percentage": null,
+                            "rpe": null,
+                            "notes": "Light-moderate weight. Reduced volume."
+                        },
+                        {
+                            "name": "Hanging leg raise",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 2,
+                            "number_of_reps": 12,
+                            "is_amrap": false,
+                            "load_percentage": null,
+                            "rpe": null,
+                            "notes": "Reduced volume this week."
+                        }
+                    ]
+                },
+                {
+                    "workout_number": 12,
+                    "week_number": 3,
+                    "day_number": 2,
+                    "workout_name": "Week 3 Day 2: Bench Heavy",
+                    "exercises": [
+                        {
+                            "name": "Barbell bench press",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 5,
+                            "number_of_reps": 3,
+                            "is_amrap": false,
+                            "load_percentage": 90.0,
+                            "rpe": null,
+                            "notes": "Warm up: Bar x 10, 40% x 5, 60% x 3, 75% x 2, 85% x 1. Rest 4-5 min between working sets."
+                        },
+                        {
+                            "name": "Close-grip bench press",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 3,
+                            "number_of_reps": 4,
+                            "is_amrap": false,
+                            "load_percentage": 80.0,
+                            "rpe": null,
+                            "notes": "Hands shoulder-width apart."
+                        },
+                        {
+                            "name": "Pendlay row",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 3,
+                            "number_of_reps": 5,
+                            "is_amrap": false,
+                            "load_percentage": null,
+                            "rpe": null,
+                            "notes": "Heavy weight. Strict form."
+                        },
+                        {
+                            "name": "Lat pulldown",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 2,
+                            "number_of_reps": 8,
+                            "is_amrap": false,
+                            "load_percentage": null,
+                            "rpe": null,
+                            "notes": "Moderate weight. Reduced volume."
+                        },
+                        {
+                            "name": "Tricep pressdown",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 2,
+                            "number_of_reps": 10,
+                            "is_amrap": false,
+                            "load_percentage": null,
+                            "rpe": null,
+                            "notes": "Light weight. Maintenance."
+                        },
+                        {
+                            "name": "Barbell or EZ bar curl",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 2,
+                            "number_of_reps": 10,
+                            "is_amrap": false,
+                            "load_percentage": null,
+                            "rpe": null,
+                            "notes": "Light weight. Maintenance."
+                        }
+                    ]
+                },
+                {
+                    "workout_number": 13,
+                    "week_number": 3,
+                    "day_number": 4,
+                    "workout_name": "Week 3 Day 4: Deadlift Heavy",
+                    "exercises": [
+                        {
+                            "name": "Deadlift",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 5,
+                            "number_of_reps": 2,
+                            "is_amrap": false,
+                            "load_percentage": 90.0,
+                            "rpe": null,
+                            "notes": "Warm up: 135 x 5, 40% x 5, 60% x 3, 75% x 2, 85% x 1. Rest 4-5 min between working sets."
+                        },
+                        {
+                            "name": "Pause deadlift",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 2,
+                            "number_of_reps": 2,
+                            "is_amrap": false,
+                            "load_percentage": 80.0,
+                            "rpe": null,
+                            "notes": "Pause 1-2 inches off floor for 2 seconds."
+                        },
+                        {
+                            "name": "Front squat",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 2,
+                            "number_of_reps": 3,
+                            "is_amrap": false,
+                            "load_percentage": 63.0,
+                            "rpe": null,
+                            "notes": "Based on back squat max. Reduced volume."
+                        },
+                        {
+                            "name": "Weighted pull-up",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 2,
+                            "number_of_reps": 6,
+                            "is_amrap": false,
+                            "load_percentage": null,
+                            "rpe": null,
+                            "notes": "Bodyweight. Reduced volume."
+                        },
+                        {
+                            "name": "Dead bugs",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 2,
+                            "number_of_reps": 10,
+                            "is_amrap": false,
+                            "load_percentage": null,
+                            "rpe": null,
+                            "notes": "10 reps per side."
+                        }
+                    ]
+                },
+                {
+                    "workout_number": 14,
+                    "week_number": 3,
+                    "day_number": 5,
+                    "workout_name": "Week 3 Day 5: Bench Volume",
+                    "exercises": [
+                        {
+                            "name": "Barbell bench press",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 3,
+                            "number_of_reps": 4,
+                            "is_amrap": false,
+                            "load_percentage": 85.0,
+                            "rpe": null,
+                            "notes": "Heavier volume day. Quality reps."
+                        },
+                        {
+                            "name": "Dumbbell Incline Press",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 2,
+                            "number_of_reps": 8,
+                            "is_amrap": false,
+                            "load_percentage": null,
+                            "rpe": null,
+                            "notes": "Light-moderate weight. Reduced volume."
+                        },
+                        {
+                            "name": "Iso lateral row",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 2,
+                            "number_of_reps": 8,
+                            "is_amrap": false,
+                            "load_percentage": null,
+                            "rpe": null,
+                            "notes": "Moderate weight."
+                        },
+                        {
+                            "name": "Face pull",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 2,
+                            "number_of_reps": 12,
+                            "is_amrap": false,
+                            "load_percentage": null,
+                            "rpe": null,
+                            "notes": "Light weight."
+                        },
+                        {
+                            "name": "Hammer curl",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 2,
+                            "number_of_reps": 10,
+                            "is_amrap": false,
+                            "load_percentage": null,
+                            "rpe": null,
+                            "notes": "Light weight."
+                        },
+                        {
+                            "name": "Weighted dip",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 2,
+                            "number_of_reps": 8,
+                            "is_amrap": false,
+                            "load_percentage": null,
+                            "rpe": null,
+                            "notes": "Bodyweight. Control the descent."
+                        }
+                    ]
+                },
+                {
+                    "workout_number": 15,
+                    "week_number": 3,
+                    "day_number": 6,
+                    "workout_name": "Week 3 Day 6: Squat Volume",
+                    "exercises": [
+                        {
+                            "name": "Back squat",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 3,
+                            "number_of_reps": 4,
+                            "is_amrap": false,
+                            "load_percentage": 85.0,
+                            "rpe": null,
+                            "notes": "Heavier volume day. Quality reps."
+                        },
+                        {
+                            "name": "Back extension",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 2,
+                            "number_of_reps": 10,
+                            "is_amrap": false,
+                            "load_percentage": null,
+                            "rpe": null,
+                            "notes": "Hold 35 lb plate. Reduced volume."
+                        },
+                        {
+                            "name": "Pallof press",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 2,
+                            "number_of_reps": 10,
+                            "is_amrap": false,
+                            "load_percentage": null,
+                            "rpe": null,
+                            "notes": "10 reps per side."
+                        },
+                        {
+                            "name": "Plank",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 2,
+                            "number_of_reps": 1,
+                            "is_amrap": false,
+                            "load_percentage": null,
+                            "rpe": null,
+                            "notes": "30 seconds per set."
+                        }
+                    ]
+                },
+                {
+                    "workout_number": 16,
+                    "week_number": 4,
+                    "day_number": 1,
+                    "workout_name": "Week 4 Day 1: Squat Peak",
+                    "exercises": [
+                        {
+                            "name": "Back squat",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 1,
+                            "number_of_reps": 1,
+                            "is_amrap": false,
+                            "load_percentage": 95.0,
+                            "rpe": null,
+                            "notes": "Work up to heavy single. Warm up: Bar x 10, 40% x 5, 60% x 3, 75% x 2, 85% x 1, 90% x 1."
+                        },
+                        {
+                            "name": "Back squat",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 2,
+                            "number_of_reps": 2,
+                            "is_amrap": false,
+                            "load_percentage": 90.0,
+                            "rpe": null,
+                            "notes": "Back-off doubles. Rest 4-5 min."
+                        },
+                        {
+                            "name": "Barbell bench press",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 2,
+                            "number_of_reps": 4,
+                            "is_amrap": false,
+                            "load_percentage": 80.0,
+                            "rpe": null,
+                            "notes": "Light bench to maintain frequency."
+                        },
+                        {
+                            "name": "Hanging leg raise",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 2,
+                            "number_of_reps": 10,
+                            "is_amrap": false,
+                            "load_percentage": null,
+                            "rpe": null,
+                            "notes": "Minimal volume. Stay fresh."
+                        }
+                    ]
+                },
+                {
+                    "workout_number": 17,
+                    "week_number": 4,
+                    "day_number": 2,
+                    "workout_name": "Week 4 Day 2: Bench Peak",
+                    "exercises": [
+                        {
+                            "name": "Barbell bench press",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 1,
+                            "number_of_reps": 1,
+                            "is_amrap": false,
+                            "load_percentage": 95.0,
+                            "rpe": null,
+                            "notes": "Work up to heavy single. Warm up: Bar x 10, 40% x 5, 60% x 3, 75% x 2, 85% x 1, 90% x 1."
+                        },
+                        {
+                            "name": "Barbell bench press",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 2,
+                            "number_of_reps": 2,
+                            "is_amrap": false,
+                            "load_percentage": 90.0,
+                            "rpe": null,
+                            "notes": "Back-off doubles. Rest 4-5 min."
+                        },
+                        {
+                            "name": "Pendlay row",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 2,
+                            "number_of_reps": 6,
+                            "is_amrap": false,
+                            "load_percentage": null,
+                            "rpe": null,
+                            "notes": "Moderate weight. Reduced volume."
+                        },
+                        {
+                            "name": "Lat pulldown",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 2,
+                            "number_of_reps": 8,
+                            "is_amrap": false,
+                            "load_percentage": null,
+                            "rpe": null,
+                            "notes": "Light weight. Stay fresh."
+                        },
+                        {
+                            "name": "Tricep pressdown",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 2,
+                            "number_of_reps": 10,
+                            "is_amrap": false,
+                            "load_percentage": null,
+                            "rpe": null,
+                            "notes": "Light. Maintenance only."
+                        },
+                        {
+                            "name": "Barbell or EZ bar curl",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 2,
+                            "number_of_reps": 10,
+                            "is_amrap": false,
+                            "load_percentage": null,
+                            "rpe": null,
+                            "notes": "Light. Maintenance only."
+                        }
+                    ]
+                },
+                {
+                    "workout_number": 18,
+                    "week_number": 4,
+                    "day_number": 4,
+                    "workout_name": "Week 4 Day 4: Deadlift Peak",
+                    "exercises": [
+                        {
+                            "name": "Deadlift",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 1,
+                            "number_of_reps": 1,
+                            "is_amrap": false,
+                            "load_percentage": 95.0,
+                            "rpe": null,
+                            "notes": "Work up to heavy single. Warm up: 135 x 5, 40% x 5, 60% x 3, 75% x 2, 85% x 1, 90% x 1."
+                        },
+                        {
+                            "name": "Deadlift",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 2,
+                            "number_of_reps": 2,
+                            "is_amrap": false,
+                            "load_percentage": 88.0,
+                            "rpe": null,
+                            "notes": "Back-off doubles. Rest 4-5 min."
+                        },
+                        {
+                            "name": "Weighted pull-up",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 2,
+                            "number_of_reps": 6,
+                            "is_amrap": false,
+                            "load_percentage": null,
+                            "rpe": null,
+                            "notes": "Bodyweight. Minimal volume."
+                        },
+                        {
+                            "name": "Dead bugs",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 2,
+                            "number_of_reps": 8,
+                            "is_amrap": false,
+                            "load_percentage": null,
+                            "rpe": null,
+                            "notes": "8 reps per side. Stay fresh."
+                        }
+                    ]
+                },
+                {
+                    "workout_number": 19,
+                    "week_number": 4,
+                    "day_number": 5,
+                    "workout_name": "Week 4 Day 5: Light Bench + Accessories",
+                    "exercises": [
+                        {
+                            "name": "Barbell bench press",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 3,
+                            "number_of_reps": 3,
+                            "is_amrap": false,
+                            "load_percentage": 85.0,
+                            "rpe": null,
+                            "notes": "Crisp, fast reps. Stay sharp."
+                        },
+                        {
+                            "name": "Iso lateral row",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 2,
+                            "number_of_reps": 8,
+                            "is_amrap": false,
+                            "load_percentage": null,
+                            "rpe": null,
+                            "notes": "Light weight."
+                        },
+                        {
+                            "name": "Face pull",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 2,
+                            "number_of_reps": 12,
+                            "is_amrap": false,
+                            "load_percentage": null,
+                            "rpe": null,
+                            "notes": "Light weight."
+                        },
+                        {
+                            "name": "Hammer curl",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 2,
+                            "number_of_reps": 10,
+                            "is_amrap": false,
+                            "load_percentage": null,
+                            "rpe": null,
+                            "notes": "Light. Just to move blood."
+                        }
+                    ]
+                },
+                {
+                    "workout_number": 20,
+                    "week_number": 4,
+                    "day_number": 6,
+                    "workout_name": "Week 4 Day 6: Light Squat",
+                    "exercises": [
+                        {
+                            "name": "Back squat",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 3,
+                            "number_of_reps": 3,
+                            "is_amrap": false,
+                            "load_percentage": 85.0,
+                            "rpe": null,
+                            "notes": "Crisp, fast reps. Stay sharp."
+                        },
+                        {
+                            "name": "Back extension",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 2,
+                            "number_of_reps": 10,
+                            "is_amrap": false,
+                            "load_percentage": null,
+                            "rpe": null,
+                            "notes": "Hold 25 lb plate. Easy work."
+                        },
+                        {
+                            "name": "Pallof press",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 2,
+                            "number_of_reps": 10,
+                            "is_amrap": false,
+                            "load_percentage": null,
+                            "rpe": null,
+                            "notes": "10 reps per side. Light."
+                        }
+                    ]
+                },
+                {
+                    "workout_number": 21,
+                    "week_number": 5,
+                    "day_number": 1,
+                    "workout_name": "Week 5 Day 1: SQUAT TEST \ud83c\udfaf",
+                    "exercises": [
+                        {
+                            "name": "Back squat",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 1,
+                            "number_of_reps": 1,
+                            "is_amrap": false,
+                            "load_percentage": 93.0,
+                            "rpe": null,
+                            "notes": "OPENER: 275 lbs. Warm up: Bar x 10, 135 x 5, 185 x 3, 225 x 1, 255 x 1. Should feel smooth."
+                        },
+                        {
+                            "name": "Back squat",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 1,
+                            "number_of_reps": 1,
+                            "is_amrap": false,
+                            "load_percentage": 103.0,
+                            "rpe": null,
+                            "notes": "SECOND ATTEMPT: 305 lbs. Rest 5-7 min after opener."
+                        },
+                        {
+                            "name": "Back squat",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 1,
+                            "number_of_reps": 1,
+                            "is_amrap": false,
+                            "load_percentage": 107.0,
+                            "rpe": null,
+                            "notes": "THIRD ATTEMPT (PR): 315 lbs. Rest 5-7 min. Three plates. Go get it."
+                        }
+                    ]
+                },
+                {
+                    "workout_number": 22,
+                    "week_number": 5,
+                    "day_number": 3,
+                    "workout_name": "Week 5 Day 3: BENCH TEST \ud83c\udfaf",
+                    "exercises": [
+                        {
+                            "name": "Barbell bench press",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 1,
+                            "number_of_reps": 1,
+                            "is_amrap": false,
+                            "load_percentage": 105.0,
+                            "rpe": null,
+                            "notes": "OPENER: 205 lbs. Warm up: Bar x 10, 95 x 5, 135 x 3, 165 x 1, 185 x 1. Should feel smooth."
+                        },
+                        {
+                            "name": "Barbell bench press",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 1,
+                            "number_of_reps": 1,
+                            "is_amrap": false,
+                            "load_percentage": 110.0,
+                            "rpe": null,
+                            "notes": "SECOND ATTEMPT: 215 lbs. Rest 5-7 min."
+                        },
+                        {
+                            "name": "Barbell bench press",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 1,
+                            "number_of_reps": 1,
+                            "is_amrap": false,
+                            "load_percentage": 115.0,
+                            "rpe": null,
+                            "notes": "THIRD ATTEMPT (PR): 225 lbs. Rest 5-7 min. Two plates."
+                        }
+                    ]
+                },
+                {
+                    "workout_number": 23,
+                    "week_number": 5,
+                    "day_number": 5,
+                    "workout_name": "Week 5 Day 5: DEADLIFT TEST \ud83c\udfaf",
+                    "exercises": [
+                        {
+                            "name": "Deadlift",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 1,
+                            "number_of_reps": 1,
+                            "is_amrap": false,
+                            "load_percentage": 103.0,
+                            "rpe": null,
+                            "notes": "OPENER: 375 lbs. Warm up: 135 x 5, 225 x 3, 275 x 1, 335 x 1. Should feel smooth."
+                        },
+                        {
+                            "name": "Deadlift",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 1,
+                            "number_of_reps": 1,
+                            "is_amrap": false,
+                            "load_percentage": 107.0,
+                            "rpe": null,
+                            "notes": "SECOND ATTEMPT: 390 lbs. Rest 5-7 min."
+                        },
+                        {
+                            "name": "Deadlift",
+                            "superset_label": null,
+                            "type_of_set": "working",
+                            "number_of_sets": 1,
+                            "number_of_reps": 1,
+                            "is_amrap": false,
+                            "load_percentage": 111.0,
+                            "rpe": null,
+                            "notes": "THIRD ATTEMPT (PR): 405 lbs. Rest 5-7 min. Four plates. Leave it all on the platform."
                         }
                     ]
                 }
