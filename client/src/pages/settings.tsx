@@ -159,7 +159,7 @@ export default function SettingsPage() {
                 <Select
                   value={selectedProgram}
                   onValueChange={handleProgramChange}
-                  disabled={isSaving || programs.length <= 1}
+                  disabled={isSaving}
                 >
                   <SelectTrigger id="program-select" className="mt-2">
                     <SelectValue placeholder="Select a program" />
@@ -178,9 +178,6 @@ export default function SettingsPage() {
                 <div className="text-sm text-gray-600">
                   <p className="font-medium mb-1">Program Details:</p>
                   <p>• {programs.find(p => p.name === selectedProgram)?.workouts.length || 0} workouts</p>
-                  <p className="mt-2 text-xs text-gray-500">
-                    Note: Currently only one program is available. More programs coming soon!
-                  </p>
                 </div>
               )}
 
