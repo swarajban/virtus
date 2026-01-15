@@ -134,6 +134,8 @@ export default function ExercisePage() {
                 exerciseData.id = dbExercise.id;
                 exerciseData.onermExerciseId = dbExercise.onermExerciseId;
               }
+              // Reset swap indicator for non-swapped exercises
+              setSwappedFromOriginal(null);
             }
             
             const enhancedExercise = enhanceExerciseWithCalculations(
