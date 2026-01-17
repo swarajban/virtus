@@ -25,6 +25,7 @@ import { PlateCalculator } from "@/components/plate-calculator";
 import { RestTimerBar } from "@/components/rest-timer";
 import { ArrowLeft, Check, CheckCircle, Info, ExternalLink, Repeat, Clock } from "lucide-react";
 import { LocalStorage } from "@/lib/storage";
+import { api } from "@/lib/api-client";
 import { enhanceExerciseWithCalculations, getActualPercentage } from "@/lib/workout-utils";
 import type { ExerciseWithCalculatedWeight } from "@/types/workout";
 import type { OneRM } from "@shared/schema";
@@ -66,11 +67,12 @@ export default function ExercisePage() {
       if (workoutNumber && exerciseIndex >= 0) {
         try {
           // Keep transition state active while loading new data
-          // Load all required data
-          const [workoutResponse, oneRMData, workoutProgress] = await Promise.all([
+          // Load all required data including user for program selection
+          const [workoutResponse, oneRMData, workoutProgress, user] = await Promise.all([
             fetch('/powerbuilding_data.json'),
             LocalStorage.getOneRM(),
-            LocalStorage.getWorkoutProgress()
+            LocalStorage.getWorkoutProgress(),
+            api.getCurrentUser().catch(() => null)
           ]);
           
           // Fetch all exercises and their 1RMs
@@ -96,8 +98,11 @@ export default function ExercisePage() {
           const data = await workoutResponse.json();
           setOneRM(oneRMData);
           
-          // Handle new JSON structure with programs
-          const programData = data.programs ? data.programs[0] : { workouts: data };
+          // Handle new JSON structure with programs - use user's selected program
+          const selectedProgramName = user?.selectedProgram || 'Powerbuilding 4x';
+          const programData = data.programs 
+            ? (data.programs.find((p: any) => p.name === selectedProgramName) || data.programs[0])
+            : { workouts: data };
           const workoutData = programData.workouts || [];
           const foundWorkout = workoutData.find((w: any) => w.workout_number === workoutNumber);
           

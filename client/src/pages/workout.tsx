@@ -60,8 +60,11 @@ export default function WorkoutPage() {
           });
           
           const data = await response.json();
-          // Handle new JSON structure with programs
-          const programData = data.programs ? data.programs[0] : { workouts: data };
+          // Handle new JSON structure with programs - use user's selected program
+          const selectedProgramName = user?.selectedProgram || 'Powerbuilding 4x';
+          const programData = data.programs 
+            ? (data.programs.find((p: any) => p.name === selectedProgramName) || data.programs[0])
+            : { workouts: data };
           const workoutData = programData.workouts || [];
           const foundWorkout = workoutData.find((w: any) => w.workout_number === workoutNumber);
           
