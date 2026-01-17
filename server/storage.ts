@@ -38,8 +38,8 @@ export interface IStorage {
   deleteOneRepMax(userId: number, exerciseId: number): Promise<void>;
   
   // Workout Progress operations
-  getWorkoutProgress(userId: number, programCycle?: number): Promise<Record<number, WorkoutProgress>>;
-  saveWorkoutProgress(userId: number, workoutNumber: number, progress: WorkoutProgress, programCycle?: number): Promise<string>;
+  getWorkoutProgress(userId: number, programName?: string, programCycle?: number): Promise<Record<number, WorkoutProgress>>;
+  saveWorkoutProgress(userId: number, workoutNumber: number, progress: WorkoutProgress, programName?: string, programCycle?: number): Promise<string>;
   getMaxProgramCycle(userId: number, programName: string): Promise<number>;
   updateUserProgramAndCycle(userId: number, programName: string, cycle: number): Promise<void>;
   
@@ -199,19 +199,18 @@ export class DatabaseStorage implements IStorage {
       ));
   }
 
-  async getWorkoutProgress(userId: number, programCycle?: number): Promise<Record<number, WorkoutProgress>> {
-    // If programCycle is provided, filter by it; otherwise get current cycle from user
-    let targetCycle = programCycle;
-    if (!targetCycle) {
-      const user = await this.getUser(userId);
-      targetCycle = user?.currentProgramCycle || 1;
-    }
+  async getWorkoutProgress(userId: number, programName?: string, programCycle?: number): Promise<Record<number, WorkoutProgress>> {
+    // Get user to determine defaults
+    const user = await this.getUser(userId);
+    const targetCycle = programCycle ?? user?.currentProgramCycle ?? 1;
+    const targetProgram = programName ?? user?.selectedProgram ?? "Powerbuilding 4x";
     
     const progresses = await db
       .select()
       .from(workoutProgress)
       .where(and(
         eq(workoutProgress.userId, userId),
+        eq(workoutProgress.programName, targetProgram),
         eq(workoutProgress.programCycle, targetCycle)
       ));
     
@@ -228,13 +227,11 @@ export class DatabaseStorage implements IStorage {
     return result;
   }
 
-  async saveWorkoutProgress(userId: number, workoutNumber: number, progress: WorkoutProgress, programCycle?: number): Promise<string> {
-    // If programCycle is not provided, get it from the user
-    let targetCycle = programCycle;
-    if (!targetCycle) {
-      const user = await this.getUser(userId);
-      targetCycle = user?.currentProgramCycle || 1;
-    }
+  async saveWorkoutProgress(userId: number, workoutNumber: number, progress: WorkoutProgress, programName?: string, programCycle?: number): Promise<string> {
+    // Get user to determine defaults
+    const user = await this.getUser(userId);
+    const targetCycle = programCycle ?? user?.currentProgramCycle ?? 1;
+    const targetProgram = programName ?? user?.selectedProgram ?? "Powerbuilding 4x";
     
     const existing = await db
       .select()
@@ -242,6 +239,7 @@ export class DatabaseStorage implements IStorage {
       .where(and(
         eq(workoutProgress.userId, userId),
         eq(workoutProgress.workoutNumber, workoutNumber),
+        eq(workoutProgress.programName, targetProgram),
         eq(workoutProgress.programCycle, targetCycle)
       ))
       .limit(1);
@@ -250,12 +248,13 @@ export class DatabaseStorage implements IStorage {
     let sessionId = existing[0]?.sessionId;
     if (!sessionId || (progress.status === 'in_progress' && existing[0]?.status === 'not_started')) {
       sessionId = `session_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-      console.log(`Generated new session ID: ${sessionId} for workout ${workoutNumber}, cycle ${targetCycle}`);
+      console.log(`Generated new session ID: ${sessionId} for workout ${workoutNumber}, program ${targetProgram}, cycle ${targetCycle}`);
     }
 
     const dbProgress = {
       userId,
       workoutNumber,
+      programName: targetProgram,
       programCycle: targetCycle,
       sessionId,
       status: progress.status,
@@ -274,6 +273,7 @@ export class DatabaseStorage implements IStorage {
         .where(and(
           eq(workoutProgress.userId, userId),
           eq(workoutProgress.workoutNumber, workoutNumber),
+          eq(workoutProgress.programName, targetProgram),
           eq(workoutProgress.programCycle, targetCycle)
         ));
     } else {

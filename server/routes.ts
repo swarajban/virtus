@@ -143,7 +143,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/workout-progress", async (req, res) => {
     try {
       const user = await getUserFromRequest(req);
-      const progress = await storage.getWorkoutProgress(user.id);
+      // Pass the user's selected program to filter progress correctly
+      const progress = await storage.getWorkoutProgress(user.id, user.selectedProgram, user.currentProgramCycle);
       res.json(progress);
     } catch (error) {
       console.error("Error fetching workout progress:", error);
@@ -158,7 +159,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const workoutNumber = parseInt(req.params.workoutNumber);
       const progress = req.body;
       
-      await storage.saveWorkoutProgress(user.id, workoutNumber, progress);
+      // Pass the user's selected program to save progress correctly
+      await storage.saveWorkoutProgress(user.id, workoutNumber, progress, user.selectedProgram, user.currentProgramCycle);
       res.json({ success: true });
     } catch (error) {
       console.error("Error saving workout progress:", error);
