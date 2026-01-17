@@ -64,6 +64,12 @@ export default function SettingsPage() {
     // Don't do anything if selecting the same program
     if (programName === selectedProgram) return;
     
+    // Confirm before switching
+    const confirmed = window.confirm(
+      `Switch to "${programName}"?\n\nThis will start a fresh cycle and reset your workout progress.`
+    );
+    if (!confirmed) return;
+    
     setIsSaving(true);
     
     try {
