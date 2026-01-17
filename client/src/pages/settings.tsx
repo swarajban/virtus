@@ -61,32 +61,47 @@ export default function SettingsPage() {
   }, [toast]);
 
   const handleProgramChange = async (programName: string) => {
-    setSelectedProgram(programName);
+    // Don't do anything if selecting the same program
+    if (programName === selectedProgram) return;
+    
     setIsSaving(true);
     
     try {
-      // Save the selected program to the user's settings
-      await api.updateUserProgram(programName);
+      const username = localStorage.getItem('selected-username');
+      if (!username) {
+        throw new Error('No user selected');
+      }
+      
+      // Use start-new-program API to properly reset cycle and progress
+      const response = await fetch('/api/start-new-program', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-username': username,
+        },
+        body: JSON.stringify({ programName }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(errorData.error || 'Failed to switch program');
+      }
+
+      const result = await response.json();
+      setSelectedProgram(programName);
       
       toast({
-        title: "Success",
-        description: `Switched to ${programName}`,
+        title: "Success!",
+        description: `Switched to ${programName} - Cycle ${result.cycle}`,
       });
       
-      // Clear workout progress when switching programs
-      const clearProgress = window.confirm("Would you like to clear your current workout progress for the new program?");
-      if (clearProgress) {
-        await api.clearAllProgress();
-        toast({
-          title: "Progress Cleared",
-          description: "Starting fresh with the new program",
-        });
-      }
+      // Reload page to refresh all data
+      window.location.reload();
     } catch (error) {
-      console.error("Error updating program:", error);
+      console.error("Error switching program:", error);
       toast({
         title: "Error",
-        description: "Failed to update program selection",
+        description: error instanceof Error ? error.message : "Failed to switch program",
         variant: "destructive"
       });
     } finally {
