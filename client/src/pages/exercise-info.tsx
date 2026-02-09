@@ -6,7 +6,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Youtube, Save } from "lucide-react";
+import { ArrowLeft, Youtube, Save, Dumbbell } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { LocalStorage } from "@/lib/storage";
@@ -26,6 +27,7 @@ export default function ExerciseInfo() {
   const [youtubeLink, setYoutubeLink] = useState("");
   const [oneRMWeight, setOneRMWeight] = useState("");
   const [onermExerciseId, setOnermExerciseId] = useState<string>("");
+  const [usesBarbell, setUsesBarbell] = useState(true);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   
   // Fetch exercise data
@@ -71,6 +73,7 @@ export default function ExerciseInfo() {
     if (exercise) {
       setNotes(exercise.notes || "");
       setYoutubeLink(exercise.youtubeLink || "");
+      setUsesBarbell(exercise.usesBarbell ?? true);
       setOnermExerciseId(exercise.onermExerciseId?.toString() || "");
     }
   }, [exercise]);
@@ -165,6 +168,7 @@ export default function ExerciseInfo() {
     const updates = {
       notes,
       youtubeLink: youtubeLink || null,
+      usesBarbell,
       onermExerciseId: onermExerciseId ? parseInt(onermExerciseId) : null,
     };
     await updateMutation.mutateAsync(updates);
@@ -270,6 +274,23 @@ export default function ExerciseInfo() {
               rows={4}
               className="w-full"
             />
+          </CardContent>
+        </Card>
+        
+        {/* Barbell Toggle Card */}
+        <Card>
+          <CardContent className="pt-6">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Dumbbell className="h-5 w-5" />
+                <Label htmlFor="uses-barbell" className="text-base font-medium">Uses Barbell</Label>
+              </div>
+              <Switch
+                id="uses-barbell"
+                checked={usesBarbell}
+                onCheckedChange={setUsesBarbell}
+              />
+            </div>
           </CardContent>
         </Card>
         
