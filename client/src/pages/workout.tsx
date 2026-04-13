@@ -3,12 +3,13 @@ import { useLocation, useRoute } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { ArrowLeft, Play, Check, CheckCircle, ArrowRight, Circle, RotateCcw, Repeat } from "lucide-react";
+import { ArrowLeft, Play, Check, CheckCircle, ArrowRight, Circle, RotateCcw, Repeat, Copy } from "lucide-react";
 import { LocalStorage } from "@/lib/storage";
 import { api } from "@/lib/api-client";
 import { getWorkoutStatusBadge, formatDate, enhanceExerciseWithCalculations } from "@/lib/workout-utils";
 import type { WorkoutWithProgress, ExerciseWithCalculatedWeight } from "@/types/workout";
 import type { User } from "@shared/schema";
+import { useToast } from "@/hooks/use-toast";
 
 // Import types
 import { Workout } from "@shared/schema";
@@ -16,6 +17,7 @@ import { Workout } from "@shared/schema";
 export default function WorkoutPage() {
   const [, setLocation] = useLocation();
   const [match, params] = useRoute("/workout/:workoutNumber");
+  const { toast } = useToast();
   const [workout, setWorkout] = useState<WorkoutWithProgress | null>(null);
   const [exercises, setExercises] = useState<ExerciseWithCalculatedWeight[]>([]);
   const [showReset, setShowReset] = useState(false);
@@ -202,6 +204,63 @@ export default function WorkoutPage() {
     return "Ready to start";
   };
 
+  const handleExportSummary = async () => {
+    if (!workout) return;
+
+    const exerciseProgress = workout.progress?.exerciseProgress || {};
+    const completedDate = workout.progress?.completedAt
+      ? formatDate(workout.progress.completedAt)
+      : formatDate(new Date().toISOString());
+
+    const lines: string[] = [
+      `${workout.workout_name}`,
+      `Week ${workout.week_number} • Day ${workout.day_number}`,
+      completedDate,
+      "",
+    ];
+
+    exercises.forEach((exercise, index) => {
+      const key = `${index}`;
+      const progress = exerciseProgress[key];
+      if (!progress?.completed) return;
+      if (exercise.type_of_set !== "working") return;
+
+      const weight = progress.weight != null ? progress.weight : exercise.calculatedWeight;
+      lines.push(
+        `${exercise.name}: ${progress.sets} x ${progress.reps} @ ${weight} lbs`
+      );
+    });
+
+    const summaryText = lines.join("\n");
+
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(summaryText);
+      } else {
+        const textArea = document.createElement("textarea");
+        textArea.value = summaryText;
+        textArea.style.position = "fixed";
+        textArea.style.left = "-9999px";
+        textArea.style.top = "-9999px";
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        document.execCommand("copy");
+        document.body.removeChild(textArea);
+      }
+      toast({
+        title: "Copied to clipboard",
+        description: "Workout summary copied!",
+      });
+    } catch {
+      toast({
+        title: "Copy failed",
+        description: "Could not copy to clipboard. Try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="max-w-md mx-auto bg-white min-h-screen">
       {/* Modern Header */}
@@ -264,11 +323,11 @@ export default function WorkoutPage() {
           )}
           {status === "completed" && (
             <Button 
-              disabled
-              className="bg-gray-200 text-gray-700 h-12"
+              onClick={handleExportSummary}
+              className="bg-secondary text-white hover:bg-green-700 h-12"
             >
-              <CheckCircle className="h-4 w-4 mr-2" />
-              Completed
+              <Copy className="h-4 w-4 mr-2" />
+              Export Summary
             </Button>
           )}
           <Button 
