@@ -50,11 +50,29 @@ The seed includes:
 2. **User Data Preserved**: Only populates the exercises table, doesn't affect user data or workout history
 3. **Automatic on Deploy**: No need to remember to run it - happens automatically on server start
 
+### Database Environment Variables
+
+The app now prefers:
+
+1. `DIRECT_DATABASE_URL`
+2. `DATABASE_URL`
+
+For Neon, use the **direct** connection string for the app server when possible.
+If you only set `DATABASE_URL` and it points to a Neon `-pooler` host, the app will still try to boot, but you may hit schema or table visibility issues depending on connection mode.
+
+Recommended setup for Neon:
+
+```bash
+DIRECT_DATABASE_URL=postgresql://user:password@ep-...us-west-2.aws.neon.tech/neondb?sslmode=require&channel_binding=require
+```
+
+If you also need a pooled connection for some other tool, keep that in `DATABASE_URL`, but let the server use `DIRECT_DATABASE_URL` by default.
+
 ### Deployment Checklist
 
 1. ✅ Push code to production
-2. ✅ Ensure PostgreSQL database is configured (DATABASE_URL)
-3. ✅ Start the application - exercises will seed automatically
+2. ✅ Ensure PostgreSQL database is configured (`DIRECT_DATABASE_URL` preferred, `DATABASE_URL` supported)
+3. ✅ Start the application, exercises will seed automatically
 4. ✅ Verify exercises are populated by checking the Exercises page
 
 That's it! The exercise database will be ready to use immediately after deployment.
