@@ -40,6 +40,7 @@ export default function ExercisePage() {
   const { toast } = useToast();
   const [exercise, setExercise] = useState<ExerciseWithCalculatedWeight | null>(null);
   const [workoutName, setWorkoutName] = useState<string>("");
+  const [selectedProgram, setSelectedProgram] = useState<string>("Powerbuilding 4x");
   const [userSets, setUserSets] = useState(1);
   const [userReps, setUserReps] = useState(1);
   const [userWeight, setUserWeight] = useState(0);
@@ -100,6 +101,7 @@ export default function ExercisePage() {
           
           // Handle new JSON structure with programs - use user's selected program
           const selectedProgramName = user?.selectedProgram || 'Powerbuilding 4x';
+          setSelectedProgram(selectedProgramName);
           const programData = data.programs 
             ? (data.programs.find((p: any) => p.name === selectedProgramName) || data.programs[0])
             : { workouts: data };
@@ -261,7 +263,7 @@ export default function ExercisePage() {
       // Allow weight of 0 (for bodyweight exercises), but require a numeric value
       if (userWeight !== null && userWeight !== undefined && exercise.type_of_set === "working") {
         const historyEntry = {
-          programName: "Powerbuilding 4x", // Default program name
+          programName: selectedProgram,
           date: new Date().toISOString(),
           exerciseName: exercise.name,
           sets: userSets,

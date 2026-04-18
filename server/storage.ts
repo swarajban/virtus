@@ -361,45 +361,78 @@ export class DatabaseStorage implements IStorage {
   }
 
   async saveExerciseHistory(userId: number, history: ExerciseHistoryEntry, workoutNumber?: number): Promise<void> {
-    // Get current session ID from workout progress if workoutNumber is provided
+    // Resolve session_id, program_name, and program_cycle from workout_progress (source of truth).
+    // Bug B fix: previously looked up by (userId, workoutNumber) only, which collides across
+    //   programs/cycles since workout numbers repeat. Now filter by program+cycle from the user record.
+    // Bug A fix: previously program_name was overwritten in routes.ts with user.selectedProgram.
+    //   Now derived from the actual workout_progress row matched here.
     let sessionId: string | undefined;
+    let resolvedProgramName: string = history.programName;
+    let resolvedProgramCycle: number | undefined;
+
     if (workoutNumber) {
+      const user = await this.getUser(userId);
+      const targetProgram = user?.selectedProgram ?? history.programName;
+      const targetCycle = user?.currentProgramCycle ?? 1;
+
       const progress = await db
         .select()
         .from(workoutProgress)
         .where(and(
           eq(workoutProgress.userId, userId),
-          eq(workoutProgress.workoutNumber, workoutNumber)
+          eq(workoutProgress.workoutNumber, workoutNumber),
+          eq(workoutProgress.programName, targetProgram),
+          eq(workoutProgress.programCycle, targetCycle)
         ))
         .limit(1);
-      
-      sessionId = progress[0]?.sessionId || undefined;
+
+      const wp = progress[0];
+      if (wp) {
+        if (!wp.sessionId) {
+          console.error(
+            `saveExerciseHistory: workout_progress row for user=${userId} workout=${workoutNumber} ` +
+            `program=${targetProgram} cycle=${targetCycle} has empty session_id`
+          );
+        }
+        sessionId = wp.sessionId || undefined;
+        resolvedProgramName = wp.programName;
+        resolvedProgramCycle = wp.programCycle ?? undefined;
+      } else {
+        console.warn(
+          `saveExerciseHistory: no workout_progress match for user=${userId} workout=${workoutNumber} ` +
+          `program=${targetProgram} cycle=${targetCycle} — falling back to client-supplied programName`
+        );
+      }
     }
-    
+
     // Get exercise by name to get its ID
     const exercise = await this.getExerciseByName(history.exerciseName);
     if (!exercise) {
       throw new Error(`Exercise not found: ${history.exerciseName}`);
     }
-    
+
     console.log("Inserting exercise history:", {
       userId,
       exerciseId: exercise.id,
       exerciseName: history.exerciseName,
       sessionId,
+      programName: resolvedProgramName,
+      programCycle: resolvedProgramCycle,
       sets: history.sets,
       reps: history.reps,
       weight: history.weight,
       notes: history.notes,
       typeOfSet: history.typeOfSet || "working",
     });
-    
+
     await db
       .insert(exerciseHistory)
       .values({
         userId,
         exerciseId: exercise.id,
         exerciseName: history.exerciseName, // Keep for backward compatibility
+        programName: resolvedProgramName,
+        programCycle: resolvedProgramCycle,
         sessionId,
         sets: history.sets,
         reps: history.reps,
@@ -407,7 +440,7 @@ export class DatabaseStorage implements IStorage {
         notes: history.notes,
         typeOfSet: history.typeOfSet || "working",
       });
-    
+
     console.log("Exercise history saved successfully with sessionId:", sessionId);
   }
 
