@@ -62,6 +62,7 @@ export const exerciseHistory = pgTable("exercise_history", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").notNull().references(() => users.id),
   programName: varchar("program_name", { length: 255 }).notNull().default("Powerbuilding 4x"),
+  programCycle: integer("program_cycle"), // Populated on insert from the matching workout_progress row
   exerciseId: integer("exercise_id").notNull().references(() => exercises.id),
   exerciseName: varchar("exercise_name", { length: 255 }), // Keep for migration, will be removed later
   sessionId: varchar("session_id", { length: 255 }), // Links to specific workout session

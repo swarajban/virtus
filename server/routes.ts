@@ -186,7 +186,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const user = await getUserFromRequest(req);
       const { historyEntry, workoutNumber } = req.body;
-      
+
+      // programName and programCycle are derived inside saveExerciseHistory()
+      // from the matching workout_progress row, falling back to the client-supplied
+      // programName when no match is found. Do not override them here.
+
       console.log("Saving exercise history for user:", user.id, "Workout:", workoutNumber, "Entry:", historyEntry);
       await storage.saveExerciseHistory(user.id, historyEntry, workoutNumber);
       res.json({ success: true });
