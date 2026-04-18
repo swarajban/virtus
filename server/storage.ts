@@ -361,11 +361,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async saveExerciseHistory(userId: number, history: ExerciseHistoryEntry, workoutNumber?: number): Promise<void> {
-    // Resolve session_id, program_name, and program_cycle from workout_progress (source of truth).
-    // Bug B fix: previously looked up by (userId, workoutNumber) only, which collides across
-    //   programs/cycles since workout numbers repeat. Now filter by program+cycle from the user record.
-    // Bug A fix: previously program_name was overwritten in routes.ts with user.selectedProgram.
-    //   Now derived from the actual workout_progress row matched here.
+    // Resolve session_id, program_name, and program_cycle from workout_progress
+    // (the authoritative source for active session state). Filter by program_name
+    // and program_cycle in addition to workout_number, since workout_number repeats
+    // across programs and cycles.
     let sessionId: string | undefined;
     let resolvedProgramName: string = history.programName;
     let resolvedProgramCycle: number | undefined;
