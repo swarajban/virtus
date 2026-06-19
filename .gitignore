@@ -4,3 +4,10 @@ dist
 server/public
 vite.config.ts.*
 *.tar.gz
+
+# Local dev env + headless demo artifacts (added for DEV-WORKFLOW)
+.env
+.env.dev
+.env.*.local
+dev-server.log
+demo-artifacts/
