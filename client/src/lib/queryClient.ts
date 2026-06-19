@@ -51,39 +51,49 @@ export const getQueryFn: <T>(options: {
     return await res.json();
   };
 
+// Exponential backoff helper: 1s → 2s → 4s → ... up to maxDelayMs
+const createRetryDelay = (maxDelayMs: number) =>
+  (failureCount: number) => Math.min(1000 * 2 ** failureCount, maxDelayMs);
+
 /**
  * QueryClient configured for FLAKY GYM WIFI:
  *
- * - staleTime: 2min — show cached data immediately, revalidate in background.
- *   Gym wifi is spotty but exercise/1RM data doesn't change mid-workout.
+ * - staleTime: 5min — cached data stays fresh longer for gym sessions (60-90min).
+ *   Exercise/1RM data rarely changes mid-workout; longer staleTime = fewer refetches.
  *
- * - gcTime: 10min — keep unused queries in cache longer than default (5min)
- *   so navigating back/forth doesn't refetch constantly.
+ * - gcTime: 30min — keep cache through entire workout session (60-90min typical).
+ *   Navigating away from exercises for 10min+ won't clear cache.
  *
- * - retry: 3 attempts with exponential backoff (1s → 2s → 4s) — network hiccups
- *   are common but usually resolve within seconds. Max 3 tries avoids long hangs.
+ * - retry: 3 attempts with exponential backoff (1s → 2s → 4s), but NOT for auth errors
+ *   (401/403) which won't resolve with retries. Network hiccups usually resolve quickly.
  *
- * - refetchOnWindowFocus: true — when user returns to tab, refresh data if stale.
- *   Good UX when switching between timer/music and coming back.
+ * - refetchOnWindowFocus: false — avoid refetch spam when switching to timer/music apps.
+ *   Longer staleTime handles freshness; focus-based refetching creates errors on flaky wifi.
  *
- * - networkMode: 'online' — only fetch when online, queue mutations when offline.
- *   Prevents error spam on connection drops; mutations auto-retry when back online.
+ * - networkMode: 'online' — pause queries/mutations when offline (prevents error spam).
+ *   NOTE: Mutations are paused, NOT queued — no persistence layer for offline writes.
  */
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       queryFn: getQueryFn({ on401: "throw" }),
       refetchInterval: false,
-      refetchOnWindowFocus: true,
-      staleTime: 2 * 60 * 1000, // 2 minutes
-      gcTime: 10 * 60 * 1000, // 10 minutes (previously cacheTime)
-      retry: 3,
-      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+      refetchOnWindowFocus: false,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      gcTime: 30 * 60 * 1000, // 30 minutes (covers typical workout session)
+      retry: (failureCount, error) => {
+        // Don't retry auth errors (401/403) - they won't resolve
+        if (error instanceof Error && /^(401|403):/.test(error.message)) {
+          return false;
+        }
+        return failureCount < 3;
+      },
+      retryDelay: createRetryDelay(10000), // Cap at 10s instead of 30s
       networkMode: 'online',
     },
     mutations: {
-      retry: 2,
-      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
+      retry: 3, // Match queries - writes are critical, need same resilience
+      retryDelay: createRetryDelay(10000),
       networkMode: 'online',
     },
   },
