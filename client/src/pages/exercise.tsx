@@ -352,13 +352,25 @@ export default function ExercisePage() {
       // Show brief completion animation then navigate immediately
       // Note: exercise.tsx doesn't use TanStack Query yet - still uses raw fetch()
       setIsCompleting(false); // Clear state before navigation to avoid setState on unmount
-      setTimeout(() => {
+      setTimeout(async () => {
         // Scroll to top only when user completes exercise
         window.scrollTo({ top: 0, behavior: 'auto' }); // Instant scroll - no interrupted animation
 
-        // Navigate to next exercise or back to workout
-        if (exerciseIndex < totalExercises - 1) {
-          setLocation(`/workout/${workoutNumber}/exercise/${exerciseIndex + 1}`);
+        // Find next working set (skip warm-ups)
+        const workoutResponse = await fetch('/powerbuilding_data.json');
+        const data = await workoutResponse.json();
+        const programData = data.programs?.find((p: any) => p.name === selectedProgram) || { workouts: data };
+        const workoutData = programData.workouts?.find((w: any) => w.workout_number === workoutNumber);
+        const allExercises = workoutData?.exercises || [];
+
+        let nextIndex = exerciseIndex + 1;
+        while (nextIndex < allExercises.length && allExercises[nextIndex]?.type_of_set === "warm-up") {
+          nextIndex++;
+        }
+
+        // Navigate to next working set or back to workout
+        if (nextIndex < allExercises.length) {
+          setLocation(`/workout/${workoutNumber}/exercise/${nextIndex}`);
         } else {
           setLocation(`/workout/${workoutNumber}`);
         }

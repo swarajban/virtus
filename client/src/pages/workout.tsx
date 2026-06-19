@@ -177,14 +177,18 @@ export default function WorkoutPage() {
     // Check if this exercise has been completed
     const exerciseKey = `${index}`;
     const isCompleted = workout?.progress?.exerciseProgress?.[exerciseKey]?.completed || false;
-    
+
     if (isCompleted) return "completed";
     if (status === "in_progress") {
-      // Find the first uncompleted exercise to mark as current
-      const firstIncompleteIndex = exercises.findIndex((_, i) => {
-        const key = `${i}`;
-        return !workout?.progress?.exerciseProgress?.[key]?.completed;
-      });
+      // Find the first uncompleted working set (skip warm-ups) to mark as current
+      const firstIncompleteIndex = exercises
+        .map((ex, i) => ({ ex, originalIndex: i }))
+        .filter(({ ex }) => ex.type_of_set === "working")
+        .find(({ originalIndex }) => {
+          const key = `${originalIndex}`;
+          return !workout?.progress?.exerciseProgress?.[key]?.completed;
+        })?.originalIndex;
+
       if (index === firstIncompleteIndex) return "current";
     }
     return "upcoming";
