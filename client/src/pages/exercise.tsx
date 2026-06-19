@@ -63,6 +63,8 @@ export default function ExercisePage() {
   // All auto-scrolling behavior removed for better mobile experience
 
   useEffect(() => {
+    let isMounted = true; // Track mount state for cleanup
+
     async function loadExerciseData() {
       if (workoutNumber && exerciseIndex >= 0) {
         try {
@@ -86,6 +88,10 @@ export default function ExercisePage() {
           
           const allExercises = await allExercisesResponse.json();
           const allOneRMs = await allOneRMsResponse.json();
+
+          // Check if component is still mounted before setState
+          if (!isMounted) return;
+
           setAllExercises(allExercises); // Store all exercises for swap modal
           
           // Create a map of exercise ID to 1RM weight
@@ -144,11 +150,15 @@ export default function ExercisePage() {
             }
             
             const enhancedExercise = enhanceExerciseWithCalculations(
-              exerciseData, 
-              oneRMData, 
-              exerciseOneRMs, 
+              exerciseData,
+              oneRMData,
+              exerciseOneRMs,
               allExercises
             );
+
+            // Check if component is still mounted before setState
+            if (!isMounted) return;
+
             setExercise(enhancedExercise);
             setWorkoutName(foundWorkout.workout_name);
             setTotalExercises(foundWorkout.exercises.length);
@@ -200,12 +210,19 @@ export default function ExercisePage() {
         } catch (error) {
           console.error('Error loading exercise data:', error);
         } finally {
-          setIsInitialLoading(false);
+          if (isMounted) {
+            setIsInitialLoading(false);
+          }
         }
       }
     }
-    
+
     loadExerciseData();
+
+    // Cleanup: mark component as unmounted to prevent setState after unmount
+    return () => {
+      isMounted = false;
+    };
   }, [workoutNumber, exerciseIndex]);
 
   if (isInitialLoading) {
