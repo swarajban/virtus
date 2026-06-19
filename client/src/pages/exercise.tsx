@@ -51,7 +51,6 @@ export default function ExercisePage() {
   const [isCompleting, setIsCompleting] = useState(false);
   const [isExerciseCompleted, setIsExerciseCompleted] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
-  const [isTransitioning, setIsTransitioning] = useState(false);
   const [exerciseDbData, setExerciseDbData] = useState<any>(null);
   const [showSwapModal, setShowSwapModal] = useState(false);
   const [selectedSwapExercise, setSelectedSwapExercise] = useState<any>(null);
@@ -67,7 +66,6 @@ export default function ExercisePage() {
     async function loadExerciseData() {
       if (workoutNumber && exerciseIndex >= 0) {
         try {
-          // Keep transition state active while loading new data
           // Load all required data including user for program selection
           const [workoutResponse, oneRMData, workoutProgress, user] = await Promise.all([
             fetch('/powerbuilding_data.json'),
@@ -203,10 +201,6 @@ export default function ExercisePage() {
           console.error('Error loading exercise data:', error);
         } finally {
           setIsInitialLoading(false);
-          // Add minimum transition duration to ensure loading animation is visible
-          setTimeout(() => {
-            setIsTransitioning(false);
-          }, 40);
         }
       }
     }
@@ -317,19 +311,20 @@ export default function ExercisePage() {
 
       await LocalStorage.saveWorkoutProgress(workoutNumber, currentProgress);
 
-      // Show completion animation then navigate - reduced to 500ms
+      // Show brief completion animation then navigate immediately
+      // Note: exercise.tsx doesn't use TanStack Query yet - still uses raw fetch()
+      setIsCompleting(false); // Clear state before navigation to avoid setState on unmount
       setTimeout(() => {
-        setIsCompleting(false);
         // Scroll to top only when user completes exercise
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-        
+        window.scrollTo({ top: 0, behavior: 'auto' }); // Instant scroll - no interrupted animation
+
         // Navigate to next exercise or back to workout
         if (exerciseIndex < totalExercises - 1) {
           setLocation(`/workout/${workoutNumber}/exercise/${exerciseIndex + 1}`);
         } else {
           setLocation(`/workout/${workoutNumber}`);
         }
-      }, 500); // Reduced from 1000ms to 500ms
+      }, 200); // Brief delay for visual feedback
     } catch (error) {
       console.error("Error completing exercise:", error);
       setIsCompleting(false);
@@ -342,25 +337,19 @@ export default function ExercisePage() {
       e.preventDefault();
       e.stopPropagation();
     }
-    
+
     // Force blur on any active element
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
     }
-    
-    // Set transitioning state before navigation
-    setIsTransitioning(true);
-    
-    // Small delay to ensure blur happens before navigation
-    setTimeout(() => {
-      // Scroll to top only when user clicks Previous button
-      window.scrollTo({ top: 0, behavior: 'smooth' });
-      if (exerciseIndex > 0) {
-        setLocation(`/workout/${workoutNumber}/exercise/${exerciseIndex - 1}`);
-      } else {
-        setLocation(`/workout/${workoutNumber}`);
-      }
-    }, 10);
+
+    // Note: No TanStack Query caching yet - this still uses raw fetch() in useEffect
+    window.scrollTo({ top: 0, behavior: 'auto' }); // Instant scroll to avoid interrupted animation
+    if (exerciseIndex > 0) {
+      setLocation(`/workout/${workoutNumber}/exercise/${exerciseIndex - 1}`);
+    } else {
+      setLocation(`/workout/${workoutNumber}`);
+    }
   };
 
   const handleNextExercise = (e?: React.MouseEvent | React.TouchEvent) => {
@@ -370,21 +359,15 @@ export default function ExercisePage() {
         e.preventDefault();
         e.stopPropagation();
       }
-      
+
       // Force blur on any active element
       if (document.activeElement instanceof HTMLElement) {
         document.activeElement.blur();
       }
-      
-      // Set transitioning state before navigation
-      setIsTransitioning(true);
-      
-      // Small delay to ensure blur happens before navigation
-      setTimeout(() => {
-        // Scroll to top only when user clicks Next button
-        window.scrollTo({ top: 0, behavior: 'smooth' });
-        setLocation(`/workout/${workoutNumber}/exercise/${exerciseIndex + 1}`);
-      }, 10);
+
+      // Note: No TanStack Query caching yet - this still uses raw fetch() in useEffect
+      window.scrollTo({ top: 0, behavior: 'auto' }); // Instant scroll to avoid interrupted animation
+      setLocation(`/workout/${workoutNumber}/exercise/${exerciseIndex + 1}`);
     }
   };
 
@@ -458,17 +441,8 @@ export default function ExercisePage() {
   const exerciseOneRM = getOneRMForExercise();
 
   return (
-    <div className={`max-w-md mx-auto bg-white min-h-screen relative ${isTransitioning ? 'nav-transitioning' : ''}`}>
-      {/* Transition Loading Animation */}
-      {isTransitioning && (
-        <div className="fixed inset-0 bg-white bg-opacity-90 flex items-center justify-center z-50 transition-opacity duration-300">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-            <p className="text-gray-600">Loading exercise...</p>
-          </div>
-        </div>
-      )}
-      {/* Simplified Completion Animation - Faster and Cleaner */}
+    <div className="max-w-md mx-auto bg-white min-h-screen relative">
+      {/* Simplified Completion Animation - Brief visual feedback */}
       {isCompleting && (
         <div className="fixed inset-0 bg-green-500 bg-opacity-90 flex items-center justify-center z-50 transition-opacity duration-300">
           <div className="bg-white rounded-2xl p-6 shadow-2xl transform scale-95 animate-scale-check">

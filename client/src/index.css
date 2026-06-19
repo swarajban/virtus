@@ -286,11 +286,4 @@
     border-color: inherit !important;
     transform: none !important;
   }
-  
-  /* Prevent any hover/focus states during transition */
-  .nav-transitioning button {
-    pointer-events: none !important;
-    outline: none !important;
-    box-shadow: none !important;
-  }
 }
