@@ -23,7 +23,7 @@ import {
 import { ExerciseHistoryModal } from "@/components/exercise-history-modal";
 import { PlateCalculator } from "@/components/plate-calculator";
 import { RestTimerBar } from "@/components/rest-timer";
-import { ArrowLeft, Check, CheckCircle, Info, ExternalLink, Repeat, Clock } from "lucide-react";
+import { ArrowLeft, Check, CheckCircle, Info, ExternalLink, Repeat, Clock, ChevronDown } from "lucide-react";
 import { LocalStorage } from "@/lib/storage";
 import { api } from "@/lib/api-client";
 import { enhanceExerciseWithCalculations, getActualPercentage } from "@/lib/workout-utils";
@@ -57,6 +57,7 @@ export default function ExercisePage() {
   const [allExercises, setAllExercises] = useState<any[]>([]);
   const [swappedFromOriginal, setSwappedFromOriginal] = useState<string | null>(null);
   const [warmupInfo, setWarmupInfo] = useState<any>(null);
+  const [isWarmupExpanded, setIsWarmupExpanded] = useState(false);
 
   const workoutNumber = params ? parseInt(params.workoutNumber) : 0;
   const exerciseIndex = params ? parseInt(params.exerciseIndex) : 0;
@@ -526,34 +527,6 @@ export default function ExercisePage() {
         </div>
       )}
 
-      {/* Warm-up Info Section - Show for working sets that have a matching warm-up */}
-      {warmupInfo && exercise?.type_of_set === "working" && (
-        <div className="px-4 pt-4">
-          <Card className="bg-gray-50 border-gray-200">
-            <CardContent className="p-3">
-              <div className="flex items-center gap-2 mb-2">
-                <Info className="h-4 w-4 text-gray-500" />
-                <h4 className="text-sm font-semibold text-gray-700">Warm-up Prescription</h4>
-              </div>
-              <div className="text-sm text-gray-600 space-y-1">
-                <div className="flex items-center gap-4">
-                  <span className="font-medium">{warmupInfo.number_of_sets} × {warmupInfo.number_of_reps || '—'}</span>
-                  {warmupInfo.load_percentage && (
-                    <span className="text-gray-500">{warmupInfo.load_percentage}% 1RM</span>
-                  )}
-                  {warmupInfo.rpe && (
-                    <span className="text-gray-500">RPE {warmupInfo.rpe}</span>
-                  )}
-                </div>
-                {warmupInfo.notes && (
-                  <p className="text-xs text-gray-500 italic">{warmupInfo.notes}</p>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
-
       {/* Modern Header - Changed from sticky to relative on mobile */}
       <header className="gradient-green text-white px-4 py-6 relative shadow-lg">
         <div className="flex items-center justify-between">
@@ -640,8 +613,8 @@ export default function ExercisePage() {
 
       {/* Set Type Banner with Modern Styling */}
       <div className={`w-full py-3 px-4 text-center font-semibold text-white shadow-md ${
-        exercise.type_of_set === "working" 
-          ? "gradient-green-deep" 
+        exercise.type_of_set === "working"
+          ? "gradient-green-deep"
           : "bg-gradient-to-r from-amber-400 to-orange-400"
       }`}>
         <span className="uppercase tracking-wide text-sm">
@@ -649,6 +622,33 @@ export default function ExercisePage() {
           {exercise.superset_label && ` • Part of Superset ${exercise.superset_label}`}
         </span>
       </div>
+
+      {/* Warm-up Reference - Collapsible, placed after exercise identity */}
+      {warmupInfo && exercise?.type_of_set === "working" && (
+        <div className="px-4 pt-3 pb-1">
+          <button
+            onClick={() => setIsWarmupExpanded(!isWarmupExpanded)}
+            className="w-full flex items-center justify-between py-2 text-left group"
+            type="button"
+          >
+            <div className="flex items-center gap-2">
+              <Info className="h-3.5 w-3.5 text-gray-400" />
+              <span className="text-xs font-medium text-gray-600 uppercase tracking-wide">
+                Warm-up: {warmupInfo.number_of_sets} × {warmupInfo.number_of_reps || '—'}
+                {warmupInfo.load_percentage && ` @ ${warmupInfo.load_percentage}%`}
+                {warmupInfo.rpe && `, RPE ${warmupInfo.rpe}`}
+              </span>
+            </div>
+            <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform ${isWarmupExpanded ? 'rotate-180' : ''}`} />
+          </button>
+          {isWarmupExpanded && warmupInfo.notes && (
+            <div className="pl-6 pb-2 pr-2">
+              <p className="text-xs text-gray-500 leading-relaxed">{warmupInfo.notes}</p>
+            </div>
+          )}
+          <div className="border-b border-gray-100 mt-1" />
+        </div>
+      )}
 
       {/* Exercise Navigation - Moved to top for better accessibility */}
       <div className="p-4 bg-white border-b">
