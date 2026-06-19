@@ -56,6 +56,7 @@ export default function ExercisePage() {
   const [selectedSwapExercise, setSelectedSwapExercise] = useState<any>(null);
   const [allExercises, setAllExercises] = useState<any[]>([]);
   const [swappedFromOriginal, setSwappedFromOriginal] = useState<string | null>(null);
+  const [warmupInfo, setWarmupInfo] = useState<any>(null);
 
   const workoutNumber = params ? parseInt(params.workoutNumber) : 0;
   const exerciseIndex = params ? parseInt(params.exerciseIndex) : 0;
@@ -162,7 +163,27 @@ export default function ExercisePage() {
             setExercise(enhancedExercise);
             setWorkoutName(foundWorkout.workout_name);
             setTotalExercises(foundWorkout.exercises.length);
-            
+
+            // Find warm-up info if this is a working set
+            if (exerciseData.type_of_set === "working") {
+              // Look for matching warm-up with same name immediately before this exercise
+              let warmup = null;
+              for (let i = exerciseIndex - 1; i >= 0; i--) {
+                const prevExercise = foundWorkout.exercises[i];
+                if (prevExercise.name === exerciseData.name && prevExercise.type_of_set === "warm-up") {
+                  warmup = prevExercise;
+                  break;
+                }
+                // Stop searching if we hit a different exercise name
+                if (prevExercise.name !== exerciseData.name) {
+                  break;
+                }
+              }
+              setWarmupInfo(warmup);
+            } else {
+              setWarmupInfo(null);
+            }
+
             // Check if exercise is already completed
             const isCompleted = currentProgress?.exerciseProgress?.[exerciseKey]?.completed || false;
             setIsExerciseCompleted(isCompleted);
@@ -331,13 +352,25 @@ export default function ExercisePage() {
       // Show brief completion animation then navigate immediately
       // Note: exercise.tsx doesn't use TanStack Query yet - still uses raw fetch()
       setIsCompleting(false); // Clear state before navigation to avoid setState on unmount
-      setTimeout(() => {
+      setTimeout(async () => {
         // Scroll to top only when user completes exercise
         window.scrollTo({ top: 0, behavior: 'auto' }); // Instant scroll - no interrupted animation
 
-        // Navigate to next exercise or back to workout
-        if (exerciseIndex < totalExercises - 1) {
-          setLocation(`/workout/${workoutNumber}/exercise/${exerciseIndex + 1}`);
+        // Find next working set (skip warm-ups)
+        const workoutResponse = await fetch('/powerbuilding_data.json');
+        const data = await workoutResponse.json();
+        const programData = data.programs?.find((p: any) => p.name === selectedProgram) || { workouts: data };
+        const workoutData = programData.workouts?.find((w: any) => w.workout_number === workoutNumber);
+        const allExercises = workoutData?.exercises || [];
+
+        let nextIndex = exerciseIndex + 1;
+        while (nextIndex < allExercises.length && allExercises[nextIndex]?.type_of_set === "warm-up") {
+          nextIndex++;
+        }
+
+        // Navigate to next working set or back to workout
+        if (nextIndex < allExercises.length) {
+          setLocation(`/workout/${workoutNumber}/exercise/${nextIndex}`);
         } else {
           setLocation(`/workout/${workoutNumber}`);
         }
@@ -348,7 +381,7 @@ export default function ExercisePage() {
     }
   };
 
-  const handlePreviousExercise = (e?: React.MouseEvent | React.TouchEvent) => {
+  const handlePreviousExercise = async (e?: React.MouseEvent | React.TouchEvent) => {
     // Prevent default and stop propagation
     if (e) {
       e.preventDefault();
@@ -360,31 +393,55 @@ export default function ExercisePage() {
       document.activeElement.blur();
     }
 
+    // Find previous working set (skip warm-ups)
+    const workoutResponse = await fetch('/powerbuilding_data.json');
+    const data = await workoutResponse.json();
+    const programData = data.programs?.find((p: any) => p.name === selectedProgram) || { workouts: data };
+    const workoutData = programData.workouts?.find((w: any) => w.workout_number === workoutNumber);
+    const allExercises = workoutData?.exercises || [];
+
+    let prevIndex = exerciseIndex - 1;
+    while (prevIndex >= 0 && allExercises[prevIndex]?.type_of_set === "warm-up") {
+      prevIndex--;
+    }
+
     // Note: No TanStack Query caching yet - this still uses raw fetch() in useEffect
     window.scrollTo({ top: 0, behavior: 'auto' }); // Instant scroll to avoid interrupted animation
-    if (exerciseIndex > 0) {
-      setLocation(`/workout/${workoutNumber}/exercise/${exerciseIndex - 1}`);
+    if (prevIndex >= 0) {
+      setLocation(`/workout/${workoutNumber}/exercise/${prevIndex}`);
     } else {
       setLocation(`/workout/${workoutNumber}`);
     }
   };
 
-  const handleNextExercise = (e?: React.MouseEvent | React.TouchEvent) => {
-    if (exerciseIndex < totalExercises - 1) {
-      // Prevent default and stop propagation
-      if (e) {
-        e.preventDefault();
-        e.stopPropagation();
-      }
+  const handleNextExercise = async (e?: React.MouseEvent | React.TouchEvent) => {
+    // Prevent default and stop propagation
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
 
-      // Force blur on any active element
-      if (document.activeElement instanceof HTMLElement) {
-        document.activeElement.blur();
-      }
+    // Force blur on any active element
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
 
-      // Note: No TanStack Query caching yet - this still uses raw fetch() in useEffect
-      window.scrollTo({ top: 0, behavior: 'auto' }); // Instant scroll to avoid interrupted animation
-      setLocation(`/workout/${workoutNumber}/exercise/${exerciseIndex + 1}`);
+    // Find next working set (skip warm-ups)
+    const workoutResponse = await fetch('/powerbuilding_data.json');
+    const data = await workoutResponse.json();
+    const programData = data.programs?.find((p: any) => p.name === selectedProgram) || { workouts: data };
+    const workoutData = programData.workouts?.find((w: any) => w.workout_number === workoutNumber);
+    const allExercises = workoutData?.exercises || [];
+
+    let nextIndex = exerciseIndex + 1;
+    while (nextIndex < allExercises.length && allExercises[nextIndex]?.type_of_set === "warm-up") {
+      nextIndex++;
+    }
+
+    // Note: No TanStack Query caching yet - this still uses raw fetch() in useEffect
+    window.scrollTo({ top: 0, behavior: 'auto' }); // Instant scroll to avoid interrupted animation
+    if (nextIndex < allExercises.length) {
+      setLocation(`/workout/${workoutNumber}/exercise/${nextIndex}`);
     }
   };
 
@@ -468,6 +525,35 @@ export default function ExercisePage() {
           </div>
         </div>
       )}
+
+      {/* Warm-up Info Section - Show for working sets that have a matching warm-up */}
+      {warmupInfo && exercise?.type_of_set === "working" && (
+        <div className="px-4 pt-4">
+          <Card className="bg-gray-50 border-gray-200">
+            <CardContent className="p-3">
+              <div className="flex items-center gap-2 mb-2">
+                <Info className="h-4 w-4 text-gray-500" />
+                <h4 className="text-sm font-semibold text-gray-700">Warm-up Prescription</h4>
+              </div>
+              <div className="text-sm text-gray-600 space-y-1">
+                <div className="flex items-center gap-4">
+                  <span className="font-medium">{warmupInfo.number_of_sets} × {warmupInfo.number_of_reps || '—'}</span>
+                  {warmupInfo.load_percentage && (
+                    <span className="text-gray-500">{warmupInfo.load_percentage}% 1RM</span>
+                  )}
+                  {warmupInfo.rpe && (
+                    <span className="text-gray-500">RPE {warmupInfo.rpe}</span>
+                  )}
+                </div>
+                {warmupInfo.notes && (
+                  <p className="text-xs text-gray-500 italic">{warmupInfo.notes}</p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       {/* Modern Header - Changed from sticky to relative on mobile */}
       <header className="gradient-green text-white px-4 py-6 relative shadow-lg">
         <div className="flex items-center justify-between">
