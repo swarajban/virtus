@@ -350,53 +350,56 @@ export default function WorkoutPage() {
         )}
       </div>
 
-      {/* Exercise List */}
+      {/* Exercise List - Show only working sets, preserve original index for progress/routing */}
       <div className="px-4 py-6">
         <h3 className="text-lg font-semibold mb-4">Exercises</h3>
-        
+
         <div className="space-y-3">
-          {exercises.map((exercise, index) => {
-            const exerciseStatus = getExerciseStatus(exercise, index);
-            
-            return (
-              <Card 
-                key={index}
-                className={`cursor-pointer transition-all duration-200 hover:shadow-md active:scale-98 border-l-4 ${
-                  exerciseStatus === "completed" ? "border-secondary" :
-                  exerciseStatus === "current" ? "border-warning" : "border-gray-200"
-                }`}
-                onClick={() => handleExerciseClick(index)}
-              >
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <h4 className="font-semibold text-gray-900 flex items-center gap-1">
-                        {exercise.name}
-                        {(exercise as any).swappedFrom && (
-                          <span title={`Swapped from: ${(exercise as any).swappedFrom}`}>
-                            <Repeat className="h-3 w-3 text-purple-600" />
-                          </span>
+          {exercises
+            .map((exercise, index) => ({ exercise, originalIndex: index }))
+            .filter(({ exercise }) => exercise.type_of_set === "working")
+            .map(({ exercise, originalIndex }) => {
+              const exerciseStatus = getExerciseStatus(exercise, originalIndex);
+
+              return (
+                <Card
+                  key={originalIndex}
+                  className={`cursor-pointer transition-all duration-200 hover:shadow-md active:scale-98 border-l-4 ${
+                    exerciseStatus === "completed" ? "border-secondary" :
+                    exerciseStatus === "current" ? "border-warning" : "border-gray-200"
+                  }`}
+                  onClick={() => handleExerciseClick(originalIndex)}
+                >
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-semibold text-gray-900 flex items-center gap-1">
+                          {exercise.name}
+                          {(exercise as any).swappedFrom && (
+                            <span title={`Swapped from: ${(exercise as any).swappedFrom}`}>
+                              <Repeat className="h-3 w-3 text-purple-600" />
+                            </span>
+                          )}
+                        </h4>
+                        {exercise.superset_label && (
+                          <Badge className="bg-purple-500 text-white px-2 py-0.5 text-xs font-bold rounded">
+                            Superset {exercise.superset_label}
+                          </Badge>
                         )}
-                      </h4>
-                      {exercise.superset_label && (
-                        <Badge className="bg-purple-500 text-white px-2 py-0.5 text-xs font-bold rounded">
-                          Superset {exercise.superset_label}
-                        </Badge>
+                      </div>
+                      {exerciseStatus === "completed" && (
+                        <CheckCircle className="h-5 w-5 text-secondary" />
+                      )}
+                      {exerciseStatus === "current" && (
+                        <ArrowRight className="h-5 w-5 text-warning" />
+                      )}
+                      {exerciseStatus === "upcoming" && (
+                        <Circle className="h-5 w-5 text-gray-300" />
                       )}
                     </div>
-                    {exerciseStatus === "completed" && (
-                      <CheckCircle className="h-5 w-5 text-secondary" />
-                    )}
-                    {exerciseStatus === "current" && (
-                      <ArrowRight className="h-5 w-5 text-warning" />
-                    )}
-                    {exerciseStatus === "upcoming" && (
-                      <Circle className="h-5 w-5 text-gray-300" />
-                    )}
-                  </div>
-                  
-                  <div className="flex items-center space-x-4 text-sm text-gray-600">
-                    <Badge variant={exercise.type_of_set === "working" ? "default" : "secondary"}>
+
+                    <div className="flex items-center space-x-4 text-sm text-gray-600">
+                      <Badge variant="default">
                       {exercise.type_of_set}
                     </Badge>
                     <span>
