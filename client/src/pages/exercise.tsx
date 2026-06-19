@@ -312,10 +312,11 @@ export default function ExercisePage() {
       await LocalStorage.saveWorkoutProgress(workoutNumber, currentProgress);
 
       // Show brief completion animation then navigate immediately
+      // Note: exercise.tsx doesn't use TanStack Query yet - still uses raw fetch()
+      setIsCompleting(false); // Clear state before navigation to avoid setState on unmount
       setTimeout(() => {
-        setIsCompleting(false);
         // Scroll to top only when user completes exercise
-        window.scrollTo({ top: 0, behavior: 'smooth' });
+        window.scrollTo({ top: 0, behavior: 'auto' }); // Instant scroll - no interrupted animation
 
         // Navigate to next exercise or back to workout
         if (exerciseIndex < totalExercises - 1) {
@@ -323,7 +324,7 @@ export default function ExercisePage() {
         } else {
           setLocation(`/workout/${workoutNumber}`);
         }
-      }, 200); // Quick animation for visual feedback, then instant nav with TanStack cache
+      }, 200); // Brief delay for visual feedback
     } catch (error) {
       console.error("Error completing exercise:", error);
       setIsCompleting(false);
@@ -342,8 +343,8 @@ export default function ExercisePage() {
       document.activeElement.blur();
     }
 
-    // Instant navigation with TanStack Query cache - no artificial delay
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Note: No TanStack Query caching yet - this still uses raw fetch() in useEffect
+    window.scrollTo({ top: 0, behavior: 'auto' }); // Instant scroll to avoid interrupted animation
     if (exerciseIndex > 0) {
       setLocation(`/workout/${workoutNumber}/exercise/${exerciseIndex - 1}`);
     } else {
@@ -364,8 +365,8 @@ export default function ExercisePage() {
         document.activeElement.blur();
       }
 
-      // Instant navigation with TanStack Query cache - no artificial delay
-      window.scrollTo({ top: 0, behavior: 'smooth' });
+      // Note: No TanStack Query caching yet - this still uses raw fetch() in useEffect
+      window.scrollTo({ top: 0, behavior: 'auto' }); // Instant scroll to avoid interrupted animation
       setLocation(`/workout/${workoutNumber}/exercise/${exerciseIndex + 1}`);
     }
   };
