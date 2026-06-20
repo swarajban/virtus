@@ -1,11 +1,14 @@
 import { useState, useEffect, useRef } from "react";
 
+// Stale timer threshold: 30 minutes (no legitimate rest period runs this long)
+const STALE_TIMER_MS = 30 * 60 * 1000;
+
 // Load initial state from localStorage
 const loadTimerState = () => {
   if (typeof window === 'undefined') {
     return { isRunning: false, startTime: null, setCounter: 0 };
   }
-  
+
   const saved = localStorage.getItem('restTimerState');
   if (saved) {
     const state = JSON.parse(saved);
@@ -13,9 +16,29 @@ const loadTimerState = () => {
     if (state.setCounter === undefined) {
       state.setCounter = 0;
     }
+
+    // Check if running timer is stale (abandoned from previous session)
+    if (state.isRunning && state.startTime) {
+      // Guard against malformed startTime
+      if (typeof state.startTime !== 'number' || !isFinite(state.startTime)) {
+        // Malformed startTime, reset to stopped state
+        const cleanState = { isRunning: false, startTime: null, setCounter: state.setCounter };
+        localStorage.setItem('restTimerState', JSON.stringify(cleanState));
+        return cleanState;
+      }
+
+      const elapsed = Date.now() - state.startTime;
+      if (elapsed > STALE_TIMER_MS) {
+        // Timer is stale (> 30 min), reset to stopped state
+        const cleanState = { isRunning: false, startTime: null, setCounter: state.setCounter };
+        localStorage.setItem('restTimerState', JSON.stringify(cleanState));
+        return cleanState;
+      }
+    }
+
     return state;
   }
-  
+
   return { isRunning: false, startTime: null, setCounter: 0 };
 };
 
