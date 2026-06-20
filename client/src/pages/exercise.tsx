@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation, useRoute } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,13 +24,13 @@ import { ExerciseHistoryModal } from "@/components/exercise-history-modal";
 import { PlateCalculator } from "@/components/plate-calculator";
 import { RestTimerBar } from "@/components/rest-timer";
 import { ArrowLeft, Check, CheckCircle, Info, ExternalLink, Repeat, Clock, ChevronDown } from "lucide-react";
-import { motion, useReducedMotion, AnimatePresence } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { LocalStorage } from "@/lib/storage";
 import { api } from "@/lib/api-client";
 import { enhanceExerciseWithCalculations, getActualPercentage } from "@/lib/workout-utils";
 import { usePowerbuildingData, resolveProgramWorkouts, skipWarmups } from "@/hooks/use-powerbuilding-data";
 import { ProgramDataError } from "@/components/program-data-error";
-import { setNavDirection, tapProps, pageVariants, pageTransition, DURATION, RACK_EASE } from "@/lib/motion";
+import { setNavDirection, tapProps, DURATION, RACK_EASE } from "@/lib/motion";
 import type { ExerciseWithCalculatedWeight } from "@/types/workout";
 import type { OneRM } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
@@ -70,10 +70,6 @@ export default function ExercisePage() {
   const navExercisesRef = useRef<any[]>([]);
   const completeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reducedMotion = useReducedMotion() ?? false;
-
-  // Memoize variants/transition to avoid creating fresh objects on every render
-  const pageVariantsValue = useMemo(() => pageVariants("forward", reducedMotion), [reducedMotion]);
-  const pageTransitionValue = useMemo(() => pageTransition(reducedMotion), [reducedMotion]);
 
   // Clear any pending completion-advance timer if the page unmounts mid-reward,
   // so it can't setState or navigate after the component is gone.
@@ -520,17 +516,7 @@ export default function ExercisePage() {
   const exerciseOneRM = getOneRMForExercise();
 
   return (
-    <div className="grid [grid-template-areas:'stack'] max-w-md mx-auto bg-white min-h-screen relative">
-      <AnimatePresence mode="sync" initial={false}>
-        <motion.div
-          key={exerciseIndex}
-          variants={pageVariantsValue}
-          initial="initial"
-          animate="animate"
-          exit="exit"
-          transition={pageTransitionValue}
-          className="[grid-area:stack] min-w-0"
-        >
+    <div className="max-w-md mx-auto bg-white min-h-screen relative">
       {/* Modern Header - Changed from sticky to relative on mobile */}
       <header className="gradient-green text-white px-4 py-6 relative shadow-lg">
         <div className="flex items-center justify-between">
@@ -895,8 +881,6 @@ export default function ExercisePage() {
           </div>
         </DialogContent>
       </Dialog>
-      </motion.div>
-      </AnimatePresence>
     </div>
   );
 }
