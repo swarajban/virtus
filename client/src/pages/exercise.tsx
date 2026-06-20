@@ -520,16 +520,17 @@ export default function ExercisePage() {
   const exerciseOneRM = getOneRMForExercise();
 
   return (
-    <AnimatePresence mode="popLayout" initial={false}>
-      <motion.div
-        key={exerciseIndex}
-        variants={pageVariantsValue}
-        initial="initial"
-        animate="animate"
-        exit="exit"
-        transition={pageTransitionValue}
-        className="max-w-md mx-auto bg-white min-h-screen relative"
-      >
+    <div className="grid [grid-template-areas:'stack'] max-w-md mx-auto bg-white min-h-screen relative">
+      <AnimatePresence mode="sync" initial={false}>
+        <motion.div
+          key={exerciseIndex}
+          variants={pageVariantsValue}
+          initial="initial"
+          animate="animate"
+          exit="exit"
+          transition={pageTransitionValue}
+          className="[grid-area:stack] min-w-0"
+        >
       {/* Modern Header - Changed from sticky to relative on mobile */}
       <header className="gradient-green text-white px-4 py-6 relative shadow-lg">
         <div className="flex items-center justify-between">
@@ -894,7 +895,8 @@ export default function ExercisePage() {
           </div>
         </DialogContent>
       </Dialog>
-    </motion.div>
-    </AnimatePresence>
+      </motion.div>
+      </AnimatePresence>
+    </div>
   );
 }
