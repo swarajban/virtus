@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useLocation, useRoute } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -29,9 +29,8 @@ import { LocalStorage } from "@/lib/storage";
 import { api } from "@/lib/api-client";
 import { enhanceExerciseWithCalculations, getActualPercentage } from "@/lib/workout-utils";
 import { usePowerbuildingData, resolveProgramWorkouts, skipWarmups } from "@/hooks/use-powerbuilding-data";
-import { PageMotion } from "@/components/page-motion";
 import { ProgramDataError } from "@/components/program-data-error";
-import { setNavDirection, tapProps, DURATION, RACK_EASE } from "@/lib/motion";
+import { setNavDirection, tapProps, pageVariants, pageTransition, DURATION, RACK_EASE } from "@/lib/motion";
 import type { ExerciseWithCalculatedWeight } from "@/types/workout";
 import type { OneRM } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
@@ -72,6 +71,10 @@ export default function ExercisePage() {
   const completeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reducedMotion = useReducedMotion() ?? false;
 
+  // Memoize variants/transition to avoid creating fresh objects on every render
+  const pageVariantsValue = useMemo(() => pageVariants("forward", reducedMotion), [reducedMotion]);
+  const pageTransitionValue = useMemo(() => pageTransition(reducedMotion), [reducedMotion]);
+
   // Clear any pending completion-advance timer if the page unmounts mid-reward,
   // so it can't setState or navigate after the component is gone.
   useEffect(() => {
@@ -80,8 +83,8 @@ export default function ExercisePage() {
     };
   }, []);
 
-  const workoutNumber = params ? parseInt(params.workoutNumber) : 0;
-  const exerciseIndex = params ? parseInt(params.exerciseIndex) : 0;
+  const workoutNumber = parseInt(params?.workoutNumber ?? '0', 10);
+  const exerciseIndex = parseInt(params?.exerciseIndex ?? '0', 10);
 
   // All auto-scrolling behavior removed for better mobile experience
 
@@ -381,6 +384,8 @@ export default function ExercisePage() {
       // then we advance to the next working set. No network fetch — the exercise
       // list is already in memory (navExercisesRef). No blocking overlay.
       const rewardMs = reducedMotion ? 0 : DURATION.reward * 1000;
+      // Clear any existing timer before setting a new one (double-tap protection)
+      if (completeTimerRef.current) clearTimeout(completeTimerRef.current);
       completeTimerRef.current = setTimeout(() => {
         completeTimerRef.current = null;
         window.scrollTo({ top: 0, behavior: 'auto' });
@@ -417,7 +422,6 @@ export default function ExercisePage() {
     const allExercises = navExercisesRef.current;
     const prevIndex = skipWarmups(allExercises, exerciseIndex - 1, -1);
 
-    window.scrollTo({ top: 0, behavior: 'auto' });
     setNavDirection("back");
     if (prevIndex >= 0) {
       setLocation(`/workout/${workoutNumber}/exercise/${prevIndex}`);
@@ -440,7 +444,6 @@ export default function ExercisePage() {
     const allExercises = navExercisesRef.current;
     const nextIndex = skipWarmups(allExercises, exerciseIndex + 1, 1);
 
-    window.scrollTo({ top: 0, behavior: 'auto' });
     setNavDirection("forward");
     if (nextIndex < allExercises.length) {
       setLocation(`/workout/${workoutNumber}/exercise/${nextIndex}`);
@@ -517,8 +520,14 @@ export default function ExercisePage() {
   const exerciseOneRM = getOneRMForExercise();
 
   return (
-    <PageMotion>
-    <div className="max-w-md mx-auto bg-white min-h-screen relative">
+    <motion.div
+      key={exerciseIndex}
+      variants={pageVariantsValue}
+      initial="initial"
+      animate="animate"
+      transition={pageTransitionValue}
+      className="max-w-md mx-auto bg-white min-h-screen relative"
+    >
       {/* Modern Header - Changed from sticky to relative on mobile */}
       <header className="gradient-green text-white px-4 py-6 relative shadow-lg">
         <div className="flex items-center justify-between">
@@ -883,7 +892,6 @@ export default function ExercisePage() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
-    </PageMotion>
+    </motion.div>
   );
 }

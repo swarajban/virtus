@@ -1,24 +1,18 @@
 import type { Variants, Transition } from "framer-motion";
 
 /**
- * Motion system: "Racked."
+ * Motion system.
  *
- * The subject is a barbell strength program. Movement in a gym is mechanical and
- * weighted — a loaded bar slides through the J-hooks and the plates seat with a
- * firm clack. Nothing floats or springs. So screens travel HORIZONTALLY with
- * weight: quick out of the gate, firm settle, no overshoot (a spring bounce would
- * read as toy-like — wrong for iron). Direction encodes position in the lift
- * sequence: forward drives in from the right, back from the left.
- *
- * One easing token, two durations. Applied with restraint — pages and the press
- * of a button, nothing else.
+ * Fast crossfade for page transitions (150ms opacity 0→1, no travel). Tactile
+ * button press feedback (scale 0.96). Weighted easing (RACK_EASE) — quick start,
+ * firm settle, no bounce. Applied with restraint: pages and buttons only.
  */
 
 // iOS-like "decelerate" curve: fast start, weighted settle, zero overshoot.
 export const RACK_EASE: [number, number, number, number] = [0.32, 0.72, 0, 1];
 
 export const DURATION = {
-  page: 0.26, // screen travel
+  page: 0.15, // fast crossfade
   tap: 0.08, // button press response
   reward: 0.32, // completion "seat and lock"
 } as const;
@@ -38,10 +32,7 @@ export function getNavDirection(): NavDirection {
   return _navDirection;
 }
 
-/** Enter-only page variants. The entering screen slides a short, weighted
- * distance and fades up; the previous screen is covered. A 40px travel reads as
- * native and stays scroll-safe on tall pages (full-bleed card slides are the
- * flashy default but fragile here — the disciplined call is the short slide). */
+/** Fast crossfade for page transitions. Pure opacity, no travel. */
 export function pageVariants(direction: NavDirection, reduced: boolean): Variants {
   if (reduced) {
     return {
@@ -49,10 +40,9 @@ export function pageVariants(direction: NavDirection, reduced: boolean): Variant
       animate: { opacity: 1 },
     };
   }
-  const dx = direction === "forward" ? 40 : -40;
   return {
-    initial: { x: dx, opacity: 0 },
-    animate: { x: 0, opacity: 1 },
+    initial: { opacity: 0 },
+    animate: { opacity: 1 },
   };
 }
 
