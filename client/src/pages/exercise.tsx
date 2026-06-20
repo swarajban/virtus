@@ -30,7 +30,7 @@ import { api } from "@/lib/api-client";
 import { enhanceExerciseWithCalculations, getActualPercentage } from "@/lib/workout-utils";
 import { usePowerbuildingData, resolveProgramWorkouts, skipWarmups } from "@/hooks/use-powerbuilding-data";
 import { ProgramDataError } from "@/components/program-data-error";
-import { setNavDirection, tapProps, DURATION, RACK_EASE } from "@/lib/motion";
+import { tapProps, DURATION, RACK_EASE } from "@/lib/motion";
 import type { ExerciseWithCalculatedWeight } from "@/types/workout";
 import type { OneRM } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
@@ -391,7 +391,6 @@ export default function ExercisePage() {
         const nextIndex = skipWarmups(allExercises, exerciseIndex + 1, 1);
 
         setIsCompleting(false); // Clear before navigating (avoid setState on unmount)
-        setNavDirection("forward");
         if (nextIndex < allExercises.length) {
           setLocation(`/workout/${workoutNumber}/exercise/${nextIndex}`);
         } else {
@@ -418,7 +417,6 @@ export default function ExercisePage() {
     const allExercises = navExercisesRef.current;
     const prevIndex = skipWarmups(allExercises, exerciseIndex - 1, -1);
 
-    setNavDirection("back");
     if (prevIndex >= 0) {
       setLocation(`/workout/${workoutNumber}/exercise/${prevIndex}`);
     } else {
@@ -440,7 +438,6 @@ export default function ExercisePage() {
     const allExercises = navExercisesRef.current;
     const nextIndex = skipWarmups(allExercises, exerciseIndex + 1, 1);
 
-    setNavDirection("forward");
     if (nextIndex < allExercises.length) {
       setLocation(`/workout/${workoutNumber}/exercise/${nextIndex}`);
     }
@@ -524,7 +521,7 @@ export default function ExercisePage() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => { setNavDirection("back"); setLocation(`/workout/${workoutNumber}`); }}
+              onClick={() => { setLocation(`/workout/${workoutNumber}`); }}
               className="text-white hover:bg-white/20 transition-all duration-200 rounded-lg p-2 -ml-2"
             >
               <ArrowLeft className="h-5 w-5" />
@@ -644,7 +641,7 @@ export default function ExercisePage() {
       <div className="p-4 bg-white border-b">
         <div className="grid grid-cols-3 gap-2 mb-4">
           <motion.button
-            onClick={() => { if (isCompleting) return; setNavDirection("back"); setLocation(`/workout/${workoutNumber}`); }}
+            onClick={() => { if (isCompleting) return; setLocation(`/workout/${workoutNumber}`); }}
             disabled={isCompleting}
             {...tapProps(reducedMotion)}
             className="px-3 py-1.5 text-sm font-medium rounded-md border border-gray-300 bg-white text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed nav-button-mobile"
