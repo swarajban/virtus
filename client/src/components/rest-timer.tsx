@@ -28,8 +28,9 @@ const loadTimerState = () => {
       }
 
       const elapsed = Date.now() - state.startTime;
-      if (elapsed > STALE_TIMER_MS) {
-        // Timer is stale (> 30 min), reset to stopped state
+      // Stale if elapsed > 30min OR negative (future timestamp from clock skew)
+      if (elapsed > STALE_TIMER_MS || elapsed < 0) {
+        // Timer is stale (> 30 min or clock skew), reset to stopped state
         const cleanState = { isRunning: false, startTime: null, setCounter: state.setCounter };
         localStorage.setItem('restTimerState', JSON.stringify(cleanState));
         return cleanState;
