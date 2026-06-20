@@ -9,6 +9,7 @@ import { api } from "@/lib/api-client";
 import { useToast } from "@/hooks/use-toast";
 import { UserSelector } from "@/components/user-selector";
 import { ProgramSelectionModal } from "@/components/program-selection-modal";
+import { usePowerbuildingData } from "@/hooks/use-powerbuilding-data";
 
 interface Program {
   name: string;
@@ -23,14 +24,15 @@ export default function SettingsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const { toast } = useToast();
+  const { data: programJson } = usePowerbuildingData();
 
   useEffect(() => {
     async function loadSettings() {
+      if (!programJson) return;
       try {
-        // Load available programs from JSON
-        const response = await fetch('/powerbuilding_data.json');
-        const data = await response.json();
-        
+        // Programs come from the shared cached JSON (fetched once per session)
+        const data = programJson;
+
         if (data.programs) {
           setPrograms(data.programs);
           // Get current user's selected program
@@ -58,7 +60,7 @@ export default function SettingsPage() {
     }
     
     loadSettings();
-  }, [toast]);
+  }, [toast, programJson]);
 
   const handleProgramChange = async (programName: string) => {
     // Don't do anything if selecting the same program

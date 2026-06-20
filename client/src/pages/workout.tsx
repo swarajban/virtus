@@ -10,6 +10,9 @@ import { getWorkoutStatusBadge, formatDate, enhanceExerciseWithCalculations } fr
 import type { WorkoutWithProgress, ExerciseWithCalculatedWeight } from "@/types/workout";
 import type { User } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
+import { usePowerbuildingData, resolveProgramWorkouts } from "@/hooks/use-powerbuilding-data";
+import { PageMotion } from "@/components/page-motion";
+import { setNavDirection } from "@/lib/motion";
 
 // Import types
 import { Workout } from "@shared/schema";
@@ -25,19 +28,20 @@ export default function WorkoutPage() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   const workoutNumber = params ? parseInt(params.workoutNumber) : 0;
+  const { data: programJson } = usePowerbuildingData();
 
   useEffect(() => {
     async function loadWorkoutData() {
+      if (!programJson) return;
       if (workoutNumber) {
         try {
           setIsLoading(true);
-          const [response, workoutProgress, oneRM, user] = await Promise.all([
-            fetch('/powerbuilding_data.json'),
+          const [workoutProgress, oneRM, user] = await Promise.all([
             LocalStorage.getWorkoutProgress(),
             LocalStorage.getOneRM(),
             api.getCurrentUser().catch(() => null)
           ]);
-          
+
           if (user) {
             setCurrentUser(user);
           }
@@ -61,13 +65,9 @@ export default function WorkoutPage() {
             exerciseOneRMs.set(orm.exerciseId, orm.weight);
           });
           
-          const data = await response.json();
           // Handle new JSON structure with programs - use user's selected program
           const selectedProgramName = user?.selectedProgram || 'Powerbuilding 4x';
-          const programData = data.programs 
-            ? (data.programs.find((p: any) => p.name === selectedProgramName) || data.programs[0])
-            : { workouts: data };
-          const workoutData = programData.workouts || [];
+          const workoutData = resolveProgramWorkouts(programJson, selectedProgramName);
           const foundWorkout = workoutData.find((w: any) => w.workout_number === workoutNumber);
           
           if (foundWorkout) {
@@ -112,7 +112,7 @@ export default function WorkoutPage() {
     }
     
     loadWorkoutData();
-  }, [workoutNumber]);
+  }, [workoutNumber, programJson]);
 
   if (isLoading || !workout) {
     return (
@@ -170,6 +170,7 @@ export default function WorkoutPage() {
   };
 
   const handleExerciseClick = (exerciseIndex: number) => {
+    setNavDirection("forward");
     setLocation(`/workout/${workoutNumber}/exercise/${exerciseIndex}`);
   };
 
@@ -266,15 +267,16 @@ export default function WorkoutPage() {
   };
 
   return (
+    <PageMotion>
     <div className="max-w-md mx-auto bg-white min-h-screen">
       {/* Modern Header */}
       <header className="gradient-green text-white px-4 py-6 sticky top-0 z-50 shadow-lg">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               size="icon"
-              onClick={() => setLocation('/')}
+              onClick={() => { setNavDirection("back"); setLocation('/'); }}
               className="text-white hover:bg-white/20 transition-all duration-200 rounded-lg p-2 -ml-2"
             >
               <ArrowLeft className="h-5 w-5" />
@@ -334,9 +336,9 @@ export default function WorkoutPage() {
               Export Summary
             </Button>
           )}
-          <Button 
+          <Button
             variant="outline"
-            onClick={() => setLocation('/')}
+            onClick={() => { setNavDirection("back"); setLocation('/'); }}
             className="h-12"
           >
             Back to Home
@@ -466,5 +468,6 @@ export default function WorkoutPage() {
         </div>
       )}
     </div>
+    </PageMotion>
   );
 }

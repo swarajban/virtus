@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useLocation, useRoute } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,9 +24,13 @@ import { ExerciseHistoryModal } from "@/components/exercise-history-modal";
 import { PlateCalculator } from "@/components/plate-calculator";
 import { RestTimerBar } from "@/components/rest-timer";
 import { ArrowLeft, Check, CheckCircle, Info, ExternalLink, Repeat, Clock, ChevronDown } from "lucide-react";
+import { motion, useReducedMotion } from "framer-motion";
 import { LocalStorage } from "@/lib/storage";
 import { api } from "@/lib/api-client";
 import { enhanceExerciseWithCalculations, getActualPercentage } from "@/lib/workout-utils";
+import { usePowerbuildingData, resolveProgramWorkouts } from "@/hooks/use-powerbuilding-data";
+import { PageMotion } from "@/components/page-motion";
+import { setNavDirection, tapProps, DURATION, RACK_EASE } from "@/lib/motion";
 import type { ExerciseWithCalculatedWeight } from "@/types/workout";
 import type { OneRM } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
@@ -59,6 +63,13 @@ export default function ExercisePage() {
   const [warmupInfo, setWarmupInfo] = useState<any>(null);
   const [isWarmupExpanded, setIsWarmupExpanded] = useState(false);
 
+  // Cached program JSON — fetched once per session, served from memory after.
+  // Navigation reads the workout's exercise list from this ref synchronously,
+  // so Next/Previous/Complete never block on a network fetch.
+  const { data: programJson } = usePowerbuildingData();
+  const navExercisesRef = useRef<any[]>([]);
+  const reducedMotion = useReducedMotion() ?? false;
+
   const workoutNumber = params ? parseInt(params.workoutNumber) : 0;
   const exerciseIndex = params ? parseInt(params.exerciseIndex) : 0;
 
@@ -68,16 +79,19 @@ export default function ExercisePage() {
     let isMounted = true; // Track mount state for cleanup
 
     async function loadExerciseData() {
+      // Wait for the cached program JSON before building the view. The query is
+      // shared app-wide (staleTime: Infinity), so this resolves instantly after
+      // the first load anywhere in the session.
+      if (!programJson) return;
       if (workoutNumber && exerciseIndex >= 0) {
         try {
-          // Load all required data including user for program selection
-          const [workoutResponse, oneRMData, workoutProgress, user] = await Promise.all([
-            fetch('/powerbuilding_data.json'),
+          // Local + per-user data; the heavy program JSON comes from cache above.
+          const [oneRMData, workoutProgress, user] = await Promise.all([
             LocalStorage.getOneRM(),
             LocalStorage.getWorkoutProgress(),
             api.getCurrentUser().catch(() => null)
           ]);
-          
+
           // Fetch all exercises and their 1RMs
           const [allExercisesResponse, allOneRMsResponse] = await Promise.all([
             fetch('/api/exercises', {
@@ -102,16 +116,13 @@ export default function ExercisePage() {
             exerciseOneRMs.set(orm.exerciseId, orm.weight);
           });
           
-          const data = await workoutResponse.json();
+          const data = programJson;
           setOneRM(oneRMData);
-          
+
           // Handle new JSON structure with programs - use user's selected program
           const selectedProgramName = user?.selectedProgram || 'Powerbuilding 4x';
           setSelectedProgram(selectedProgramName);
-          const programData = data.programs 
-            ? (data.programs.find((p: any) => p.name === selectedProgramName) || data.programs[0])
-            : { workouts: data };
-          const workoutData = programData.workouts || [];
+          const workoutData = resolveProgramWorkouts(data, selectedProgramName);
           const foundWorkout = workoutData.find((w: any) => w.workout_number === workoutNumber);
           
           if (foundWorkout && foundWorkout.exercises[exerciseIndex]) {
@@ -164,6 +175,8 @@ export default function ExercisePage() {
             setExercise(enhancedExercise);
             setWorkoutName(foundWorkout.workout_name);
             setTotalExercises(foundWorkout.exercises.length);
+            // Cache the exercise list for synchronous, fetch-free navigation.
+            navExercisesRef.current = foundWorkout.exercises;
 
             // Find warm-up info if this is a working set
             if (exerciseData.type_of_set === "working") {
@@ -245,7 +258,7 @@ export default function ExercisePage() {
     return () => {
       isMounted = false;
     };
-  }, [workoutNumber, exerciseIndex]);
+  }, [workoutNumber, exerciseIndex, programJson]);
 
   if (isInitialLoading) {
     return (
@@ -350,64 +363,52 @@ export default function ExercisePage() {
 
       await LocalStorage.saveWorkoutProgress(workoutNumber, currentProgress);
 
-      // Show brief completion animation then navigate immediately
-      // Note: exercise.tsx doesn't use TanStack Query yet - still uses raw fetch()
-      setIsCompleting(false); // Clear state before navigation to avoid setState on unmount
-      setTimeout(async () => {
-        // Scroll to top only when user completes exercise
-        window.scrollTo({ top: 0, behavior: 'auto' }); // Instant scroll - no interrupted animation
+      // Reward beat: the Complete button seats green + the check settles in,
+      // then we advance to the next working set. No network fetch — the exercise
+      // list is already in memory (navExercisesRef). No blocking overlay.
+      const rewardMs = reducedMotion ? 0 : DURATION.reward * 1000;
+      setTimeout(() => {
+        window.scrollTo({ top: 0, behavior: 'auto' });
 
-        // Find next working set (skip warm-ups)
-        const workoutResponse = await fetch('/powerbuilding_data.json');
-        const data = await workoutResponse.json();
-        const programData = data.programs?.find((p: any) => p.name === selectedProgram) || { workouts: data };
-        const workoutData = programData.workouts?.find((w: any) => w.workout_number === workoutNumber);
-        const allExercises = workoutData?.exercises || [];
-
+        // Find next working set (skip warm-ups) from the cached list.
+        const allExercises = navExercisesRef.current;
         let nextIndex = exerciseIndex + 1;
         while (nextIndex < allExercises.length && allExercises[nextIndex]?.type_of_set === "warm-up") {
           nextIndex++;
         }
 
-        // Navigate to next working set or back to workout
+        setIsCompleting(false); // Clear before navigating (avoid setState on unmount)
+        setNavDirection("forward");
         if (nextIndex < allExercises.length) {
           setLocation(`/workout/${workoutNumber}/exercise/${nextIndex}`);
         } else {
           setLocation(`/workout/${workoutNumber}`);
         }
-      }, 200); // Brief delay for visual feedback
+      }, rewardMs);
     } catch (error) {
       console.error("Error completing exercise:", error);
       setIsCompleting(false);
     }
   };
 
-  const handlePreviousExercise = async (e?: React.MouseEvent | React.TouchEvent) => {
-    // Prevent default and stop propagation
+  const handlePreviousExercise = (e?: React.MouseEvent | React.TouchEvent) => {
     if (e) {
       e.preventDefault();
       e.stopPropagation();
     }
-
-    // Force blur on any active element
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
     }
 
-    // Find previous working set (skip warm-ups)
-    const workoutResponse = await fetch('/powerbuilding_data.json');
-    const data = await workoutResponse.json();
-    const programData = data.programs?.find((p: any) => p.name === selectedProgram) || { workouts: data };
-    const workoutData = programData.workouts?.find((w: any) => w.workout_number === workoutNumber);
-    const allExercises = workoutData?.exercises || [];
-
+    // Find previous working set (skip warm-ups) — synchronous, from cache.
+    const allExercises = navExercisesRef.current;
     let prevIndex = exerciseIndex - 1;
     while (prevIndex >= 0 && allExercises[prevIndex]?.type_of_set === "warm-up") {
       prevIndex--;
     }
 
-    // Note: No TanStack Query caching yet - this still uses raw fetch() in useEffect
-    window.scrollTo({ top: 0, behavior: 'auto' }); // Instant scroll to avoid interrupted animation
+    window.scrollTo({ top: 0, behavior: 'auto' });
+    setNavDirection("back");
     if (prevIndex >= 0) {
       setLocation(`/workout/${workoutNumber}/exercise/${prevIndex}`);
     } else {
@@ -415,32 +416,24 @@ export default function ExercisePage() {
     }
   };
 
-  const handleNextExercise = async (e?: React.MouseEvent | React.TouchEvent) => {
-    // Prevent default and stop propagation
+  const handleNextExercise = (e?: React.MouseEvent | React.TouchEvent) => {
     if (e) {
       e.preventDefault();
       e.stopPropagation();
     }
-
-    // Force blur on any active element
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
     }
 
-    // Find next working set (skip warm-ups)
-    const workoutResponse = await fetch('/powerbuilding_data.json');
-    const data = await workoutResponse.json();
-    const programData = data.programs?.find((p: any) => p.name === selectedProgram) || { workouts: data };
-    const workoutData = programData.workouts?.find((w: any) => w.workout_number === workoutNumber);
-    const allExercises = workoutData?.exercises || [];
-
+    // Find next working set (skip warm-ups) — synchronous, from cache.
+    const allExercises = navExercisesRef.current;
     let nextIndex = exerciseIndex + 1;
     while (nextIndex < allExercises.length && allExercises[nextIndex]?.type_of_set === "warm-up") {
       nextIndex++;
     }
 
-    // Note: No TanStack Query caching yet - this still uses raw fetch() in useEffect
-    window.scrollTo({ top: 0, behavior: 'auto' }); // Instant scroll to avoid interrupted animation
+    window.scrollTo({ top: 0, behavior: 'auto' });
+    setNavDirection("forward");
     if (nextIndex < allExercises.length) {
       setLocation(`/workout/${workoutNumber}/exercise/${nextIndex}`);
     }
@@ -516,25 +509,16 @@ export default function ExercisePage() {
   const exerciseOneRM = getOneRMForExercise();
 
   return (
+    <PageMotion>
     <div className="max-w-md mx-auto bg-white min-h-screen relative">
-      {/* Simplified Completion Animation - Brief visual feedback */}
-      {isCompleting && (
-        <div className="fixed inset-0 bg-green-500 bg-opacity-90 flex items-center justify-center z-50 transition-opacity duration-300">
-          <div className="bg-white rounded-2xl p-6 shadow-2xl transform scale-95 animate-scale-check">
-            <CheckCircle className="h-12 w-12 mx-auto text-green-500 mb-2" />
-            <p className="text-lg font-semibold text-gray-800">Complete!</p>
-          </div>
-        </div>
-      )}
-
       {/* Modern Header - Changed from sticky to relative on mobile */}
       <header className="gradient-green text-white px-4 py-6 relative shadow-lg">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               size="icon"
-              onClick={() => setLocation(`/workout/${workoutNumber}`)}
+              onClick={() => { setNavDirection("back"); setLocation(`/workout/${workoutNumber}`); }}
               className="text-white hover:bg-white/20 transition-all duration-200 rounded-lg p-2 -ml-2"
             >
               <ArrowLeft className="h-5 w-5" />
@@ -653,61 +637,80 @@ export default function ExercisePage() {
       {/* Exercise Navigation - Moved to top for better accessibility */}
       <div className="p-4 bg-white border-b">
         <div className="grid grid-cols-3 gap-2 mb-4">
-          <Button
-            variant="outline"
-            onClick={() => setLocation(`/workout/${workoutNumber}`)}
-            className="text-sm"
+          <motion.button
+            onClick={() => { setNavDirection("back"); setLocation(`/workout/${workoutNumber}`); }}
+            {...tapProps(reducedMotion)}
+            className="px-3 py-1.5 text-sm font-medium rounded-md border border-gray-300 bg-white text-gray-700 nav-button-mobile"
+            type="button"
           >
             Workout
-          </Button>
-          <button
+          </motion.button>
+          <motion.button
             onClick={handlePreviousExercise}
             onTouchEnd={(e) => e.currentTarget.blur()}
             onMouseUp={(e) => e.currentTarget.blur()}
             disabled={exerciseIndex === 0}
+            {...tapProps(reducedMotion)}
             className="px-3 py-1.5 text-sm font-medium rounded-md border border-gray-300 bg-white text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed nav-button-mobile"
             type="button"
           >
             Previous
-          </button>
-          <button
+          </motion.button>
+          <motion.button
             onClick={handleNextExercise}
             onTouchEnd={(e) => e.currentTarget.blur()}
             onMouseUp={(e) => e.currentTarget.blur()}
             disabled={exerciseIndex >= totalExercises - 1}
+            {...tapProps(reducedMotion)}
             className="px-3 py-1.5 text-sm font-medium rounded-md border border-gray-300 bg-white text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed nav-button-mobile"
             type="button"
           >
             Next
-          </button>
+          </motion.button>
         </div>
-        
+
         {/* Rest Timer */}
         <RestTimerBar />
-        
-        <button
+
+        {/* Complete — taps in firm, then "seats" green and advances */}
+        <motion.button
           onClick={handleCompleteExercise}
           onTouchEnd={(e) => e.currentTarget.blur()}
           onMouseUp={(e) => e.currentTarget.blur()}
           disabled={isCompleting}
-          className={`w-full h-12 px-4 flex items-center justify-center font-medium rounded-md transition-all duration-300 ${
-            isCompleting 
-              ? "bg-green-600 scale-105 shadow-lg" 
-              : isExerciseCompleted 
-                ? "bg-green-600 hover:bg-green-700" 
-                : "bg-green-500 hover:bg-green-700"
-          } text-white disabled:opacity-50 disabled:cursor-not-allowed nav-button-mobile`}
+          whileTap={reducedMotion || isCompleting ? undefined : { scale: 0.97 }}
+          animate={isCompleting && !reducedMotion ? { scale: [1, 1.03, 1] } : { scale: 1 }}
+          transition={{ duration: DURATION.reward, ease: RACK_EASE }}
+          className={`relative overflow-hidden w-full h-12 px-4 flex items-center justify-center font-medium rounded-md ${
+            isCompleting || isExerciseCompleted
+              ? "bg-green-600"
+              : "bg-green-500 hover:bg-green-600"
+          } text-white disabled:cursor-not-allowed nav-button-mobile`}
           type="button"
         >
-          <Check className={`h-4 w-4 mr-2 transition-transform duration-300 ${
-            isCompleting ? "scale-125" : ""
-          }`} />
-          {isCompleting 
-            ? "Exercise Completed!" 
-            : isExerciseCompleted 
-              ? "Mark Complete Again" 
-              : "Complete Exercise"}
-        </button>
+          {/* Color sweep — a single highlight that crosses the button on commit */}
+          {isCompleting && !reducedMotion && (
+            <motion.span
+              aria-hidden
+              className="absolute inset-y-0 w-1/2 bg-white/25 blur-md"
+              initial={{ left: "-50%" }}
+              animate={{ left: "120%" }}
+              transition={{ duration: DURATION.reward, ease: RACK_EASE }}
+            />
+          )}
+          <motion.span
+            className="relative flex items-center justify-center"
+            animate={isCompleting && !reducedMotion ? { scale: [1, 1.3, 1] } : { scale: 1 }}
+            transition={{ duration: DURATION.reward, ease: RACK_EASE }}
+          >
+            <Check className="h-4 w-4 mr-2" />
+            {isCompleting
+              ? "Set logged"
+              : isExerciseCompleted
+                ? "Mark complete again"
+                : "Complete exercise"}
+          </motion.span>
+        </motion.button>
       </div>
 
       {/* Weight Calculator */}
@@ -872,5 +875,6 @@ export default function ExercisePage() {
         </DialogContent>
       </Dialog>
     </div>
+    </PageMotion>
   );
 }
