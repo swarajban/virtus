@@ -29,9 +29,8 @@ import { LocalStorage } from "@/lib/storage";
 import { api } from "@/lib/api-client";
 import { enhanceExerciseWithCalculations, getActualPercentage } from "@/lib/workout-utils";
 import { usePowerbuildingData, resolveProgramWorkouts, skipWarmups } from "@/hooks/use-powerbuilding-data";
-import { PageMotion } from "@/components/page-motion";
 import { ProgramDataError } from "@/components/program-data-error";
-import { setNavDirection, tapProps, DURATION, RACK_EASE } from "@/lib/motion";
+import { setNavDirection, tapProps, pageVariants, pageTransition, DURATION, RACK_EASE } from "@/lib/motion";
 import type { ExerciseWithCalculatedWeight } from "@/types/workout";
 import type { OneRM } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
@@ -517,8 +516,14 @@ export default function ExercisePage() {
   const exerciseOneRM = getOneRMForExercise();
 
   return (
-    <PageMotion>
-    <div className="max-w-md mx-auto bg-white min-h-screen relative">
+    <motion.div
+      key={exerciseIndex}
+      variants={pageVariants("forward", reducedMotion)}
+      initial="initial"
+      animate="animate"
+      transition={pageTransition(reducedMotion)}
+      className="max-w-md mx-auto bg-white min-h-screen relative"
+    >
       {/* Modern Header - Changed from sticky to relative on mobile */}
       <header className="gradient-green text-white px-4 py-6 relative shadow-lg">
         <div className="flex items-center justify-between">
@@ -883,7 +888,6 @@ export default function ExercisePage() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
-    </PageMotion>
+    </motion.div>
   );
 }
