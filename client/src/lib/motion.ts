@@ -32,17 +32,20 @@ export function getNavDirection(): NavDirection {
   return _navDirection;
 }
 
-/** Fast crossfade for page transitions. Pure opacity, no travel. */
+/** Fast crossfade for page transitions. Pure opacity, no travel.
+ * Includes exit variant so AnimatePresence can overlap outgoing/incoming screens. */
 export function pageVariants(direction: NavDirection, reduced: boolean): Variants {
   if (reduced) {
     return {
       initial: { opacity: 1 },
       animate: { opacity: 1 },
+      exit: { opacity: 1 }, // instant, no fade
     };
   }
   return {
     initial: { opacity: 0 },
     animate: { opacity: 1 },
+    exit: { opacity: 0 }, // fade out while new fades in
   };
 }
 

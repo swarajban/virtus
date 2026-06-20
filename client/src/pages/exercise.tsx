@@ -24,7 +24,7 @@ import { ExerciseHistoryModal } from "@/components/exercise-history-modal";
 import { PlateCalculator } from "@/components/plate-calculator";
 import { RestTimerBar } from "@/components/rest-timer";
 import { ArrowLeft, Check, CheckCircle, Info, ExternalLink, Repeat, Clock, ChevronDown } from "lucide-react";
-import { motion, useReducedMotion } from "framer-motion";
+import { motion, useReducedMotion, AnimatePresence } from "framer-motion";
 import { LocalStorage } from "@/lib/storage";
 import { api } from "@/lib/api-client";
 import { enhanceExerciseWithCalculations, getActualPercentage } from "@/lib/workout-utils";
@@ -520,14 +520,16 @@ export default function ExercisePage() {
   const exerciseOneRM = getOneRMForExercise();
 
   return (
-    <motion.div
-      key={exerciseIndex}
-      variants={pageVariantsValue}
-      initial="initial"
-      animate="animate"
-      transition={pageTransitionValue}
-      className="max-w-md mx-auto bg-white min-h-screen relative"
-    >
+    <AnimatePresence mode="popLayout" initial={false}>
+      <motion.div
+        key={exerciseIndex}
+        variants={pageVariantsValue}
+        initial="initial"
+        animate="animate"
+        exit="exit"
+        transition={pageTransitionValue}
+        className="max-w-md mx-auto bg-white min-h-screen relative"
+      >
       {/* Modern Header - Changed from sticky to relative on mobile */}
       <header className="gradient-green text-white px-4 py-6 relative shadow-lg">
         <div className="flex items-center justify-between">
@@ -893,5 +895,6 @@ export default function ExercisePage() {
         </DialogContent>
       </Dialog>
     </motion.div>
+    </AnimatePresence>
   );
 }
