@@ -1,8 +1,10 @@
+import { useEffect } from "react";
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { setNavDirection } from "@/lib/motion";
 import HomePage from "@/pages/home";
 import WorkoutPage from "@/pages/workout";
 import ExercisePage from "@/pages/exercise";
@@ -32,6 +34,15 @@ function Router() {
 }
 
 function App() {
+  // A browser/hardware Back (or Forward) gesture navigates without going through
+  // our nav handlers, so the entering page would inherit the last tap's
+  // direction. Treat any history pop as a "back" so the transition reverses.
+  useEffect(() => {
+    const onPop = () => setNavDirection("back");
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>

@@ -12,6 +12,7 @@ import type { User } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { usePowerbuildingData, resolveProgramWorkouts } from "@/hooks/use-powerbuilding-data";
 import { PageMotion } from "@/components/page-motion";
+import { ProgramDataError } from "@/components/program-data-error";
 import { setNavDirection } from "@/lib/motion";
 
 // Import types
@@ -28,7 +29,7 @@ export default function WorkoutPage() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
   const workoutNumber = params ? parseInt(params.workoutNumber) : 0;
-  const { data: programJson } = usePowerbuildingData();
+  const { data: programJson, isError: programError, refetch: refetchProgram } = usePowerbuildingData();
 
   useEffect(() => {
     async function loadWorkoutData() {
@@ -113,6 +114,10 @@ export default function WorkoutPage() {
     
     loadWorkoutData();
   }, [workoutNumber, programJson]);
+
+  if (programError && !programJson) {
+    return <ProgramDataError onRetry={() => refetchProgram()} />;
+  }
 
   if (isLoading || !workout) {
     return (
@@ -269,8 +274,10 @@ export default function WorkoutPage() {
   return (
     <PageMotion>
     <div className="max-w-md mx-auto bg-white min-h-screen">
-      {/* Modern Header */}
-      <header className="gradient-green text-white px-4 py-6 sticky top-0 z-50 shadow-lg">
+      {/* Modern Header — relative (not sticky): the page sits inside a
+          transformed motion.div for transitions, which would break position:
+          sticky. Matches the exercise page header. */}
+      <header className="gradient-green text-white px-4 py-6 relative z-50 shadow-lg">
         <div className="flex items-center justify-between">
           <div className="flex items-center space-x-3">
             <Button

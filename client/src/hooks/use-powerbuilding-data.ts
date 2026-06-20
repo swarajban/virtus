@@ -37,3 +37,17 @@ export function resolveProgramWorkouts(data: any, programName: string): any[] {
     : { workouts: data };
   return programData?.workouts || [];
 }
+
+/**
+ * Walk from `from` in direction `step` (+1 next / -1 previous), skipping hidden
+ * warm-up entries, and return the first working-set index. May return an
+ * out-of-bounds index (length when going forward past the end, -1 when going
+ * back past the start) — callers check the bound to decide where to route.
+ */
+export function skipWarmups(exercises: any[], from: number, step: 1 | -1): number {
+  let i = from;
+  while (i >= 0 && i < exercises.length && exercises[i]?.type_of_set === "warm-up") {
+    i += step;
+  }
+  return i;
+}

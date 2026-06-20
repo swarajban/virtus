@@ -28,8 +28,9 @@ import { motion, useReducedMotion } from "framer-motion";
 import { LocalStorage } from "@/lib/storage";
 import { api } from "@/lib/api-client";
 import { enhanceExerciseWithCalculations, getActualPercentage } from "@/lib/workout-utils";
-import { usePowerbuildingData, resolveProgramWorkouts } from "@/hooks/use-powerbuilding-data";
+import { usePowerbuildingData, resolveProgramWorkouts, skipWarmups } from "@/hooks/use-powerbuilding-data";
 import { PageMotion } from "@/components/page-motion";
+import { ProgramDataError } from "@/components/program-data-error";
 import { setNavDirection, tapProps, DURATION, RACK_EASE } from "@/lib/motion";
 import type { ExerciseWithCalculatedWeight } from "@/types/workout";
 import type { OneRM } from "@shared/schema";
@@ -66,9 +67,18 @@ export default function ExercisePage() {
   // Cached program JSON — fetched once per session, served from memory after.
   // Navigation reads the workout's exercise list from this ref synchronously,
   // so Next/Previous/Complete never block on a network fetch.
-  const { data: programJson } = usePowerbuildingData();
+  const { data: programJson, isError: programError, refetch: refetchProgram } = usePowerbuildingData();
   const navExercisesRef = useRef<any[]>([]);
+  const completeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reducedMotion = useReducedMotion() ?? false;
+
+  // Clear any pending completion-advance timer if the page unmounts mid-reward,
+  // so it can't setState or navigate after the component is gone.
+  useEffect(() => {
+    return () => {
+      if (completeTimerRef.current) clearTimeout(completeTimerRef.current);
+    };
+  }, []);
 
   const workoutNumber = params ? parseInt(params.workoutNumber) : 0;
   const exerciseIndex = params ? parseInt(params.exerciseIndex) : 0;
@@ -260,6 +270,10 @@ export default function ExercisePage() {
     };
   }, [workoutNumber, exerciseIndex, programJson]);
 
+  if (programError && !programJson) {
+    return <ProgramDataError onRetry={() => refetchProgram()} />;
+  }
+
   if (isInitialLoading) {
     return (
       <div className="max-w-md mx-auto bg-white min-h-screen flex items-center justify-center">
@@ -367,15 +381,13 @@ export default function ExercisePage() {
       // then we advance to the next working set. No network fetch — the exercise
       // list is already in memory (navExercisesRef). No blocking overlay.
       const rewardMs = reducedMotion ? 0 : DURATION.reward * 1000;
-      setTimeout(() => {
+      completeTimerRef.current = setTimeout(() => {
+        completeTimerRef.current = null;
         window.scrollTo({ top: 0, behavior: 'auto' });
 
         // Find next working set (skip warm-ups) from the cached list.
         const allExercises = navExercisesRef.current;
-        let nextIndex = exerciseIndex + 1;
-        while (nextIndex < allExercises.length && allExercises[nextIndex]?.type_of_set === "warm-up") {
-          nextIndex++;
-        }
+        const nextIndex = skipWarmups(allExercises, exerciseIndex + 1, 1);
 
         setIsCompleting(false); // Clear before navigating (avoid setState on unmount)
         setNavDirection("forward");
@@ -396,16 +408,14 @@ export default function ExercisePage() {
       e.preventDefault();
       e.stopPropagation();
     }
+    if (isCompleting) return; // don't race the completion-advance
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
     }
 
     // Find previous working set (skip warm-ups) — synchronous, from cache.
     const allExercises = navExercisesRef.current;
-    let prevIndex = exerciseIndex - 1;
-    while (prevIndex >= 0 && allExercises[prevIndex]?.type_of_set === "warm-up") {
-      prevIndex--;
-    }
+    const prevIndex = skipWarmups(allExercises, exerciseIndex - 1, -1);
 
     window.scrollTo({ top: 0, behavior: 'auto' });
     setNavDirection("back");
@@ -421,16 +431,14 @@ export default function ExercisePage() {
       e.preventDefault();
       e.stopPropagation();
     }
+    if (isCompleting) return; // don't race the completion-advance
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
     }
 
     // Find next working set (skip warm-ups) — synchronous, from cache.
     const allExercises = navExercisesRef.current;
-    let nextIndex = exerciseIndex + 1;
-    while (nextIndex < allExercises.length && allExercises[nextIndex]?.type_of_set === "warm-up") {
-      nextIndex++;
-    }
+    const nextIndex = skipWarmups(allExercises, exerciseIndex + 1, 1);
 
     window.scrollTo({ top: 0, behavior: 'auto' });
     setNavDirection("forward");
@@ -638,9 +646,10 @@ export default function ExercisePage() {
       <div className="p-4 bg-white border-b">
         <div className="grid grid-cols-3 gap-2 mb-4">
           <motion.button
-            onClick={() => { setNavDirection("back"); setLocation(`/workout/${workoutNumber}`); }}
+            onClick={() => { if (isCompleting) return; setNavDirection("back"); setLocation(`/workout/${workoutNumber}`); }}
+            disabled={isCompleting}
             {...tapProps(reducedMotion)}
-            className="px-3 py-1.5 text-sm font-medium rounded-md border border-gray-300 bg-white text-gray-700 nav-button-mobile"
+            className="px-3 py-1.5 text-sm font-medium rounded-md border border-gray-300 bg-white text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed nav-button-mobile"
             type="button"
           >
             Workout
@@ -649,7 +658,7 @@ export default function ExercisePage() {
             onClick={handlePreviousExercise}
             onTouchEnd={(e) => e.currentTarget.blur()}
             onMouseUp={(e) => e.currentTarget.blur()}
-            disabled={exerciseIndex === 0}
+            disabled={exerciseIndex === 0 || isCompleting}
             {...tapProps(reducedMotion)}
             className="px-3 py-1.5 text-sm font-medium rounded-md border border-gray-300 bg-white text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed nav-button-mobile"
             type="button"
@@ -660,7 +669,7 @@ export default function ExercisePage() {
             onClick={handleNextExercise}
             onTouchEnd={(e) => e.currentTarget.blur()}
             onMouseUp={(e) => e.currentTarget.blur()}
-            disabled={exerciseIndex >= totalExercises - 1}
+            disabled={exerciseIndex >= totalExercises - 1 || isCompleting}
             {...tapProps(reducedMotion)}
             className="px-3 py-1.5 text-sm font-medium rounded-md border border-gray-300 bg-white text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed nav-button-mobile"
             type="button"

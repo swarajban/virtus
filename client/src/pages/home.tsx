@@ -11,6 +11,7 @@ import type { WorkoutWithProgress } from "@/types/workout";
 import type { User } from "@shared/schema";
 import { usePowerbuildingData, resolveProgramWorkouts } from "@/hooks/use-powerbuilding-data";
 import { PageMotion } from "@/components/page-motion";
+import { ProgramDataError } from "@/components/program-data-error";
 import { setNavDirection } from "@/lib/motion";
 
 // Import the workout data
@@ -23,7 +24,7 @@ export default function HomePage() {
   const [lastLoadTime, setLastLoadTime] = useState(0);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const nextWorkoutRef = useRef<HTMLDivElement>(null);
-  const { data: programJson } = usePowerbuildingData();
+  const { data: programJson, isError: programError, refetch: refetchProgram } = usePowerbuildingData();
 
   const loadWorkouts = useCallback(async (force = false) => {
     // Throttle requests to prevent rapid reloading
@@ -85,6 +86,10 @@ export default function HomePage() {
       }, 100);
     }
   }, [isLoading, workouts.length, nextWorkout]);
+
+  if (programError && !programJson) {
+    return <ProgramDataError onRetry={() => refetchProgram()} />;
+  }
 
   // Show loading only on initial load
   if (isLoading && workouts.length === 0) {
