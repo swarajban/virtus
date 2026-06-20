@@ -9,6 +9,10 @@ import { api } from "@/lib/api-client";
 import { Play, Settings, Activity, Dumbbell } from "lucide-react";
 import type { WorkoutWithProgress } from "@/types/workout";
 import type { User } from "@shared/schema";
+import { usePowerbuildingData, resolveProgramWorkouts } from "@/hooks/use-powerbuilding-data";
+import { PageMotion } from "@/components/page-motion";
+import { ProgramDataError } from "@/components/program-data-error";
+import { setNavDirection } from "@/lib/motion";
 
 // Import the workout data
 import { Workout } from "@shared/schema";
@@ -20,6 +24,7 @@ export default function HomePage() {
   const [lastLoadTime, setLastLoadTime] = useState(0);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const nextWorkoutRef = useRef<HTMLDivElement>(null);
+  const { data: programJson, isError: programError, refetch: refetchProgram } = usePowerbuildingData();
 
   const loadWorkouts = useCallback(async (force = false) => {
     // Throttle requests to prevent rapid reloading
@@ -28,25 +33,21 @@ export default function HomePage() {
       return;
     }
     
+    if (!programJson) return;
     try {
       setIsLoading(true);
-      const [response, workoutProgress, user] = await Promise.all([
-        fetch('/powerbuilding_data.json'),
+      const [workoutProgress, user] = await Promise.all([
         LocalStorage.getWorkoutProgress(),
         api.getCurrentUser().catch(() => null)
       ]);
-      
+
       if (user) {
         setCurrentUser(user);
       }
-      
-      const data = await response.json();
+
       // Handle new JSON structure with programs - use user's selected program
       const selectedProgramName = user?.selectedProgram || 'Powerbuilding 4x';
-      const programData = data.programs 
-        ? (data.programs.find((p: any) => p.name === selectedProgramName) || data.programs[0])
-        : { workouts: data };
-      const workoutData = programData.workouts || [];
+      const workoutData = resolveProgramWorkouts(programJson, selectedProgramName);
       
       const workoutsWithProgress = workoutData.map((workout: any) => ({
         ...workout,
@@ -59,11 +60,11 @@ export default function HomePage() {
     } finally {
       setIsLoading(false);
     }
-  }, [lastLoadTime]);
+  }, [lastLoadTime, programJson]);
 
   useEffect(() => {
     loadWorkouts(true);
-  }, []);
+  }, [programJson]);
 
   const completedWorkouts = workouts.filter(w => w.progress?.status === "completed").length;
   const totalWorkouts = workouts.length;
@@ -86,6 +87,10 @@ export default function HomePage() {
     }
   }, [isLoading, workouts.length, nextWorkout]);
 
+  if (programError && !programJson) {
+    return <ProgramDataError onRetry={() => refetchProgram()} />;
+  }
+
   // Show loading only on initial load
   if (isLoading && workouts.length === 0) {
     return (
@@ -99,16 +104,19 @@ export default function HomePage() {
   }
 
   const handleWorkoutClick = (workout: WorkoutWithProgress) => {
+    setNavDirection("forward");
     setLocation(`/workout/${workout.workout_number}`);
   };
 
   const handleNextWorkout = () => {
     if (nextWorkout) {
+      setNavDirection("forward");
       setLocation(`/workout/${nextWorkout.workout_number}`);
     }
   };
 
   return (
+    <PageMotion>
     <div className="max-w-md mx-auto bg-white h-screen flex flex-col">
       {/* Modern Header with Gradient */}
       <header className="gradient-green text-white px-4 py-6 shadow-lg flex-shrink-0">
@@ -208,5 +216,6 @@ export default function HomePage() {
         </div>
       </div>
     </div>
+    </PageMotion>
   );
 }
