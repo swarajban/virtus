@@ -29,6 +29,8 @@ import { LocalStorage } from "@/lib/storage";
 import { api } from "@/lib/api-client";
 import { enhanceExerciseWithCalculations, getActualPercentage } from "@/lib/workout-utils";
 import { usePowerbuildingData, resolveProgramWorkouts, skipWarmups } from "@/hooks/use-powerbuilding-data";
+import { useAllExercises, useAllOneRMs, exerciseHistoryQueryOptions } from "@/hooks/use-exercises-data";
+import { useQueryClient } from "@tanstack/react-query";
 import { ProgramDataError } from "@/components/program-data-error";
 import { tapProps, DURATION, RACK_EASE } from "@/lib/motion";
 import type { ExerciseWithCalculatedWeight } from "@/types/workout";
@@ -67,6 +69,14 @@ export default function ExercisePage() {
   // Navigation reads the workout's exercise list from this ref synchronously,
   // so Next/Previous/Complete never block on a network fetch.
   const { data: programJson, isError: programError, refetch: refetchProgram } = usePowerbuildingData();
+  // Exercise library + every-exercise 1RM map from the shared TanStack cache
+  // (keys ["/api/exercises"], ["/api/one-rm/all"]). Shared with the workout page
+  // so back/forward navigation serves from the warm cache instead of blocking on
+  // a cold fetch. `data` is undefined until first load, then a (possibly empty
+  // for one-RMs) array.
+  const { data: allExercisesData } = useAllExercises();
+  const { data: allOneRMsData } = useAllOneRMs();
+  const queryClient = useQueryClient();
   const navExercisesRef = useRef<any[]>([]);
   const completeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reducedMotion = useReducedMotion() ?? false;
@@ -88,31 +98,24 @@ export default function ExercisePage() {
     let isMounted = true; // Track mount state for cleanup
 
     async function loadExerciseData() {
-      // Wait for the cached program JSON before building the view. The query is
-      // shared app-wide (staleTime: Infinity), so this resolves instantly after
-      // the first load anywhere in the session.
-      if (!programJson) return;
+      // Wait for the cached program JSON AND the shared exercise/1RM queries
+      // before building the view. All three are TanStack-cached (program JSON at
+      // staleTime Infinity; exercises/1RMs shared with the workout page), so on a
+      // warm session they resolve instantly from cache — navigation never blocks
+      // on a cold network fetch. `data` is undefined until first load.
+      if (!programJson || !allExercisesData || !allOneRMsData) return;
       if (workoutNumber && exerciseIndex >= 0) {
         try {
-          // Local + per-user data; the heavy program JSON comes from cache above.
+          // Local + per-user data; the heavy reads above come from cache.
           const [oneRMData, workoutProgress, user] = await Promise.all([
             LocalStorage.getOneRM(),
             LocalStorage.getWorkoutProgress(),
             api.getCurrentUser().catch(() => null)
           ]);
 
-          // Fetch all exercises and their 1RMs
-          const [allExercisesResponse, allOneRMsResponse] = await Promise.all([
-            fetch('/api/exercises', {
-              headers: { 'x-username': localStorage.getItem('selected-username') || 'demo' }
-            }),
-            fetch('/api/one-rm/all', {
-              headers: { 'x-username': localStorage.getItem('selected-username') || 'demo' }
-            })
-          ]);
-          
-          const allExercises = await allExercisesResponse.json();
-          const allOneRMs = await allOneRMsResponse.json();
+          // Exercise library + 1RM map served from the shared TanStack cache.
+          const allExercises = allExercisesData as any[];
+          const allOneRMs = allOneRMsData as any[];
 
           // Check if component is still mounted before setState
           if (!isMounted) return;
@@ -216,20 +219,20 @@ export default function ExercisePage() {
             
             if (!enhancedExercise.calculatedWeight && !isCompleted) {
               try {
-                const historyResponse = await fetch(
-                  `/api/exercise-history?exerciseName=${encodeURIComponent(enhancedExercise.name)}`,
-                  { headers: { 'x-username': localStorage.getItem('selected-username') || 'demo' } }
-                );
-                
-                if (historyResponse.ok) {
-                  const history = await historyResponse.json();
-                  if (history && history.length > 0) {
-                    // Sort by date descending to get most recent
-                    const sortedHistory = history.sort((a: any, b: any) => 
-                      new Date(b.date).getTime() - new Date(a.date).getTime()
-                    );
-                    defaultWeight = sortedHistory[0].weight || 0;
-                  }
+                // Cached via TanStack (shares the exercise-history cache key
+                // with the detail view) instead of a raw fetch. retry:1 keeps
+                // this non-critical default-weight lookup from holding the
+                // exercise loader through the full retry:3 backoff on flaky wifi.
+                const history = await queryClient.fetchQuery({
+                  ...exerciseHistoryQueryOptions(enhancedExercise.name),
+                  retry: 1,
+                });
+                if (history && history.length > 0) {
+                  // Sort by date descending to get most recent
+                  const sortedHistory = [...history].sort((a: any, b: any) =>
+                    new Date(b.date).getTime() - new Date(a.date).getTime()
+                  );
+                  defaultWeight = sortedHistory[0].weight || 0;
                 }
               } catch (error) {
                 console.error('Error fetching exercise history for default weight:', error);
@@ -267,7 +270,7 @@ export default function ExercisePage() {
     return () => {
       isMounted = false;
     };
-  }, [workoutNumber, exerciseIndex, programJson]);
+  }, [workoutNumber, exerciseIndex, programJson, allExercisesData, allOneRMsData]);
 
   if (programError && !programJson) {
     return <ProgramDataError onRetry={() => refetchProgram()} />;

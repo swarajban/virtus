@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,7 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ExerciseHistoryModal } from "@/components/exercise-history-modal";
 import { ArrowLeft, Search, Activity, ExternalLink } from "lucide-react";
-import { LocalStorage } from "@/lib/storage";
+import { useAllExercises, useAllExerciseHistory } from "@/hooks/use-exercises-data";
 import type { ExerciseHistoryEntry } from "@shared/schema";
 
 interface ExerciseGroup {
@@ -19,40 +19,25 @@ interface ExerciseGroup {
 export default function ExerciseHistoryPage() {
   const [, setLocation] = useLocation();
   const [searchQuery, setSearchQuery] = useState("");
-  const [exerciseHistory, setExerciseHistory] = useState<ExerciseHistoryEntry[]>([]);
   const [selectedExercise, setSelectedExercise] = useState<string | null>(null);
   const [showHistory, setShowHistory] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [exerciseMap, setExerciseMap] = useState<Record<string, number>>({});
 
-  useEffect(() => {
-    async function loadHistory() {
-      try {
-        const [history, exercisesResponse] = await Promise.all([
-          LocalStorage.getExerciseHistory(),
-          fetch('/api/exercises', {
-            headers: { 'x-username': localStorage.getItem('selected-username') || 'demo' }
-          })
-        ]);
-        
-        setExerciseHistory(history || []);
-        
-        if (exercisesResponse.ok) {
-          const exercises = await exercisesResponse.json();
-          const map: Record<string, number> = {};
-          exercises.forEach((ex: any) => {
-            map[ex.name] = ex.id;
-          });
-          setExerciseMap(map);
-        }
-      } catch (error) {
-        console.error("Error loading exercise history:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    }
-    loadHistory();
-  }, []);
+  // Both reads come from the shared TanStack cache — resilient to flaky wifi
+  // (retry/backoff) and served instantly from cache on a warm session.
+  const { data: historyData = [], isLoading: historyLoading } = useAllExerciseHistory<ExerciseHistoryEntry[]>();
+  const { data: allExercises = [] } = useAllExercises();
+  const exerciseHistory = historyData;
+
+  // Map exercise name → id for the "view details" deep-link.
+  const exerciseMap = useMemo(() => {
+    const map: Record<string, number> = {};
+    (allExercises as any[]).forEach((ex: any) => { map[ex.name] = ex.id; });
+    return map;
+  }, [allExercises]);
+
+  // Only block on a true cold load (no cached history yet). On a warm session
+  // the cache serves instantly and this never shows.
+  const isLoading = historyLoading && historyData.length === 0;
 
   // Group exercises by name and count occurrences
   const groupedExercises = useMemo(() => {

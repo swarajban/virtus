@@ -8,8 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Youtube, Save, Dumbbell } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { useAllExercises, useExercise, useExerciseHistory, useOneRMForExercise } from "@/hooks/use-exercises-data";
 import { LocalStorage } from "@/lib/storage";
 import { ExerciseHistoryModal } from "@/components/exercise-history-modal";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -30,43 +31,22 @@ export default function ExerciseInfo() {
   const [usesBarbell, setUsesBarbell] = useState(true);
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   
-  // Fetch exercise data
-  const { data: exercise, isLoading } = useQuery({
-    queryKey: [`/api/exercises/${exerciseId}`],
-    enabled: !!exerciseId,
-  });
-  
-  // Fetch exercise history
-  const { data: exerciseHistory = [] } = useQuery({
-    queryKey: ["/api/exercise-history", { exerciseName: exercise?.name }],
-    enabled: !!exercise?.name,
-    queryFn: async () => {
-      const response = await fetch(`/api/exercise-history?exerciseName=${exercise?.name}`, {
-        headers: { 'x-username': localStorage.getItem('selected-username') || 'demo' }
-      });
-      if (!response.ok) throw new Error('Failed to fetch history');
-      return response.json();
-    }
-  });
-  
-  // Fetch all exercises for 1RM selector
-  const { data: allExercises = [] } = useQuery({
-    queryKey: ["/api/exercises"],
-  });
-  
-  // Fetch 1RM for this exercise
-  const { data: oneRM } = useQuery({
-    queryKey: [`/api/one-rm/exercise/${exerciseId}`],
-    enabled: !!exerciseId,
-    retry: false,
-  });
-  
+  // Fetch exercise data (shared cache)
+  const { data: exercise, isLoading } = useExercise<any>(exerciseId);
+
+  // Fetch exercise history (shared hook — encodes the name correctly)
+  const { data: exerciseHistory = [] } = useExerciseHistory<any[]>(exercise?.name);
+
+  // Fetch all exercises for 1RM selector (shared cache)
+  const { data: allExercises = [] } = useAllExercises<any[]>();
+
+  // Fetch 1RM for this exercise (shared cache)
+  const { data: oneRM } = useOneRMForExercise<any>(exerciseId);
+
   // Fetch 1RM for referenced exercise (if onermExerciseId is set)
-  const { data: referencedOneRM } = useQuery({
-    queryKey: [`/api/one-rm/exercise/${onermExerciseId}`],
-    enabled: !!onermExerciseId && onermExerciseId !== "",
-    retry: false,
-  });
+  const { data: referencedOneRM } = useOneRMForExercise<any>(
+    onermExerciseId ? parseInt(onermExerciseId) : undefined
+  );
   
   // Initialize form with exercise data
   useEffect(() => {
@@ -142,9 +122,11 @@ export default function ExerciseInfo() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/one-rm/exercise/${exerciseId}`] });
+      // Shared key feeding calculated weights on the workout/exercise pages.
+      queryClient.invalidateQueries({ queryKey: ["/api/one-rm/all"] });
     },
   });
-  
+
   // Mutation to delete 1RM weight
   const delete1RMMutation = useMutation({
     mutationFn: async () => {
@@ -159,6 +141,8 @@ export default function ExerciseInfo() {
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/one-rm/exercise/${exerciseId}`] });
+      // Shared key feeding calculated weights on the workout/exercise pages.
+      queryClient.invalidateQueries({ queryKey: ["/api/one-rm/all"] });
       setOneRMWeight("");
     },
   });

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useLocation, useRoute } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,9 +8,10 @@ import { LocalStorage } from "@/lib/storage";
 import { api } from "@/lib/api-client";
 import { getWorkoutStatusBadge, formatDate, enhanceExerciseWithCalculations } from "@/lib/workout-utils";
 import type { WorkoutWithProgress, ExerciseWithCalculatedWeight } from "@/types/workout";
-import type { User } from "@shared/schema";
+import type { User, OneRM, WorkoutProgress } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { usePowerbuildingData, resolveProgramWorkouts } from "@/hooks/use-powerbuilding-data";
+import { useAllExercises, useAllOneRMs } from "@/hooks/use-exercises-data";
 import { PageMotion } from "@/components/page-motion";
 import { ProgramDataError } from "@/components/program-data-error";
 import { setNavDirection } from "@/lib/motion";
@@ -22,104 +23,104 @@ export default function WorkoutPage() {
   const [, setLocation] = useLocation();
   const [match, params] = useRoute("/workout/:workoutNumber");
   const { toast } = useToast();
-  const [workout, setWorkout] = useState<WorkoutWithProgress | null>(null);
-  const [exercises, setExercises] = useState<ExerciseWithCalculatedWeight[]>([]);
   const [showReset, setShowReset] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [oneRM, setOneRM] = useState<OneRM | null>(null);
+  const [workoutProgressMap, setWorkoutProgressMap] = useState<Record<number, WorkoutProgress>>({});
+  // Whether the per-workout progress has loaded yet. The exercise LIST renders
+  // immediately from cached program data, but the status-dependent action
+  // buttons stay hidden until progress is known — otherwise a warm-cache render
+  // would briefly show "Start Workout" for an already-in-progress workout, and
+  // tapping it would overwrite saved exercise progress with {} (data loss).
+  const [progressLoaded, setProgressLoaded] = useState(false);
 
   const workoutNumber = params ? parseInt(params.workoutNumber) : 0;
+
+  // Program structure (646KB JSON) — cached app-wide, staleTime Infinity.
   const { data: programJson, isError: programError, refetch: refetchProgram } = usePowerbuildingData();
+  // Exercise library + every-exercise 1RM map — shared TanStack cache (keys
+  // ["/api/exercises"], ["/api/one-rm/all"]). On a warm session these resolve
+  // from cache instantly, so navigating back here never blocks on a cold fetch
+  // (this is the gym-wifi hang fix). They revalidate in the background.
+  const { data: allExercises = [] } = useAllExercises();
+  const { data: allOneRMs = [] } = useAllOneRMs();
 
+  // Per-user, frequently-mutated data still flows through LocalStorage (which
+  // wraps the API with its own fallback). Loaded WITHOUT blocking the render so
+  // the page paints its structure from cached data and fills these in as they
+  // arrive — never a dead blank on slow wifi.
   useEffect(() => {
-    async function loadWorkoutData() {
-      if (!programJson) return;
-      if (workoutNumber) {
-        try {
-          setIsLoading(true);
-          const [workoutProgress, oneRM, user] = await Promise.all([
-            LocalStorage.getWorkoutProgress(),
-            LocalStorage.getOneRM(),
-            api.getCurrentUser().catch(() => null)
-          ]);
+    let active = true;
+    setProgressLoaded(false);
+    LocalStorage.getOneRM().then((v) => { if (active) setOneRM(v); }).catch(() => {});
+    LocalStorage.getWorkoutProgress()
+      .then((v) => { if (active) setWorkoutProgressMap(v || {}); })
+      .catch(() => {})
+      .finally(() => { if (active) setProgressLoaded(true); });
+    api.getCurrentUser().then((u) => { if (active) setCurrentUser(u); }).catch(() => {});
+    return () => { active = false; };
+  }, [workoutNumber]);
 
-          if (user) {
-            setCurrentUser(user);
-          }
-          
-          // Fetch all exercises and their 1RMs
-          const [allExercisesResponse, allOneRMsResponse] = await Promise.all([
-            fetch('/api/exercises', {
-              headers: { 'x-username': localStorage.getItem('selected-username') || 'demo' }
-            }),
-            fetch('/api/one-rm/all', {
-              headers: { 'x-username': localStorage.getItem('selected-username') || 'demo' }
-            })
-          ]);
-          
-          const allExercises = await allExercisesResponse.json();
-          const allOneRMs = await allOneRMsResponse.json();
-          
-          // Create a map of exercise ID to 1RM weight
-          const exerciseOneRMs = new Map<number, number>();
-          allOneRMs.forEach((orm: any) => {
-            exerciseOneRMs.set(orm.exerciseId, orm.weight);
-          });
-          
-          // Handle new JSON structure with programs - use user's selected program
-          const selectedProgramName = user?.selectedProgram || 'Powerbuilding 4x';
-          const workoutData = resolveProgramWorkouts(programJson, selectedProgramName);
-          const foundWorkout = workoutData.find((w: any) => w.workout_number === workoutNumber);
-          
-          if (foundWorkout) {
-            const workoutWithProgress: WorkoutWithProgress = {
-              ...foundWorkout,
-              progress: workoutProgress[workoutNumber],
-            };
-            setWorkout(workoutWithProgress);
+  // Prefer the authoritative user program once loaded; before that, fall back to
+  // the locally-remembered program (not a hardcoded default) so users on a
+  // non-default program don't flash the wrong workout/exercises on first paint.
+  const selectedProgramName =
+    currentUser?.selectedProgram || localStorage.getItem('selected-program') || 'Powerbuilding 4x';
 
-            // Enhance exercises with calculated weights using new 1RM system
-            // Also handle swapped exercises
-            const enhancedExercises = foundWorkout.exercises.map((exercise: any, index: number) => {
-              const exerciseKey = `${index}`;
-              const swapInfo = workoutProgress[workoutNumber]?.exerciseProgress?.[exerciseKey]?.swappedExercise;
-              
-              let exerciseToEnhance = exercise;
-              if (swapInfo) {
-                // Replace with swapped exercise details
-                const swappedExercise = allExercises.find((e: any) => e.id === swapInfo.exerciseId);
-                if (swappedExercise) {
-                  exerciseToEnhance = {
-                    ...exercise,
-                    name: swappedExercise.name,
-                    notes: swappedExercise.notes || exercise.notes,
-                    id: swappedExercise.id,
-                    onermExerciseId: swappedExercise.onermExerciseId,
-                    swappedFrom: swapInfo.originalName
-                  };
-                }
-              }
-              
-              return enhanceExerciseWithCalculations(exerciseToEnhance, oneRM, exerciseOneRMs, allExercises);
-            });
-            setExercises(enhancedExercises);
-          }
-        } catch (error) {
-          console.error('Error loading workout data:', error);
-        } finally {
-          setIsLoading(false);
+  const foundWorkout = useMemo(() => {
+    if (!programJson) return null;
+    const workoutData = resolveProgramWorkouts(programJson, selectedProgramName);
+    return workoutData.find((w: any) => w.workout_number === workoutNumber) || null;
+  }, [programJson, selectedProgramName, workoutNumber]);
+
+  const exerciseOneRMs = useMemo(() => {
+    const map = new Map<number, number>();
+    (allOneRMs as any[]).forEach((orm: any) => map.set(orm.exerciseId, orm.weight));
+    return map;
+  }, [allOneRMs]);
+
+  const workout: WorkoutWithProgress | null = useMemo(() => {
+    if (!foundWorkout) return null;
+    return { ...foundWorkout, progress: workoutProgressMap[workoutNumber] };
+  }, [foundWorkout, workoutProgressMap, workoutNumber]);
+
+  // Enhance exercises with calculated weights + swapped-exercise handling.
+  // Preserves ORIGINAL array index (progress is keyed by index) — the render
+  // filters to working sets but keeps each exercise's originalIndex.
+  const exercises: ExerciseWithCalculatedWeight[] = useMemo(() => {
+    if (!foundWorkout) return [];
+    return foundWorkout.exercises.map((exercise: any, index: number) => {
+      const exerciseKey = `${index}`;
+      const swapInfo = workoutProgressMap[workoutNumber]?.exerciseProgress?.[exerciseKey]?.swappedExercise;
+
+      let exerciseToEnhance = exercise;
+      if (swapInfo) {
+        const swappedExercise = (allExercises as any[]).find((e: any) => e.id === swapInfo.exerciseId);
+        if (swappedExercise) {
+          exerciseToEnhance = {
+            ...exercise,
+            name: swappedExercise.name,
+            notes: swappedExercise.notes || exercise.notes,
+            id: swappedExercise.id,
+            onermExerciseId: swappedExercise.onermExerciseId,
+            swappedFrom: swapInfo.originalName,
+          };
         }
       }
-    }
-    
-    loadWorkoutData();
-  }, [workoutNumber, programJson]);
+
+      return enhanceExerciseWithCalculations(exerciseToEnhance, oneRM ?? undefined, exerciseOneRMs, allExercises as any[]);
+    });
+  }, [foundWorkout, workoutProgressMap, workoutNumber, allExercises, oneRM, exerciseOneRMs]);
 
   if (programError && !programJson) {
     return <ProgramDataError onRetry={() => refetchProgram()} />;
   }
 
-  if (isLoading || !workout) {
+  // Block ONLY on a true cold load with no cached program structure yet. On a
+  // warm session programJson is cached (staleTime Infinity) so `workout` is
+  // ready on the first render and this loader never shows — instant from cache,
+  // even while /api/exercises and /api/one-rm/all are slow/revalidating.
+  if (!workout) {
     return (
       <div className="max-w-md mx-auto bg-white min-h-screen flex items-center justify-center">
         <div className="text-center">
@@ -134,6 +135,7 @@ export default function WorkoutPage() {
   const statusBadge = getWorkoutStatusBadge(status);
 
   const handleStartWorkout = async () => {
+    if (!progressLoaded) return; // don't overwrite unloaded progress with {}
     const progress = {
       programName: localStorage.getItem('selected-program') || 'Powerbuilding 4x',
       workoutNumber,
@@ -142,10 +144,11 @@ export default function WorkoutPage() {
       exerciseProgress: workout.progress?.exerciseProgress || {}, // PRESERVE existing exercise progress
     };
     await LocalStorage.saveWorkoutProgress(workoutNumber, progress);
-    setWorkout({ ...workout, progress });
+    setWorkoutProgressMap((prev) => ({ ...prev, [workoutNumber]: progress }));
   };
 
   const handleCompleteWorkout = async () => {
+    if (!progressLoaded) return; // don't overwrite unloaded progress
     const progress = {
       programName: localStorage.getItem('selected-program') || 'Powerbuilding 4x',
       workoutNumber,
@@ -155,7 +158,7 @@ export default function WorkoutPage() {
       exerciseProgress: workout.progress?.exerciseProgress || {}, // PRESERVE existing exercise progress
     };
     await LocalStorage.saveWorkoutProgress(workoutNumber, progress);
-    setWorkout({ ...workout, progress });
+    setWorkoutProgressMap((prev) => ({ ...prev, [workoutNumber]: progress }));
   };
 
   const handleResetWorkout = async () => {
@@ -164,10 +167,13 @@ export default function WorkoutPage() {
       // Then clear workout progress
       await LocalStorage.clearExerciseHistoryForWorkout(workoutNumber);
       await LocalStorage.clearWorkoutProgress(workoutNumber);
-      
-      // Update the workout state
-      const resetWorkout = { ...workout, progress: undefined };
-      setWorkout(resetWorkout);
+
+      // Drop this workout's progress from local state (recomputes `workout`)
+      setWorkoutProgressMap((prev) => {
+        const next = { ...prev };
+        delete next[workoutNumber];
+        return next;
+      });
       console.log(`Reset workout ${workoutNumber} - cleared progress and session-specific exercise history`);
     } catch (error) {
       console.error("Error resetting workout:", error);
@@ -316,8 +322,14 @@ export default function WorkoutPage() {
       {/* Workout Actions */}
       <div className="p-4 bg-gray-50 border-b">
         <div className="grid grid-cols-2 gap-3 mb-3">
-          {status === "not_started" && (
-            <Button 
+          {!progressLoaded && (
+            <Button disabled className="bg-secondary/60 text-white h-12">
+              <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+              Loading…
+            </Button>
+          )}
+          {progressLoaded && status === "not_started" && (
+            <Button
               onClick={handleStartWorkout}
               className="bg-secondary text-white hover:bg-green-700 h-12"
             >
@@ -325,8 +337,8 @@ export default function WorkoutPage() {
               Start Workout
             </Button>
           )}
-          {status === "in_progress" && (
-            <Button 
+          {progressLoaded && status === "in_progress" && (
+            <Button
               onClick={handleCompleteWorkout}
               className="bg-secondary text-white hover:bg-green-700 h-12"
             >
@@ -334,8 +346,8 @@ export default function WorkoutPage() {
               Complete Workout
             </Button>
           )}
-          {status === "completed" && (
-            <Button 
+          {progressLoaded && status === "completed" && (
+            <Button
               onClick={handleExportSummary}
               className="bg-secondary text-white hover:bg-green-700 h-12"
             >
@@ -351,7 +363,7 @@ export default function WorkoutPage() {
             Back to Home
           </Button>
         </div>
-        {(status === "in_progress" || status === "completed") && (
+        {progressLoaded && (status === "in_progress" || status === "completed") && (
           <Button 
             variant="destructive"
             onClick={() => setShowReset(true)}
