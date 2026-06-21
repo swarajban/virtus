@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { WeightInput } from "@/components/ui/weight-input";
 import { ArrowLeft, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAllExercises, useAllOneRMs } from "@/hooks/use-exercises-data";
 
 export default function OneRMPage() {
   const [, setLocation] = useLocation();
@@ -26,15 +27,11 @@ export default function OneRMPage() {
     overheadPress?: number;
   }>({});
   
-  // Fetch exercises to get IDs for the main lifts
-  const { data: exercises = [] } = useQuery<any[]>({
-    queryKey: ["/api/exercises"],
-  });
-  
-  // Fetch all 1RMs for the user
-  const { data: allOneRMs = [] } = useQuery<any[]>({
-    queryKey: ["/api/one-rm/all"],
-  });
+  // Fetch exercises to get IDs for the main lifts (shared cache).
+  const { data: exercises = [] } = useAllExercises<any[]>();
+
+  // Fetch all 1RMs for the user (shared cache).
+  const { data: allOneRMs = [] } = useAllOneRMs<any[]>();
   
   // Initialize exercise IDs and 1RM values
   useEffect(() => {
