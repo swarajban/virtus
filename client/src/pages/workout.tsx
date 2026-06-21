@@ -27,6 +27,12 @@ export default function WorkoutPage() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [oneRM, setOneRM] = useState<OneRM | null>(null);
   const [workoutProgressMap, setWorkoutProgressMap] = useState<Record<number, WorkoutProgress>>({});
+  // Whether the per-workout progress has loaded yet. The exercise LIST renders
+  // immediately from cached program data, but the status-dependent action
+  // buttons stay hidden until progress is known — otherwise a warm-cache render
+  // would briefly show "Start Workout" for an already-in-progress workout, and
+  // tapping it would overwrite saved exercise progress with {} (data loss).
+  const [progressLoaded, setProgressLoaded] = useState(false);
 
   const workoutNumber = params ? parseInt(params.workoutNumber) : 0;
 
@@ -45,13 +51,21 @@ export default function WorkoutPage() {
   // arrive — never a dead blank on slow wifi.
   useEffect(() => {
     let active = true;
+    setProgressLoaded(false);
     LocalStorage.getOneRM().then((v) => { if (active) setOneRM(v); }).catch(() => {});
-    LocalStorage.getWorkoutProgress().then((v) => { if (active) setWorkoutProgressMap(v || {}); }).catch(() => {});
+    LocalStorage.getWorkoutProgress()
+      .then((v) => { if (active) setWorkoutProgressMap(v || {}); })
+      .catch(() => {})
+      .finally(() => { if (active) setProgressLoaded(true); });
     api.getCurrentUser().then((u) => { if (active) setCurrentUser(u); }).catch(() => {});
     return () => { active = false; };
   }, [workoutNumber]);
 
-  const selectedProgramName = currentUser?.selectedProgram || 'Powerbuilding 4x';
+  // Prefer the authoritative user program once loaded; before that, fall back to
+  // the locally-remembered program (not a hardcoded default) so users on a
+  // non-default program don't flash the wrong workout/exercises on first paint.
+  const selectedProgramName =
+    currentUser?.selectedProgram || localStorage.getItem('selected-program') || 'Powerbuilding 4x';
 
   const foundWorkout = useMemo(() => {
     if (!programJson) return null;
@@ -121,6 +135,7 @@ export default function WorkoutPage() {
   const statusBadge = getWorkoutStatusBadge(status);
 
   const handleStartWorkout = async () => {
+    if (!progressLoaded) return; // don't overwrite unloaded progress with {}
     const progress = {
       programName: localStorage.getItem('selected-program') || 'Powerbuilding 4x',
       workoutNumber,
@@ -133,6 +148,7 @@ export default function WorkoutPage() {
   };
 
   const handleCompleteWorkout = async () => {
+    if (!progressLoaded) return; // don't overwrite unloaded progress
     const progress = {
       programName: localStorage.getItem('selected-program') || 'Powerbuilding 4x',
       workoutNumber,
@@ -306,8 +322,14 @@ export default function WorkoutPage() {
       {/* Workout Actions */}
       <div className="p-4 bg-gray-50 border-b">
         <div className="grid grid-cols-2 gap-3 mb-3">
-          {status === "not_started" && (
-            <Button 
+          {!progressLoaded && (
+            <Button disabled className="bg-secondary/60 text-white h-12">
+              <span className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+              Loading…
+            </Button>
+          )}
+          {progressLoaded && status === "not_started" && (
+            <Button
               onClick={handleStartWorkout}
               className="bg-secondary text-white hover:bg-green-700 h-12"
             >
@@ -315,8 +337,8 @@ export default function WorkoutPage() {
               Start Workout
             </Button>
           )}
-          {status === "in_progress" && (
-            <Button 
+          {progressLoaded && status === "in_progress" && (
+            <Button
               onClick={handleCompleteWorkout}
               className="bg-secondary text-white hover:bg-green-700 h-12"
             >
@@ -324,8 +346,8 @@ export default function WorkoutPage() {
               Complete Workout
             </Button>
           )}
-          {status === "completed" && (
-            <Button 
+          {progressLoaded && status === "completed" && (
+            <Button
               onClick={handleExportSummary}
               className="bg-secondary text-white hover:bg-green-700 h-12"
             >
@@ -341,7 +363,7 @@ export default function WorkoutPage() {
             Back to Home
           </Button>
         </div>
-        {(status === "in_progress" || status === "completed") && (
+        {progressLoaded && (status === "in_progress" || status === "completed") && (
           <Button 
             variant="destructive"
             onClick={() => setShowReset(true)}

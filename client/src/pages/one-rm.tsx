@@ -115,9 +115,13 @@ export default function OneRMPage() {
       
       await Promise.all(promises);
       
-      // Invalidate queries
+      // Invalidate queries (the shared all-1RMs map + the legacy aggregate, and
+      // each edited lift's per-exercise key so the exercise detail page refreshes)
       queryClient.invalidateQueries({ queryKey: ["/api/one-rm/all"] });
       queryClient.invalidateQueries({ queryKey: ["/api/one-rm"] });
+      Object.values(exerciseIds).forEach((id) => {
+        if (id) queryClient.invalidateQueries({ queryKey: [`/api/one-rm/exercise/${id}`] });
+      });
       
       toast({
         title: "Success",

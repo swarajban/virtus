@@ -219,11 +219,14 @@ export default function ExercisePage() {
             
             if (!enhancedExercise.calculatedWeight && !isCompleted) {
               try {
-                // Cached + retried via TanStack (shares the exercise-history
-                // cache key with the detail view) instead of a raw fetch.
-                const history = await queryClient.fetchQuery(
-                  exerciseHistoryQueryOptions(enhancedExercise.name)
-                );
+                // Cached via TanStack (shares the exercise-history cache key
+                // with the detail view) instead of a raw fetch. retry:1 keeps
+                // this non-critical default-weight lookup from holding the
+                // exercise loader through the full retry:3 backoff on flaky wifi.
+                const history = await queryClient.fetchQuery({
+                  ...exerciseHistoryQueryOptions(enhancedExercise.name),
+                  retry: 1,
+                });
                 if (history && history.length > 0) {
                   // Sort by date descending to get most recent
                   const sortedHistory = [...history].sort((a: any, b: any) =>
