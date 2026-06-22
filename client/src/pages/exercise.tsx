@@ -862,38 +862,20 @@ export default function ExercisePage() {
                 onValueChange={setSwapSearchQuery}
               />
             </div>
-            <CommandList className="flex-1 px-2">
+            <CommandList className="overflow-y-auto px-2 flex-1">
               <CommandEmpty>No exercises found.</CommandEmpty>
               <CommandGroup>
-                {allExercises
-                  .filter((e: any) => e.id !== exerciseDbData?.id)
-                  .filter((e: any) => {
-                    // Custom substring filter (case-insensitive, predictable).
-                    // Substring match anywhere in the name, with word-boundary
-                    // matches ranked higher.
-                    if (!swapSearchQuery.trim()) return true;
-                    const query = swapSearchQuery.toLowerCase();
-                    const name = e.name.toLowerCase();
-                    return name.includes(query);
-                  })
-                  .sort((a: any, b: any) => {
-                    // Rank word-start/prefix matches above mid-word substring.
-                    if (!swapSearchQuery.trim()) return 0;
-                    const query = swapSearchQuery.toLowerCase();
-                    const aName = a.name.toLowerCase();
-                    const bName = b.name.toLowerCase();
-                    const aStarts = aName.startsWith(query);
-                    const bStarts = bName.startsWith(query);
-                    if (aStarts && !bStarts) return -1;
-                    if (!aStarts && bStarts) return 1;
-                    // Both start or both don't — check word boundary
-                    const aWordStart = new RegExp(`\\b${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`).test(aName);
-                    const bWordStart = new RegExp(`\\b${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`).test(bName);
-                    if (aWordStart && !bWordStart) return -1;
-                    if (!aWordStart && bWordStart) return 1;
-                    return 0;
-                  })
-                  .map((ex: any) => (
+                {(() => {
+                  const query = swapSearchQuery.trim().toLowerCase();
+                  // Combined filter: self-exclusion + query match in one pass
+                  const filtered = allExercises.filter((e: any) => {
+                    if (e.id === exerciseDbData?.id) return false;
+                    if (!query) return true;
+                    return e.name.toLowerCase().includes(query);
+                  });
+
+                  // Skip sort when query is empty
+                  if (!query) return filtered.map((ex: any) => (
                     <CommandItem
                       key={ex.id}
                       value={ex.name}
@@ -907,7 +889,44 @@ export default function ExercisePage() {
                       />
                       {ex.name}
                     </CommandItem>
-                  ))}
+                  ));
+
+                  // Hoist regex creation outside sort (created once, reused ~n*log(n) times)
+                  const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                  const wordBoundaryRegex = new RegExp(`\\b${escapedQuery}`);
+
+                  return filtered
+                    .sort((a: any, b: any) => {
+                      const aName = a.name.toLowerCase();
+                      const bName = b.name.toLowerCase();
+                      // Prefix match first
+                      const aStarts = aName.startsWith(query);
+                      const bStarts = bName.startsWith(query);
+                      if (aStarts && !bStarts) return -1;
+                      if (!aStarts && bStarts) return 1;
+                      // Word-boundary match second (reuse hoisted regex)
+                      const aWordStart = wordBoundaryRegex.test(aName);
+                      const bWordStart = wordBoundaryRegex.test(bName);
+                      if (aWordStart && !bWordStart) return -1;
+                      if (!aWordStart && bWordStart) return 1;
+                      return 0;
+                    })
+                    .map((ex: any) => (
+                      <CommandItem
+                        key={ex.id}
+                        value={ex.name}
+                        onSelect={() => setSelectedSwapExercise(ex)}
+                        className={selectedSwapExercise?.id === ex.id ? "bg-green-50" : ""}
+                      >
+                        <Check
+                          className={`mr-2 h-4 w-4 ${
+                            selectedSwapExercise?.id === ex.id ? "opacity-100" : "opacity-0"
+                          }`}
+                        />
+                        {ex.name}
+                      </CommandItem>
+                    ));
+                })()}
               </CommandGroup>
             </CommandList>
           </Command>
@@ -916,7 +935,12 @@ export default function ExercisePage() {
           <div className="flex justify-end gap-2 px-6 py-4 border-t flex-none">
             <Button
               variant="outline"
-              onClick={() => setShowSwapModal(false)}
+              onClick={() => {
+                setShowSwapModal(false);
+                // Explicit cleanup: onOpenChange won't fire for external prop changes
+                setSwapSearchQuery("");
+                setSelectedSwapExercise(null);
+              }}
             >
               Cancel
             </Button>
