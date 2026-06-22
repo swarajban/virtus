@@ -60,6 +60,7 @@ export default function ExercisePage() {
   const [exerciseDbData, setExerciseDbData] = useState<any>(null);
   const [showSwapModal, setShowSwapModal] = useState(false);
   const [selectedSwapExercise, setSelectedSwapExercise] = useState<any>(null);
+  const [swapSearchQuery, setSwapSearchQuery] = useState("");
   const [allExercises, setAllExercises] = useState<any[]>([]);
   const [swappedFromOriginal, setSwappedFromOriginal] = useState<string | null>(null);
   const [warmupInfo, setWarmupInfo] = useState<any>(null);
@@ -828,21 +829,70 @@ export default function ExercisePage() {
       />
 
       {/* Exercise Swap Modal */}
-      <Dialog open={showSwapModal} onOpenChange={setShowSwapModal}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Swap Exercise</DialogTitle>
-            <DialogDescription>
-              Select an exercise to swap with "{exercise.name}"
-            </DialogDescription>
-          </DialogHeader>
-          <Command>
-            <CommandInput placeholder="Search exercises..." />
-            <CommandList>
+      <Dialog
+        open={showSwapModal}
+        onOpenChange={(open) => {
+          setShowSwapModal(open);
+          if (!open) {
+            setSwapSearchQuery("");
+            setSelectedSwapExercise(null);
+          }
+        }}
+      >
+        <DialogContent className="max-w-md max-h-[85vh] flex flex-col p-0">
+          {/* Fixed header */}
+          <div className="px-6 pt-6 pb-4 flex-none">
+            <DialogHeader>
+              <DialogTitle>Swap Exercise</DialogTitle>
+              <DialogDescription>
+                Select an exercise to swap with "{exercise.name}"
+              </DialogDescription>
+            </DialogHeader>
+          </div>
+
+          {/* Scrollable command list — custom substring filter instead of fuzzy */}
+          <Command
+            className="flex-1 min-h-0"
+            shouldFilter={false}
+          >
+            <div className="flex-none">
+              <CommandInput
+                placeholder="Search exercises..."
+                value={swapSearchQuery}
+                onValueChange={setSwapSearchQuery}
+              />
+            </div>
+            <CommandList className="flex-1 px-2">
               <CommandEmpty>No exercises found.</CommandEmpty>
               <CommandGroup>
                 {allExercises
                   .filter((e: any) => e.id !== exerciseDbData?.id)
+                  .filter((e: any) => {
+                    // Custom substring filter (case-insensitive, predictable).
+                    // Substring match anywhere in the name, with word-boundary
+                    // matches ranked higher.
+                    if (!swapSearchQuery.trim()) return true;
+                    const query = swapSearchQuery.toLowerCase();
+                    const name = e.name.toLowerCase();
+                    return name.includes(query);
+                  })
+                  .sort((a: any, b: any) => {
+                    // Rank word-start/prefix matches above mid-word substring.
+                    if (!swapSearchQuery.trim()) return 0;
+                    const query = swapSearchQuery.toLowerCase();
+                    const aName = a.name.toLowerCase();
+                    const bName = b.name.toLowerCase();
+                    const aStarts = aName.startsWith(query);
+                    const bStarts = bName.startsWith(query);
+                    if (aStarts && !bStarts) return -1;
+                    if (!aStarts && bStarts) return 1;
+                    // Both start or both don't — check word boundary
+                    const aWordStart = new RegExp(`\\b${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`).test(aName);
+                    const bWordStart = new RegExp(`\\b${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`).test(bName);
+                    if (aWordStart && !bWordStart) return -1;
+                    if (!aWordStart && bWordStart) return 1;
+                    return 0;
+                  })
                   .map((ex: any) => (
                     <CommandItem
                       key={ex.id}
@@ -861,13 +911,12 @@ export default function ExercisePage() {
               </CommandGroup>
             </CommandList>
           </Command>
-          <div className="flex justify-end gap-2 mt-4">
+
+          {/* Fixed footer */}
+          <div className="flex justify-end gap-2 px-6 py-4 border-t flex-none">
             <Button
               variant="outline"
-              onClick={() => {
-                setShowSwapModal(false);
-                setSelectedSwapExercise(null);
-              }}
+              onClick={() => setShowSwapModal(false)}
             >
               Cancel
             </Button>
