@@ -209,13 +209,21 @@ export default function ExercisePage() {
             setExercise(enhancedExercise);
             setWorkoutName(foundWorkout.workout_name);
             // Count WORKING exercises only (nav skips warm-ups, so the header
-            // must too). M = total working sets; N = rank of the current exercise
-            // among working sets (count working entries in indices 0..current).
+            // must too). Predicate matches skipWarmups (the nav source of truth):
+            // a set is "working" iff it is not a warm-up. M = total working sets;
+            // N = rank of the current exercise among working sets.
             const allEx = foundWorkout.exercises;
             const isWorking = (e: any) => e.type_of_set !== "warm-up";
-            setTotalExercises(allEx.filter(isWorking).length);
+            const workingTotal = allEx.filter(isWorking).length;
+            const workingUpToHere = allEx.slice(0, exerciseIndex + 1).filter(isWorking).length;
+            setTotalExercises(workingTotal);
+            // In-app nav never lands on a warm-up, but a deep link / refresh to a
+            // warm-up index can. Showing "0 of M" there is wrong — display the
+            // number of the working set the warm-up precedes instead.
             setCurrentWorkingNumber(
-              allEx.slice(0, exerciseIndex + 1).filter(isWorking).length
+              isWorking(allEx[exerciseIndex])
+                ? workingUpToHere
+                : Math.min(workingUpToHere + 1, workingTotal)
             );
             // Cache the exercise list for synchronous, fetch-free navigation.
             navExercisesRef.current = foundWorkout.exercises;
