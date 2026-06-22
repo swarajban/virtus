@@ -53,7 +53,11 @@ export default function ExercisePage() {
   const [userNotes, setUserNotes] = useState("");
   const [showHistory, setShowHistory] = useState(false);
   const [oneRM, setOneRM] = useState<OneRM | null>(null);
+  // "Exercise N of M" counts WORKING exercises only (warm-ups are skipped during
+  // nav and must not inflate the count). totalExercises = M (working total);
+  // currentWorkingNumber = N (1-based rank of the current exercise among working).
   const [totalExercises, setTotalExercises] = useState(0);
+  const [currentWorkingNumber, setCurrentWorkingNumber] = useState(0);
   const [isCompleting, setIsCompleting] = useState(false);
   const [isExerciseCompleted, setIsExerciseCompleted] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
@@ -204,7 +208,23 @@ export default function ExercisePage() {
 
             setExercise(enhancedExercise);
             setWorkoutName(foundWorkout.workout_name);
-            setTotalExercises(foundWorkout.exercises.length);
+            // Count WORKING exercises only (nav skips warm-ups, so the header
+            // must too). Predicate matches skipWarmups (the nav source of truth):
+            // a set is "working" iff it is not a warm-up. M = total working sets;
+            // N = rank of the current exercise among working sets.
+            const allEx = foundWorkout.exercises;
+            const isWorking = (e: any) => e.type_of_set !== "warm-up";
+            const workingTotal = allEx.filter(isWorking).length;
+            const workingUpToHere = allEx.slice(0, exerciseIndex + 1).filter(isWorking).length;
+            setTotalExercises(workingTotal);
+            // In-app nav never lands on a warm-up, but a deep link / refresh to a
+            // warm-up index can. Showing "0 of M" there is wrong — display the
+            // number of the working set the warm-up precedes instead.
+            setCurrentWorkingNumber(
+              isWorking(allEx[exerciseIndex])
+                ? workingUpToHere
+                : Math.min(workingUpToHere + 1, workingTotal)
+            );
             // Cache the exercise list for synchronous, fetch-free navigation.
             navExercisesRef.current = foundWorkout.exercises;
 
@@ -587,7 +607,7 @@ export default function ExercisePage() {
       <div className="bg-gradient-to-b from-green-50 to-white p-6">
         <div className="flex items-center justify-between mb-3">
           <span className="text-sm text-gray-600 font-medium uppercase tracking-wide">
-            Exercise {exerciseIndex + 1} of {totalExercises}
+            Exercise {currentWorkingNumber} of {totalExercises}
           </span>
           {isExerciseCompleted && (
             <Badge className="bg-green-500 hover:bg-green-500 text-white border-green-500 px-3 py-1 rounded-full text-xs font-semibold">
@@ -718,7 +738,11 @@ export default function ExercisePage() {
             onClick={handleNextExercise}
             onTouchEnd={(e) => e.currentTarget.blur()}
             onMouseUp={(e) => e.currentTarget.blur()}
-            disabled={exerciseIndex >= totalExercises - 1 || isCompleting}
+            // Disabled when there is no further WORKING exercise after this one.
+            // Uses the same skipWarmups walk as nav (robust to trailing warm-ups);
+            // a totalExercises-based check would be wrong since exerciseIndex is a
+            // raw array index but totalExercises counts working sets only.
+            disabled={skipWarmups(navExercisesRef.current, exerciseIndex + 1, 1) >= navExercisesRef.current.length || isCompleting}
             {...tapProps(reducedMotion)}
             className="px-3 py-1.5 text-sm font-medium rounded-md border border-gray-300 bg-white text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed nav-button-mobile"
             type="button"
