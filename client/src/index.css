@@ -180,20 +180,24 @@
    * reads as a clear directional slide without exposing a blank gap; the parent
    * clips the horizontal offset (overflow-x-hidden) so there's no h-scroll. */
   .exercise-slide-fwd {
-    animation: exerciseSlideFromRight 0.2s cubic-bezier(0.32, 0.72, 0, 1) both;
+    animation: exerciseSlideFromRight 0.32s cubic-bezier(0.32, 0.72, 0, 1) both;
   }
 
   .exercise-slide-back {
-    animation: exerciseSlideFromLeft 0.2s cubic-bezier(0.32, 0.72, 0, 1) both;
+    animation: exerciseSlideFromLeft 0.32s cubic-bezier(0.32, 0.72, 0, 1) both;
   }
 
+  /* 2.5rem (~40px) travel over 0.32s — a clearly perceptible directional cue
+     (the prior 1.5rem/0.2s read as almost undetectable) while staying a cue, not
+     a full page swipe. Pure translateX, compositor-driven, no opacity (opacity
+     quantized to a blink on real iOS). */
   @keyframes exerciseSlideFromRight {
-    from { transform: translateX(1.5rem); }
+    from { transform: translateX(2.5rem); }
     to { transform: translateX(0); }
   }
 
   @keyframes exerciseSlideFromLeft {
-    from { transform: translateX(-1.5rem); }
+    from { transform: translateX(-2.5rem); }
     to { transform: translateX(0); }
   }
 
