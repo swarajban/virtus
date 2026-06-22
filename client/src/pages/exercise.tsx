@@ -80,12 +80,6 @@ export default function ExercisePage() {
   const queryClient = useQueryClient();
   const navExercisesRef = useRef<any[]>([]);
   const completeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  // Direction of the last nav, set synchronously by Prev/Next/Complete right
-  // before the route changes, then read on the next render to pick the slide
-  // direction. The page stays mounted across exercise nav (only :exerciseIndex
-  // changes), so the cue is re-triggered by remounting a SMALL keyed wrapper
-  // (key={exerciseIndex}) — not by an enter-only animation that would no-op.
-  const navDirRef = useRef<"forward" | "back">("forward");
   const reducedMotion = useReducedMotion() ?? false;
 
   // Clear any pending completion-advance timer if the page unmounts mid-reward,
@@ -98,6 +92,23 @@ export default function ExercisePage() {
 
   const workoutNumber = parseInt(params?.workoutNumber ?? '0', 10);
   const exerciseIndex = parseInt(params?.exerciseIndex ?? '0', 10);
+
+  // Directional nav cue. The page stays mounted across exercise nav (only the
+  // :exerciseIndex route param changes), so an enter-only animation would no-op;
+  // we re-trigger it by remounting a SMALL keyed wrapper. Two subtleties this
+  // handles:
+  //  - CONTENT, not route, drives the cue. `exerciseIndex` updates synchronously
+  //    with the URL, but the displayed `exercise` is set later by the async data
+  //    effect. Keying to the route param would animate the OLD exercise (then
+  //    pop) on slow wifi. So we bump `slideCue` from inside that effect, AFTER
+  //    the new content is committed — the slide always shows the right exercise.
+  //  - Direction is DERIVED from the index delta (new vs. last displayed), so
+  //    every nav path is correct by construction — including browser/iOS
+  //    back-forward gestures that change the route without our handlers running.
+  const lastShownIndexRef = useRef(exerciseIndex);
+  const [slideCue, setSlideCue] = useState<{ key: number; dir: "fwd" | "back" }>(
+    { key: exerciseIndex, dir: "fwd" }
+  );
 
   // All auto-scrolling behavior removed for better mobile experience
 
@@ -196,6 +207,22 @@ export default function ExercisePage() {
             setTotalExercises(foundWorkout.exercises.length);
             // Cache the exercise list for synchronous, fetch-free navigation.
             navExercisesRef.current = foundWorkout.exercises;
+
+            // Trigger the directional slide now that the NEW content is ready
+            // (batched with the setState above → one render, fresh exercise +
+            // new key → remount → CSS animation replays on the correct exercise).
+            // Direction = sign of the index delta, so back/forward gestures and
+            // Prev/Next/Complete are all correct without per-handler bookkeeping.
+            // Only on an actual index change — a same-index re-run (background
+            // data revalidation) must NOT replay the cue. The initial mount
+            // already slides in from the default slideCue state.
+            if (exerciseIndex !== lastShownIndexRef.current) {
+              setSlideCue({
+                key: exerciseIndex,
+                dir: exerciseIndex < lastShownIndexRef.current ? "back" : "fwd",
+              });
+              lastShownIndexRef.current = exerciseIndex;
+            }
 
             // Find warm-up info if this is a working set
             if (exerciseData.type_of_set === "working") {
@@ -401,7 +428,6 @@ export default function ExercisePage() {
         const nextIndex = skipWarmups(allExercises, exerciseIndex + 1, 1);
 
         setIsCompleting(false); // Clear before navigating (avoid setState on unmount)
-        navDirRef.current = "forward"; // completion advances to the next set
         if (nextIndex < allExercises.length) {
           setLocation(`/workout/${workoutNumber}/exercise/${nextIndex}`);
         } else {
@@ -428,7 +454,6 @@ export default function ExercisePage() {
     const allExercises = navExercisesRef.current;
     const prevIndex = skipWarmups(allExercises, exerciseIndex - 1, -1);
 
-    navDirRef.current = "back"; // slide the new identity in from the left
     if (prevIndex >= 0) {
       setLocation(`/workout/${workoutNumber}/exercise/${prevIndex}`);
     } else {
@@ -450,7 +475,6 @@ export default function ExercisePage() {
     const allExercises = navExercisesRef.current;
     const nextIndex = skipWarmups(allExercises, exerciseIndex + 1, 1);
 
-    navDirRef.current = "forward"; // slide the new identity in from the right
     if (nextIndex < allExercises.length) {
       setLocation(`/workout/${workoutNumber}/exercise/${nextIndex}`);
     }
@@ -549,13 +573,15 @@ export default function ExercisePage() {
           transform (.exercise-slide-* in index.css) — pure translateX, run on
           WebKit's GPU compositor thread, NOT framer-motion's main-thread rAF
           (the old page-opacity fade quantized to a blink on real iOS). The outer
-          div clips the horizontal slide offset; the keyed inner div remounts per
-          exerciseIndex so the CSS animation REPLAYS on every Prev/Next (the page
-          itself stays mounted, so an enter-only animation would no-op). */}
-      <div className="overflow-x-hidden">
+          div clips the horizontal slide offset with overflow-x:clip (NOT hidden —
+          hidden would force overflow-y:auto, making a scroll container that clips
+          the banner shadow). The keyed inner div remounts when the new content is
+          ready (slideCue, bumped from the data effect) so the CSS animation
+          replays on the CORRECT exercise, not the stale one. */}
+      <div className="overflow-x-clip">
       <div
-        key={exerciseIndex}
-        className={reducedMotion ? undefined : (navDirRef.current === "back" ? "exercise-slide-back" : "exercise-slide-fwd")}
+        key={slideCue.key}
+        className={reducedMotion ? undefined : (slideCue.dir === "back" ? "exercise-slide-back" : "exercise-slide-fwd")}
       >
       {/* Exercise Header with Modern Design */}
       <div className="bg-gradient-to-b from-green-50 to-white p-6">
