@@ -80,6 +80,12 @@ export default function ExercisePage() {
   const queryClient = useQueryClient();
   const navExercisesRef = useRef<any[]>([]);
   const completeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Direction of the last nav, set synchronously by Prev/Next/Complete right
+  // before the route changes, then read on the next render to pick the slide
+  // direction. The page stays mounted across exercise nav (only :exerciseIndex
+  // changes), so the cue is re-triggered by remounting a SMALL keyed wrapper
+  // (key={exerciseIndex}) — not by an enter-only animation that would no-op.
+  const navDirRef = useRef<"forward" | "back">("forward");
   const reducedMotion = useReducedMotion() ?? false;
 
   // Clear any pending completion-advance timer if the page unmounts mid-reward,
@@ -395,6 +401,7 @@ export default function ExercisePage() {
         const nextIndex = skipWarmups(allExercises, exerciseIndex + 1, 1);
 
         setIsCompleting(false); // Clear before navigating (avoid setState on unmount)
+        navDirRef.current = "forward"; // completion advances to the next set
         if (nextIndex < allExercises.length) {
           setLocation(`/workout/${workoutNumber}/exercise/${nextIndex}`);
         } else {
@@ -421,6 +428,7 @@ export default function ExercisePage() {
     const allExercises = navExercisesRef.current;
     const prevIndex = skipWarmups(allExercises, exerciseIndex - 1, -1);
 
+    navDirRef.current = "back"; // slide the new identity in from the left
     if (prevIndex >= 0) {
       setLocation(`/workout/${workoutNumber}/exercise/${prevIndex}`);
     } else {
@@ -442,6 +450,7 @@ export default function ExercisePage() {
     const allExercises = navExercisesRef.current;
     const nextIndex = skipWarmups(allExercises, exerciseIndex + 1, 1);
 
+    navDirRef.current = "forward"; // slide the new identity in from the right
     if (nextIndex < allExercises.length) {
       setLocation(`/workout/${workoutNumber}/exercise/${nextIndex}`);
     }
@@ -535,6 +544,19 @@ export default function ExercisePage() {
         </div>
       </header>
 
+      {/* Exercise identity (name / "N of M" / prescription / set-type / warm-up).
+          Directional nav cue: this block slides in as a compositor-driven CSS
+          transform (.exercise-slide-* in index.css) — pure translateX, run on
+          WebKit's GPU compositor thread, NOT framer-motion's main-thread rAF
+          (the old page-opacity fade quantized to a blink on real iOS). The outer
+          div clips the horizontal slide offset; the keyed inner div remounts per
+          exerciseIndex so the CSS animation REPLAYS on every Prev/Next (the page
+          itself stays mounted, so an enter-only animation would no-op). */}
+      <div className="overflow-x-hidden">
+      <div
+        key={exerciseIndex}
+        className={reducedMotion ? undefined : (navDirRef.current === "back" ? "exercise-slide-back" : "exercise-slide-fwd")}
+      >
       {/* Exercise Header with Modern Design */}
       <div className="bg-gradient-to-b from-green-50 to-white p-6">
         <div className="flex items-center justify-between mb-3">
@@ -640,6 +662,8 @@ export default function ExercisePage() {
           <div className="border-b border-gray-100 mt-1" />
         </div>
       )}
+      </div>
+      </div>
 
       {/* Exercise Navigation - Moved to top for better accessibility */}
       <div className="p-4 bg-white border-b">
