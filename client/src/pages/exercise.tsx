@@ -60,6 +60,7 @@ export default function ExercisePage() {
   const [exerciseDbData, setExerciseDbData] = useState<any>(null);
   const [showSwapModal, setShowSwapModal] = useState(false);
   const [selectedSwapExercise, setSelectedSwapExercise] = useState<any>(null);
+  const [swapSearchQuery, setSwapSearchQuery] = useState("");
   const [allExercises, setAllExercises] = useState<any[]>([]);
   const [swappedFromOriginal, setSwappedFromOriginal] = useState<string | null>(null);
   const [warmupInfo, setWarmupInfo] = useState<any>(null);
@@ -828,22 +829,53 @@ export default function ExercisePage() {
       />
 
       {/* Exercise Swap Modal */}
-      <Dialog open={showSwapModal} onOpenChange={setShowSwapModal}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Swap Exercise</DialogTitle>
-            <DialogDescription>
-              Select an exercise to swap with "{exercise.name}"
-            </DialogDescription>
-          </DialogHeader>
-          <Command>
-            <CommandInput placeholder="Search exercises..." />
-            <CommandList>
+      <Dialog
+        open={showSwapModal}
+        onOpenChange={(open) => {
+          setShowSwapModal(open);
+          if (!open) {
+            setSwapSearchQuery("");
+            setSelectedSwapExercise(null);
+          }
+        }}
+      >
+        <DialogContent className="max-w-md max-h-[85vh] flex flex-col p-0">
+          {/* Fixed header */}
+          <div className="px-6 pt-6 pb-4 flex-none">
+            <DialogHeader>
+              <DialogTitle>Swap Exercise</DialogTitle>
+              <DialogDescription>
+                Select an exercise to swap with "{exercise.name}"
+              </DialogDescription>
+            </DialogHeader>
+          </div>
+
+          {/* Scrollable command list — custom substring filter instead of fuzzy */}
+          <Command
+            className="flex-1 min-h-0"
+            shouldFilter={false}
+          >
+            <div className="flex-none">
+              <CommandInput
+                placeholder="Search exercises..."
+                value={swapSearchQuery}
+                onValueChange={setSwapSearchQuery}
+              />
+            </div>
+            <CommandList className="overflow-y-auto px-2 flex-1">
               <CommandEmpty>No exercises found.</CommandEmpty>
               <CommandGroup>
-                {allExercises
-                  .filter((e: any) => e.id !== exerciseDbData?.id)
-                  .map((ex: any) => (
+                {(() => {
+                  const query = swapSearchQuery.trim().toLowerCase();
+                  // Combined filter: self-exclusion + query match in one pass
+                  const filtered = allExercises.filter((e: any) => {
+                    if (e.id === exerciseDbData?.id) return false;
+                    if (!query) return true;
+                    return e.name.toLowerCase().includes(query);
+                  });
+
+                  // Skip sort when query is empty
+                  if (!query) return filtered.map((ex: any) => (
                     <CommandItem
                       key={ex.id}
                       value={ex.name}
@@ -857,15 +889,56 @@ export default function ExercisePage() {
                       />
                       {ex.name}
                     </CommandItem>
-                  ))}
+                  ));
+
+                  // Hoist regex creation outside sort (created once, reused ~n*log(n) times)
+                  const escapedQuery = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+                  const wordBoundaryRegex = new RegExp(`\\b${escapedQuery}`);
+
+                  return filtered
+                    .sort((a: any, b: any) => {
+                      const aName = a.name.toLowerCase();
+                      const bName = b.name.toLowerCase();
+                      // Prefix match first
+                      const aStarts = aName.startsWith(query);
+                      const bStarts = bName.startsWith(query);
+                      if (aStarts && !bStarts) return -1;
+                      if (!aStarts && bStarts) return 1;
+                      // Word-boundary match second (reuse hoisted regex)
+                      const aWordStart = wordBoundaryRegex.test(aName);
+                      const bWordStart = wordBoundaryRegex.test(bName);
+                      if (aWordStart && !bWordStart) return -1;
+                      if (!aWordStart && bWordStart) return 1;
+                      return 0;
+                    })
+                    .map((ex: any) => (
+                      <CommandItem
+                        key={ex.id}
+                        value={ex.name}
+                        onSelect={() => setSelectedSwapExercise(ex)}
+                        className={selectedSwapExercise?.id === ex.id ? "bg-green-50" : ""}
+                      >
+                        <Check
+                          className={`mr-2 h-4 w-4 ${
+                            selectedSwapExercise?.id === ex.id ? "opacity-100" : "opacity-0"
+                          }`}
+                        />
+                        {ex.name}
+                      </CommandItem>
+                    ));
+                })()}
               </CommandGroup>
             </CommandList>
           </Command>
-          <div className="flex justify-end gap-2 mt-4">
+
+          {/* Fixed footer */}
+          <div className="flex justify-end gap-2 px-6 py-4 border-t flex-none">
             <Button
               variant="outline"
               onClick={() => {
                 setShowSwapModal(false);
+                // Explicit cleanup: onOpenChange won't fire for external prop changes
+                setSwapSearchQuery("");
                 setSelectedSwapExercise(null);
               }}
             >
