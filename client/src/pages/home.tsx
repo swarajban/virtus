@@ -199,7 +199,7 @@ export default function HomePage() {
           <h3 className="text-xl font-bold text-gray-900">All Workouts</h3>
         </div>
         
-        <div className="flex-1 overflow-y-auto px-4 pb-4">
+        <div className="flex-1 overflow-y-auto momentum-scroll px-4 pb-4">
           <div className="space-y-3">
             {workouts.map((workout) => (
               <div

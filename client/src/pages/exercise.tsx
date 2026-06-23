@@ -32,7 +32,8 @@ import { usePowerbuildingData, resolveProgramWorkouts, skipWarmups } from "@/hoo
 import { useAllExercises, useAllOneRMs, exerciseHistoryQueryOptions } from "@/hooks/use-exercises-data";
 import { useQueryClient } from "@tanstack/react-query";
 import { ProgramDataError } from "@/components/program-data-error";
-import { tapProps, DURATION, RACK_EASE } from "@/lib/motion";
+import { DURATION, RACK_EASE } from "@/lib/motion";
+import { haptic } from "@/lib/haptics";
 import type { ExerciseWithCalculatedWeight } from "@/types/workout";
 import type { OneRM } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
@@ -366,6 +367,8 @@ export default function ExercisePage() {
     // rapid second tap in the same tick; the ref does.)
     if (completeTimerRef.current) return;
 
+    haptic(12); // firm tick on the highest-value action
+
     // Force blur on any active element
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
@@ -508,6 +511,7 @@ export default function ExercisePage() {
       e.stopPropagation();
     }
     if (isCompleting) return; // don't race the completion-advance
+    haptic(8); // light tick on Previous
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
     }
@@ -529,6 +533,7 @@ export default function ExercisePage() {
       e.stopPropagation();
     }
     if (isCompleting) return; // don't race the completion-advance
+    haptic(8); // light tick on Next
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
     }
@@ -756,27 +761,25 @@ export default function ExercisePage() {
       {/* Exercise Navigation - Moved to top for better accessibility */}
       <div className="p-4 bg-white border-b">
         <div className="grid grid-cols-3 gap-2 mb-4">
-          <motion.button
+          <button
             onClick={() => { if (isCompleting) return; setLocation(`/workout/${workoutNumber}`); }}
             disabled={isCompleting}
-            {...tapProps(reducedMotion)}
-            className="px-3 py-1.5 text-sm font-medium rounded-md border border-gray-300 bg-white text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed nav-button-mobile"
+            className="press px-3 py-1.5 text-sm font-medium rounded-md border border-gray-300 bg-white text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed nav-button-mobile"
             type="button"
           >
             Workout
-          </motion.button>
-          <motion.button
+          </button>
+          <button
             onClick={handlePreviousExercise}
             onTouchEnd={(e) => e.currentTarget.blur()}
             onMouseUp={(e) => e.currentTarget.blur()}
             disabled={exerciseIndex === 0 || isCompleting}
-            {...tapProps(reducedMotion)}
-            className="px-3 py-1.5 text-sm font-medium rounded-md border border-gray-300 bg-white text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed nav-button-mobile"
+            className="press px-3 py-1.5 text-sm font-medium rounded-md border border-gray-300 bg-white text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed nav-button-mobile"
             type="button"
           >
             Previous
-          </motion.button>
-          <motion.button
+          </button>
+          <button
             onClick={handleNextExercise}
             onTouchEnd={(e) => e.currentTarget.blur()}
             onMouseUp={(e) => e.currentTarget.blur()}
@@ -785,12 +788,11 @@ export default function ExercisePage() {
             // a totalExercises-based check would be wrong since exerciseIndex is a
             // raw array index but totalExercises counts working sets only.
             disabled={skipWarmups(navExercisesRef.current, exerciseIndex + 1, 1) >= navExercisesRef.current.length || isCompleting}
-            {...tapProps(reducedMotion)}
-            className="px-3 py-1.5 text-sm font-medium rounded-md border border-gray-300 bg-white text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed nav-button-mobile"
+            className="press px-3 py-1.5 text-sm font-medium rounded-md border border-gray-300 bg-white text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed nav-button-mobile"
             type="button"
           >
             Next
-          </motion.button>
+          </button>
         </div>
 
         {/* Rest Timer */}

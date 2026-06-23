@@ -134,6 +134,38 @@
     font-weight: 700;
     letter-spacing: -0.02em;
   }
+
+  /* ============================================================
+   * TAP BASELINE (compositor-safe, app-wide)
+   * One clean foundation so every control acknowledges touch.
+   * ============================================================ */
+
+  /* Kill the 300ms tap delay and the grey iOS tap-flash on every interactive
+   * surface (the flash would fight our own scale feedback). */
+  button, a, [role="button"], label, summary, .press, .press-card {
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* No long-press callout / accidental text selection on CONTROLS — but never on
+   * real text content or form fields (handled by the reset below). */
+  button, [role="button"], .press, .press-card {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  /* Keep selection / callout available on inputs and editable text. */
+  input, textarea, select, [contenteditable="true"] {
+    -webkit-user-select: auto;
+    user-select: auto;
+    -webkit-touch-callout: default;
+  }
+
+  /* Stop the document rubber-band that reveals a white gutter behind the app. */
+  html, body {
+    overscroll-behavior-y: none;
+  }
 }
 
 @layer utilities {
@@ -210,19 +242,54 @@
   }
   
   .progress-bar {
-    transition: width 0.5s ease-out;
+    transition: width 0.35s ease-out;
   }
-  
-  .workout-card {
-    transition: all 0.2s ease;
+
+  /* ============================================================
+   * UNIVERSAL PRESS FEEDBACK (compositor-safe)
+   * Pure CSS :active scale on `transform` only — handled on the GPU compositor
+   * thread, fires on touchstart (no React/JS lag), never animates opacity.
+   * `.press`      → buttons / small controls (firm 0.96)
+   * `.press-card` → large cards / list rows (subtle 0.98)
+   * Apply broadly. The shared <Button> gets `.press` behavior via its variants.
+   * ============================================================ */
+  .press,
+  .press-card {
+    transition: transform 100ms cubic-bezier(0.2, 0, 0.2, 1), box-shadow 250ms ease;
   }
-  
-  .workout-card:active {
+
+  .press:active {
+    transform: scale(0.96);
+  }
+
+  /* Cards/rows are driven by BOTH native :active (iOS, via the touchstart opt-in)
+   * and the delegated [data-pressed] toggle (mouse + touch, see lib/press.ts) so
+   * feedback is reliable across engines and input types. */
+  .press-card:active,
+  .press-card[data-pressed="true"] {
     transform: scale(0.98);
   }
-  
-  .active\:scale-98:active {
-    transform: scale(0.98);
+
+  /* Momentum scrolling + contained overscroll for inner scroll regions. */
+  .momentum-scroll {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
+  /* Honor the OS setting: no scale feedback under reduced motion. !important so
+   * it definitively beats the Tailwind `active:scale-*` utilities. */
+  @media (prefers-reduced-motion: reduce) {
+    .press,
+    .press-card {
+      transition: none;
+    }
+    .press:active,
+    .press-card:active,
+    .press-card[data-pressed="true"],
+    button:active,
+    [role="button"]:active {
+      transform: none !important;
+    }
   }
 
   /* Modern Gradient Backgrounds */
@@ -287,7 +354,9 @@
     }
   }
   
-  /* Mobile button focus fix - remove all focus states on touch devices */
+  /* Mobile button focus fix — strip sticky focus rings on touch devices.
+   * (Tap hygiene — touch-action / tap-highlight / callout / user-select — now
+   * lives once in the global TAP BASELINE above, so it's not duplicated here.) */
   @media (hover: none) and (pointer: coarse) {
     button:focus,
     button:focus-visible,
@@ -297,38 +366,20 @@
       box-shadow: none !important;
       border-color: inherit !important;
     }
-    
-    button {
-      -webkit-tap-highlight-color: transparent !important;
-      -webkit-touch-callout: none !important;
-      -webkit-user-select: none !important;
-      touch-action: manipulation !important;
-    }
-    
+
     button:focus::after,
     button:active::after {
       content: none !important;
     }
   }
-  
-  /* Specific fix for navigation buttons */
-  .nav-button-mobile {
-    -webkit-tap-highlight-color: transparent !important;
-    -webkit-touch-callout: none !important;
-    -webkit-user-select: none !important;
-    user-select: none !important;
-    outline: none !important;
-    touch-action: manipulation !important;
-  }
-  
+
+  /* Navigation buttons: keep focus-ring suppression, but DO NOT cancel the press
+   * transform (the old `transform: none !important` here silently killed the
+   * scale feedback). */
   .nav-button-mobile:focus,
   .nav-button-mobile:focus-visible,
-  .nav-button-mobile:focus-within,
-  .nav-button-mobile:active {
+  .nav-button-mobile:focus-within {
     outline: none !important;
     box-shadow: none !important;
-    background-color: inherit !important;
-    border-color: inherit !important;
-    transform: none !important;
   }
 }
