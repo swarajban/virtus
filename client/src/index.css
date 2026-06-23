@@ -270,9 +270,12 @@
 
   /* Cards/rows are driven by BOTH native :active (iOS, via the touchstart opt-in)
    * and the delegated [data-pressed] toggle (mouse + touch, see lib/press.ts) so
-   * feedback is reliable across engines and input types. The `[data-pressed]`
-   * attribute selector also out-specifies any single-class Tailwind transform
-   * utility, so the scale wins the cascade (no Tailwind transform-var conflict). */
+   * feedback is reliable across engines and input types. The scale wins the
+   * cascade in practice: `.press-card[data-pressed]` (0,2,0) out-specifies a bare
+   * single-class transform utility (e.g. `scale-95`, 0,1,0), and a *variant*
+   * transform utility like `hover:scale-*` (0,2,0, which would tie) can't apply
+   * during a touch press since there is no :hover. (No `.press-card` carries a
+   * transform utility today — keep it that way, or this would need !important.) */
   .press-card:active,
   .press-card[data-pressed="true"] {
     transform: scale(0.98);
