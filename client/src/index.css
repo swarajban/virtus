@@ -196,51 +196,6 @@
     to { opacity: 1; transform: translateY(0); }
   }
 
-  /* Exercise-detail Next/Prev directional nav cue.
-   *
-   * iOS-RELIABLE BY DESIGN: a CSS @keyframes animation on `transform` only.
-   * Declared in CSS so WebKit promotes the element to a GPU compositor layer and
-   * runs the tween on the compositor thread. This is fundamentally different from
-   * framer-motion's main-thread requestAnimationFrame opacity tween, which iOS
-   * WebKit quantized to ~2 steps on the heavy exercise-page subtree (read as a
-   * blink, not a fade — see prior PRs #11–#13). We deliberately:
-   *   - animate ONLY `transform: translateX` (compositor-friendly; no opacity),
-   *   - apply it to a SMALL focused subtree (the exercise identity block),
-   *   - add NO will-change / translateZ / backfaceVisibility hints (those froze
-   *     the prior opacity attempt at a single step on iOS).
-   * Short (200ms), iOS-style decelerate easing, no overshoot. A 1.5rem offset
-   * reads as a clear directional slide without exposing a blank gap; the parent
-   * clips the horizontal offset (overflow-x-hidden) so there's no h-scroll. */
-  .exercise-slide-fwd {
-    animation: exerciseSlideFromRight 0.32s cubic-bezier(0.32, 0.72, 0, 1) both;
-  }
-
-  .exercise-slide-back {
-    animation: exerciseSlideFromLeft 0.32s cubic-bezier(0.32, 0.72, 0, 1) both;
-  }
-
-  /* 2.5rem (~40px) travel over 0.32s — a clearly perceptible directional cue
-     (the prior 1.5rem/0.2s read as almost undetectable) while staying a cue, not
-     a full page swipe. Pure translateX, compositor-driven, no opacity (opacity
-     quantized to a blink on real iOS). */
-  @keyframes exerciseSlideFromRight {
-    from { transform: translateX(2.5rem); }
-    to { transform: translateX(0); }
-  }
-
-  @keyframes exerciseSlideFromLeft {
-    from { transform: translateX(-2.5rem); }
-    to { transform: translateX(0); }
-  }
-
-  /* Respect the OS setting even if JS-level reduced-motion is missed. */
-  @media (prefers-reduced-motion: reduce) {
-    .exercise-slide-fwd,
-    .exercise-slide-back {
-      animation: none;
-    }
-  }
-  
   .progress-bar {
     transition: width 0.35s ease-out;
   }
