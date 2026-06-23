@@ -129,9 +129,12 @@ export default function ExercisePage() {
       if (workoutNumber && exerciseIndex >= 0) {
         try {
           // Local + per-user data; the heavy reads above come from cache.
+          // Progress prefers the in-memory accumulator so navigating between
+          // exercises doesn't clobber an in-flight optimistic completion with a
+          // stale refetch (it still fetches on the first/cold load).
           const [oneRMData, workoutProgress, user] = await Promise.all([
             LocalStorage.getOneRM(),
-            LocalStorage.getWorkoutProgress(),
+            LocalStorage.getWorkoutProgressPreferCache(),
             api.getCurrentUser().catch(() => null)
           ]);
 
@@ -357,12 +360,17 @@ export default function ExercisePage() {
       e.preventDefault();
       e.stopPropagation();
     }
-    
+
+    // Synchronous re-entrancy guard: a completion+reward-beat is already running.
+    // (disabled={isCompleting} relies on a React re-render, which doesn't stop a
+    // rapid second tap in the same tick; the ref does.)
+    if (completeTimerRef.current) return;
+
     // Force blur on any active element
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
     }
-    
+
     setIsCompleting(true);
 
     // Snapshot the logged values at click time — the user advances immediately,

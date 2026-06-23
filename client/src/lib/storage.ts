@@ -13,6 +13,12 @@ let cache = {
 
 const CACHE_DURATION = 2000; // 2 seconds
 
+// Serializes workout-progress POSTs. The server overwrites exerciseProgress
+// WHOLESALE (no per-key merge), so two completions racing on flaky wifi could
+// otherwise overwrite each other. Chaining the writes — and sending the latest
+// accumulated map on each — guarantees the final POST carries every completion.
+let workoutProgressSaveChain: Promise<void> = Promise.resolve();
+
 export class DatabaseStorage {
   // Initialize with user selection
   static async initialize() {
@@ -52,18 +58,53 @@ export class DatabaseStorage {
     }
   }
 
-  // Save workout progress directly to API
-  static async saveWorkoutProgress(workoutNumber: number, progress: WorkoutProgress): Promise<void> {
-    try {
-      await api.saveWorkoutProgress(workoutNumber, progress);
-      // Update cache after successful save
-      if (cache.workoutProgress) {
-        cache.workoutProgress[workoutNumber] = progress;
-      }
-    } catch (error) {
-      console.error("Failed to save workout progress:", error);
-      throw error;
-    }
+  // Prefer the optimistic in-memory accumulator over a network refetch — so
+  // navigating to the next exercise doesn't clobber an in-flight completion's
+  // optimistic state with stale server data. Only hits the network when nothing
+  // has been cached yet (first load / deep link).
+  static async getWorkoutProgressPreferCache(): Promise<Record<number, WorkoutProgress>> {
+    if (cache.workoutProgress) return cache.workoutProgress;
+    return this.getWorkoutProgress();
+  }
+
+  // Save workout progress to the API. The completion path fires this WITHOUT
+  // blocking navigation, so writes can overlap. To stay correct against the
+  // server's wholesale overwrite of exerciseProgress:
+  //  1) update the in-memory accumulator synchronously (so the next completion
+  //     and the next queued POST both see this write immediately);
+  //  2) serialize the POSTs and, at send time, POST the latest accumulated map
+  //     merged with this write's own snapshot — so no completion is ever dropped,
+  //     even if a refetch clobbered the cache or an earlier POST is retrying.
+  static saveWorkoutProgress(workoutNumber: number, progress: WorkoutProgress): Promise<void> {
+    // 1) Optimistic local accumulator update.
+    cache.workoutProgress = { ...(cache.workoutProgress ?? {}), [workoutNumber]: progress };
+
+    // 2) Serialized network write that always sends the freshest full map.
+    const run = async () => {
+      const latest = cache.workoutProgress?.[workoutNumber];
+      const body: WorkoutProgress = latest
+        ? {
+            ...progress,
+            ...latest,
+            // Union of exercise entries: later completions (latest) win, but this
+            // write's own entries fill anything a clobbering refetch dropped.
+            exerciseProgress: {
+              ...(progress.exerciseProgress ?? {}),
+              ...(latest.exerciseProgress ?? {}),
+            },
+          }
+        : progress;
+      await api.saveWorkoutProgress(workoutNumber, body);
+      // Keep the cache in sync with exactly what we persisted.
+      cache.workoutProgress = { ...(cache.workoutProgress ?? {}), [workoutNumber]: body };
+      cache.lastFetch.workoutProgress = Date.now();
+    };
+
+    const result = workoutProgressSaveChain.then(run, run);
+    // Keep the chain alive even if this write rejects; the caller handles its own
+    // rejection (e.g. the completion path's retry loop).
+    workoutProgressSaveChain = result.then(() => undefined, () => undefined);
+    return result;
   }
 
 
