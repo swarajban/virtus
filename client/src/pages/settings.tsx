@@ -229,7 +229,7 @@ export default function SettingsPage() {
         </Card>
 
         {/* 1RM Settings Link */}
-        <Card className="cursor-pointer hover:shadow-md transition-all duration-200"
+        <Card className="press-card cursor-pointer hover:shadow-md"
               onClick={() => setLocation('/one-rm')}>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
@@ -243,7 +243,7 @@ export default function SettingsPage() {
         </Card>
 
         {/* Data Diagnostic Link */}
-        <Card className="cursor-pointer hover:shadow-md transition-all duration-200 border-blue-200 bg-blue-50"
+        <Card className="press-card cursor-pointer hover:shadow-md border-blue-200 bg-blue-50"
               onClick={() => setLocation('/data-diagnostic')}>
           <CardContent className="p-4">
             <div className="flex items-center justify-between">

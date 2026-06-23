@@ -220,7 +220,7 @@ export default function Exercises() {
             {exercises.map((exercise: any) => (
               <Card
                 key={exercise.id}
-                className="cursor-pointer hover:shadow-md transition-shadow"
+                className="press-card cursor-pointer hover:shadow-md"
                 onClick={() => handleExerciseClick(exercise.id)}
               >
                 <CardContent className="p-4">

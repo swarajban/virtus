@@ -33,6 +33,7 @@ import { useAllExercises, useAllOneRMs, exerciseHistoryQueryOptions } from "@/ho
 import { useQueryClient } from "@tanstack/react-query";
 import { ProgramDataError } from "@/components/program-data-error";
 import { tapProps, DURATION, RACK_EASE } from "@/lib/motion";
+import { haptic } from "@/lib/haptics";
 import type { ExerciseWithCalculatedWeight } from "@/types/workout";
 import type { OneRM } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
@@ -366,6 +367,8 @@ export default function ExercisePage() {
     // rapid second tap in the same tick; the ref does.)
     if (completeTimerRef.current) return;
 
+    haptic(12); // firm tick on the highest-value action
+
     // Force blur on any active element
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
@@ -508,6 +511,7 @@ export default function ExercisePage() {
       e.stopPropagation();
     }
     if (isCompleting) return; // don't race the completion-advance
+    haptic(8); // light tick on Previous
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
     }
@@ -529,6 +533,7 @@ export default function ExercisePage() {
       e.stopPropagation();
     }
     if (isCompleting) return; // don't race the completion-advance
+    haptic(8); // light tick on Next
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
     }
@@ -760,7 +765,7 @@ export default function ExercisePage() {
             onClick={() => { if (isCompleting) return; setLocation(`/workout/${workoutNumber}`); }}
             disabled={isCompleting}
             {...tapProps(reducedMotion)}
-            className="px-3 py-1.5 text-sm font-medium rounded-md border border-gray-300 bg-white text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed nav-button-mobile"
+            className="press px-3 py-1.5 text-sm font-medium rounded-md border border-gray-300 bg-white text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed nav-button-mobile"
             type="button"
           >
             Workout
@@ -771,7 +776,7 @@ export default function ExercisePage() {
             onMouseUp={(e) => e.currentTarget.blur()}
             disabled={exerciseIndex === 0 || isCompleting}
             {...tapProps(reducedMotion)}
-            className="px-3 py-1.5 text-sm font-medium rounded-md border border-gray-300 bg-white text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed nav-button-mobile"
+            className="press px-3 py-1.5 text-sm font-medium rounded-md border border-gray-300 bg-white text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed nav-button-mobile"
             type="button"
           >
             Previous
@@ -786,7 +791,7 @@ export default function ExercisePage() {
             // raw array index but totalExercises counts working sets only.
             disabled={skipWarmups(navExercisesRef.current, exerciseIndex + 1, 1) >= navExercisesRef.current.length || isCompleting}
             {...tapProps(reducedMotion)}
-            className="px-3 py-1.5 text-sm font-medium rounded-md border border-gray-300 bg-white text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed nav-button-mobile"
+            className="press px-3 py-1.5 text-sm font-medium rounded-md border border-gray-300 bg-white text-gray-700 disabled:opacity-50 disabled:cursor-not-allowed nav-button-mobile"
             type="button"
           >
             Next

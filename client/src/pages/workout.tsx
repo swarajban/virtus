@@ -389,7 +389,7 @@ export default function WorkoutPage() {
               return (
                 <Card
                   key={originalIndex}
-                  className={`cursor-pointer transition-all duration-200 hover:shadow-md active:scale-98 border-l-4 ${
+                  className={`press-card cursor-pointer hover:shadow-md border-l-4 ${
                     exerciseStatus === "completed" ? "border-secondary" :
                     exerciseStatus === "current" ? "border-warning" : "border-gray-200"
                   }`}

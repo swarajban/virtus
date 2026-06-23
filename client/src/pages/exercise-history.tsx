@@ -135,7 +135,7 @@ export default function ExerciseHistoryPage() {
             {filteredExercises.map((group) => (
               <Card
                 key={group.name}
-                className="cursor-pointer hover:shadow-md transition-all duration-200 active:scale-98"
+                className="press-card cursor-pointer hover:shadow-md"
                 onClick={() => handleExerciseClick(group.name)}
               >
                 <CardContent className="p-4">
