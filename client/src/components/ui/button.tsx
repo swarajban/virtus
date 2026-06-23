@@ -5,11 +5,13 @@ import { cva, type VariantProps } from "class-variance-authority"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  // `transition duration-100 active:scale-[0.96]`: instant, compositor-safe press
-  // feedback on every button app-wide (transform scale, not opacity). The
-  // disabled guard above keeps it from firing on disabled buttons; reduced-motion
-  // is honored by a global `button:active { transform: none }` rule in index.css.
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-[transform,color,background-color,border-color,box-shadow] duration-100 active:scale-[0.96] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  // Compositor-safe press feedback on every button app-wide (transform scale, not
+  // opacity). `active:scale-[0.96]` is the press; `active:duration-0` makes the
+  // press-DOWN instant (the `duration-100` ease applies only to the spring-back on
+  // release) so even a quick tap visibly registers. The disabled guard below keeps
+  // it off disabled buttons; reduced-motion is honored by a global
+  // `button:active { transform: none }` rule in index.css.
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-[transform,color,background-color,border-color,box-shadow] duration-100 active:scale-[0.96] active:duration-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
   {
     variants: {
       variant: {
