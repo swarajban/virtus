@@ -365,20 +365,21 @@ export default function ExercisePage() {
     
     setIsCompleting(true);
 
-    console.log("Completing exercise:", {
-      exerciseName: exercise.name,
-      typeOfSet: exercise.type_of_set,
-      userWeight,
-      userSets,
-      userReps,
-      shouldSaveHistory: userWeight !== null && userWeight !== undefined && exercise.type_of_set === "working"
-    });
-
-    try {
-      // Save exercise history only for working sets (not warm-ups)
-      // Allow weight of 0 (for bodyweight exercises), but require a numeric value
-      if (userWeight !== null && userWeight !== undefined && exercise.type_of_set === "working") {
-        const historyEntry = {
+    // Snapshot the logged values at click time — the user advances immediately,
+    // so the background writes below must not read state that may have changed.
+    const wn = workoutNumber;
+    const exerciseKey = `${exerciseIndex}`;
+    const isWorkingSet = exercise.type_of_set === "working";
+    const hasWeight = userWeight !== null && userWeight !== undefined;
+    const completion = {
+      sets: userSets,
+      reps: userReps,
+      weight: userWeight,
+      notes: userNotes,
+      completed: true,
+    };
+    const historyEntry = (isWorkingSet && hasWeight)
+      ? {
           programName: selectedProgram,
           date: new Date().toISOString(),
           exerciseName: exercise.name,
@@ -387,77 +388,110 @@ export default function ExercisePage() {
           weight: userWeight,
           notes: userNotes,
           typeOfSet: exercise.type_of_set as "warm-up" | "working",
-        };
-        console.log("Saving exercise history entry:", historyEntry);
-        await LocalStorage.saveExerciseHistory(historyEntry, workoutNumber);
-      } else {
-        console.log("Not saving exercise history because:", {
-          hasWeight: userWeight !== null && userWeight !== undefined,
-          isWorkingSet: exercise.type_of_set === "working",
-          typeOfSet: exercise.type_of_set
-        });
-        
-        // Show warning if this is a working set without weight entered
-        if (exercise.type_of_set === "working" && (userWeight === null || userWeight === undefined)) {
-          toast({
-            title: "No weight entered",
-            description: "Exercise marked complete, but history was not saved because no weight was entered.",
-            variant: "default",
-          });
+        }
+      : null;
+
+    // Working set with no weight: still mark complete, but warn that no history
+    // was logged (unchanged behavior).
+    if (isWorkingSet && !hasWeight) {
+      toast({
+        title: "No weight entered",
+        description: "Exercise marked complete, but history was not saved because no weight was entered.",
+        variant: "default",
+      });
+    }
+
+    // Run a write in the BACKGROUND with retry + backoff. On the first failure we
+    // warn the user (non-blocking) so a logged set is never silently dropped; if a
+    // retry recovers we confirm; if every attempt fails we say so. `toast` is a
+    // module-level store, so these fire correctly even after we've navigated away.
+    const persistWithRetry = async (fn: () => Promise<void>, label: string, attempts = 3) => {
+      let warned = false;
+      for (let i = 0; i <= attempts; i++) {
+        try {
+          await fn();
+          if (warned) {
+            toast({ title: "Saved", description: `Your ${label} was saved.`, variant: "default" });
+          }
+          return;
+        } catch (err) {
+          if (i === 0) {
+            warned = true;
+            toast({
+              title: "Couldn't save — retrying…",
+              description: `Your ${label} will be saved when the connection recovers.`,
+              variant: "destructive",
+            });
+          }
+          if (i === attempts) {
+            console.error(`Failed to persist ${label} after ${attempts + 1} attempts:`, err);
+            toast({
+              title: "Save failed",
+              description: `Couldn't save your ${label}. Check your connection and reopen this exercise.`,
+              variant: "destructive",
+            });
+            return;
+          }
+          await new Promise((r) => setTimeout(r, 800 * 2 ** i)); // 0.8s → 1.6s → 3.2s
         }
       }
+    };
 
-      // Save exercise completion to workout progress
-      const workoutProgress = await LocalStorage.getWorkoutProgress();
-      const currentProgress = workoutProgress[workoutNumber] || {
-        workoutNumber,
+    // Fire-and-forget the writes — navigation below NEVER awaits them.
+    if (historyEntry) {
+      void persistWithRetry(() => LocalStorage.saveExerciseHistory(historyEntry, wn), "set");
+    }
+
+    // Progress is a read-modify-write: the server overwrites exerciseProgress
+    // wholesale, so we must send the FULL map. We read current progress from the
+    // warm in-memory cache (synchronous — no network on the hot path). Only if the
+    // cache is cold do we fetch authoritative state, and even that runs in the
+    // background; a failed cold-cache GET throws and is caught by the retry loop,
+    // so we NEVER POST a partial map that would wipe other completions.
+    void persistWithRetry(async () => {
+      let base = LocalStorage.getCachedWorkoutProgress()[wn];
+      if (!base) {
+        base = (await api.getWorkoutProgress())[wn];
+      }
+      const current = base || {
+        workoutNumber: wn,
         status: "in_progress" as const,
         startedAt: new Date().toISOString(),
         exerciseProgress: {},
       };
-
-      const exerciseKey = `${exerciseIndex}`;
-      // Preserve existing exercise data including swap information
-      const existingExerciseData = currentProgress.exerciseProgress?.[exerciseKey] || {};
-      currentProgress.exerciseProgress = {
-        ...currentProgress.exerciseProgress,
-        [exerciseKey]: {
-          ...existingExerciseData, // Preserve swap data if it exists
-          sets: userSets,
-          reps: userReps,
-          weight: userWeight,
-          notes: userNotes,
-          completed: true,
+      const existingExerciseData = current.exerciseProgress?.[exerciseKey] || {};
+      const merged = {
+        ...current,
+        exerciseProgress: {
+          ...current.exerciseProgress,
+          [exerciseKey]: { ...existingExerciseData, ...completion }, // preserve swap data
         },
       };
+      await LocalStorage.saveWorkoutProgress(wn, merged);
+    }, "progress");
 
-      await LocalStorage.saveWorkoutProgress(workoutNumber, currentProgress);
+    // Reward beat: the Complete button seats green + the check settles in, THEN
+    // we advance to the next working set — independent of the background writes.
+    // The exercise list is already in memory (navExercisesRef); advancing needs no
+    // server round-trip, so a stalled write can't hang the button.
+    const rewardMs = reducedMotion ? 0 : DURATION.reward * 1000;
+    // Clear any existing timer before setting a new one (double-tap protection)
+    if (completeTimerRef.current) clearTimeout(completeTimerRef.current);
+    completeTimerRef.current = setTimeout(() => {
+      completeTimerRef.current = null;
+      window.scrollTo({ top: 0, behavior: 'auto' });
 
-      // Reward beat: the Complete button seats green + the check settles in,
-      // then we advance to the next working set. No network fetch — the exercise
-      // list is already in memory (navExercisesRef). No blocking overlay.
-      const rewardMs = reducedMotion ? 0 : DURATION.reward * 1000;
-      // Clear any existing timer before setting a new one (double-tap protection)
-      if (completeTimerRef.current) clearTimeout(completeTimerRef.current);
-      completeTimerRef.current = setTimeout(() => {
-        completeTimerRef.current = null;
-        window.scrollTo({ top: 0, behavior: 'auto' });
+      // Find next working set (skip warm-ups) from the cached list.
+      const allExercises = navExercisesRef.current;
+      const nextIndex = skipWarmups(allExercises, exerciseIndex + 1, 1);
 
-        // Find next working set (skip warm-ups) from the cached list.
-        const allExercises = navExercisesRef.current;
-        const nextIndex = skipWarmups(allExercises, exerciseIndex + 1, 1);
-
-        setIsCompleting(false); // Clear before navigating (avoid setState on unmount)
-        if (nextIndex < allExercises.length) {
-          setLocation(`/workout/${workoutNumber}/exercise/${nextIndex}`);
-        } else {
-          setLocation(`/workout/${workoutNumber}`);
-        }
-      }, rewardMs);
-    } catch (error) {
-      console.error("Error completing exercise:", error);
-      setIsCompleting(false);
-    }
+      setIsCompleting(false); // Clear before navigating (avoid setState on unmount)
+      if (nextIndex < allExercises.length) {
+        setLocation(`/workout/${workoutNumber}/exercise/${nextIndex}`);
+      } else {
+        setLocation(`/workout/${workoutNumber}`);
+      }
+    }, rewardMs);
   };
 
   const handlePreviousExercise = (e?: React.MouseEvent | React.TouchEvent) => {

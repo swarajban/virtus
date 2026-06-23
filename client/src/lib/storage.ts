@@ -31,6 +31,13 @@ export class DatabaseStorage {
     }
   }
 
+  // Synchronous read of the last-fetched workout progress from the in-memory
+  // cache — no network. Used on the completion hot path so advancing to the next
+  // exercise never blocks on a GET. Returns {} if nothing has been fetched yet.
+  static getCachedWorkoutProgress(): Record<number, WorkoutProgress> {
+    return cache.workoutProgress ?? {};
+  }
+
   // Get workout progress directly from API with light caching
   static async getWorkoutProgress(): Promise<Record<number, WorkoutProgress>> {
     try {
