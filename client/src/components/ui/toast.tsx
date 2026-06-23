@@ -75,13 +75,16 @@ const ToastClose = React.forwardRef<
   <ToastPrimitives.Close
     ref={ref}
     className={cn(
-      "absolute right-2 top-2 rounded-md p-1 text-foreground/50 opacity-0 transition-opacity hover:text-foreground focus:opacity-100 focus:outline-none focus:ring-2 group-hover:opacity-100 group-[.destructive]:text-red-300 group-[.destructive]:hover:text-red-50 group-[.destructive]:focus:ring-red-400 group-[.destructive]:focus:ring-offset-red-600",
+      // Always visible (was `opacity-0 group-hover:opacity-100`, which never
+      // reveals on touch now that hover utilities are gated to mouse) — a 40x40
+      // tap target with instant press scale. Hover only brightens it on desktop.
+      "absolute right-1 top-1 inline-flex h-10 w-10 items-center justify-center rounded-md text-foreground/60 transition-[color,transform] duration-100 active:scale-90 active:duration-0 hover:text-foreground focus:outline-none focus:ring-2 group-[.destructive]:text-red-300 group-[.destructive]:hover:text-red-50 group-[.destructive]:focus:ring-red-400 group-[.destructive]:focus:ring-offset-red-600",
       className
     )}
     toast-close=""
     {...props}
   >
-    <X className="h-4 w-4" />
+    <X className="h-5 w-5" />
   </ToastPrimitives.Close>
 ))
 ToastClose.displayName = ToastPrimitives.Close.displayName

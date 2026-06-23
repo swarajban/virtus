@@ -604,7 +604,6 @@ export default function ExercisePage() {
 
       {/* Exercise identity (name / "N of M" / prescription / set-type / warm-up).
           Renders instantly on Next/Prev — no slide cue (removed by request). */}
-      {/* Exercise Header with Modern Design */}
       <div className="bg-gradient-to-b from-green-50 to-white p-6">
         <div className="flex items-center justify-between mb-3">
           <span className="text-sm text-gray-600 font-medium uppercase tracking-wide">
