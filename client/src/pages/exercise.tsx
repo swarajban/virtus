@@ -438,8 +438,15 @@ export default function ExercisePage() {
         exerciseProgress: {},
       };
       const existingExerciseData = current.exerciseProgress?.[exerciseKey] || {};
+      // Auto-start the workout on completion: a "not_started" (or missing) status
+      // flips to "in_progress" so the user never has to hit "Start Workout" first.
+      // Never DOWNGRADE an already in_progress/completed workout, and never reset an
+      // existing startedAt.
+      const alreadyStarted = current.status === "in_progress" || current.status === "completed";
       const merged = {
         ...current,
+        status: alreadyStarted ? current.status : ("in_progress" as const),
+        startedAt: current.startedAt || new Date().toISOString(),
         exerciseProgress: {
           ...current.exerciseProgress,
           [exerciseKey]: { ...existingExerciseData, ...completion }, // preserve swap data
