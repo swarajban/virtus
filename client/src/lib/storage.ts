@@ -5,6 +5,11 @@ import { api } from "./api-client";
 let cache = {
   oneRM: null as OneRM | null,
   workoutProgress: null as Record<number, WorkoutProgress> | null,
+  // True once a full GET of the server map has succeeded. Distinct from
+  // `workoutProgress != null`, which a single optimistic save also flips on with
+  // only ONE workout present — a partial map that does NOT tell the truth for
+  // other workouts. Only a full fetch makes the cache authoritative.
+  workoutProgressFetched: false,
   lastFetch: {
     oneRM: 0,
     workoutProgress: 0,
@@ -44,12 +49,24 @@ export class DatabaseStorage {
     return cache.workoutProgress ?? {};
   }
 
+  // True once a full GET of the workout-progress map has succeeded. A fetched
+  // cache tells the full truth for every workout — a workout with no entry is
+  // genuinely not_started — so callers can treat it as authoritative without a
+  // network round-trip. NOTE: a single optimistic saveWorkoutProgress() makes
+  // `workoutProgress` non-null with only ONE workout, which would WRONGLY report
+  // every other workout as not_started; we gate on the fetched flag (not
+  // null-ness) so a save-only/partial cache is still treated as cold.
+  static hasCachedWorkoutProgress(): boolean {
+    return cache.workoutProgressFetched;
+  }
+
   // Get workout progress directly from API with light caching
   static async getWorkoutProgress(): Promise<Record<number, WorkoutProgress>> {
     try {
       // Return fresh data from API
       const progress = await api.getWorkoutProgress();
       cache.workoutProgress = progress;
+      cache.workoutProgressFetched = true;
       cache.lastFetch.workoutProgress = Date.now();
       return progress;
     } catch (error) {
