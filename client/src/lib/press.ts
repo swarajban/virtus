@@ -17,11 +17,14 @@ export function installPressFeedback(): void {
   // Opt the whole page in to CSS `:active` on non-interactive elements on iOS.
   document.addEventListener("touchstart", () => {}, { passive: true });
 
-  let pressed: HTMLElement | null = null;
-  const release = () => {
-    if (pressed) {
-      pressed.removeAttribute("data-pressed");
-      pressed = null;
+  // Track each pointer's pressed card by pointerId so multi-touch can never
+  // strand a card scaled (one finger lifting must release only its own card).
+  const active = new Map<number, HTMLElement>();
+  const release = (pointerId: number) => {
+    const card = active.get(pointerId);
+    if (card) {
+      card.removeAttribute("data-pressed");
+      active.delete(pointerId);
     }
   };
 
@@ -30,18 +33,20 @@ export function installPressFeedback(): void {
     (e) => {
       const target = e.target as Element | null;
       const card = target?.closest?.(".press-card") as HTMLElement | null;
-      if (card) {
-        if (pressed && pressed !== card) release();
-        card.setAttribute("data-pressed", "true");
-        pressed = card;
-      }
+      if (!card) return;
+      // If the press is on a nested control (a button/link INSIDE the card), let
+      // that control's own :active feedback handle it — don't also scale the whole
+      // row (which would compound into a janky double-shrink).
+      const control = target?.closest?.('button, a[href], [role="button"]') as HTMLElement | null;
+      if (control && control !== card && card.contains(control)) return;
+      card.setAttribute("data-pressed", "true");
+      active.set(e.pointerId, card);
     },
     { passive: true },
   );
 
-  // Release on lift, cancel (iOS fires pointercancel when a tap turns into a
-  // scroll), or when the pointer leaves the document.
-  document.addEventListener("pointerup", release, { passive: true });
-  document.addEventListener("pointercancel", release, { passive: true });
-  document.addEventListener("pointerleave", release, { passive: true });
+  // Release on lift or cancel (iOS fires pointercancel when a tap becomes a
+  // scroll). Keyed by pointerId — covers every realistic end-of-press.
+  document.addEventListener("pointerup", (e) => release(e.pointerId), { passive: true });
+  document.addEventListener("pointercancel", (e) => release(e.pointerId), { passive: true });
 }

@@ -8,9 +8,8 @@
  */
 export function haptic(durationMs: number = 10): void {
   try {
-    const nav = typeof navigator !== "undefined" ? (navigator as Navigator) : undefined;
-    if (nav && typeof nav.vibrate === "function") {
-      nav.vibrate(durationMs);
+    if (typeof navigator !== "undefined" && typeof navigator.vibrate === "function") {
+      navigator.vibrate(durationMs);
     }
   } catch {
     /* no-op: vibration unsupported, blocked, or disabled by the user */
