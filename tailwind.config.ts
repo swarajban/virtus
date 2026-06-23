@@ -2,6 +2,13 @@ import type { Config } from "tailwindcss";
 
 export default {
   darkMode: ["class"],
+  // Gate every `hover:` utility behind `@media (hover: hover)` so touch devices
+  // never get a STUCK hover state (iOS Safari keeps :hover applied after a tap
+  // until you tap elsewhere — that was the lingering "green tint" on the +/-
+  // steppers and other buttons). Desktop/mouse hover is unaffected.
+  future: {
+    hoverOnlyWhenSupported: true,
+  },
   content: ["./client/index.html", "./client/src/**/*.{js,jsx,ts,tsx}"],
   theme: {
     extend: {
