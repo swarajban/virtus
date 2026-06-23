@@ -255,19 +255,28 @@
    * ============================================================ */
   .press,
   .press-card {
-    transition: transform 100ms cubic-bezier(0.2, 0, 0.2, 1), box-shadow 250ms ease;
+    /* The ease here governs the RELEASE (springs back smoothly when the press
+     * ends). The press-DOWN is INSTANT — `transition-duration: 0s` on the pressed
+     * states below — so the tap is acknowledged on the very first frame. Without
+     * that, a quick (<100ms) tap only eases partway to the target scale and reads
+     * as "dead"; this is the actual bug behind the earlier "0/48 cards scale". */
+    transition: transform 140ms cubic-bezier(0.2, 0, 0.2, 1), box-shadow 250ms ease;
   }
 
   .press:active {
     transform: scale(0.96);
+    transition-duration: 0s; /* press-down lands immediately */
   }
 
   /* Cards/rows are driven by BOTH native :active (iOS, via the touchstart opt-in)
    * and the delegated [data-pressed] toggle (mouse + touch, see lib/press.ts) so
-   * feedback is reliable across engines and input types. */
+   * feedback is reliable across engines and input types. The `[data-pressed]`
+   * attribute selector also out-specifies any single-class Tailwind transform
+   * utility, so the scale wins the cascade (no Tailwind transform-var conflict). */
   .press-card:active,
   .press-card[data-pressed="true"] {
     transform: scale(0.98);
+    transition-duration: 0s; /* press-down lands immediately */
   }
 
   /* Momentum scrolling + contained overscroll for inner scroll regions. */
