@@ -145,6 +145,18 @@ export class DatabaseStorage {
     }
   }
 
+  // Prefer the in-memory cached 1RMs over a network refetch, so navigating into
+  // an exercise on a warm session renders instantly instead of blocking on the
+  // GET. getOneRM() awaits the network and only falls back to cache on FAILURE
+  // (not slowness), so a hung request would otherwise keep the page spinner up.
+  // Only hits the network when nothing has been cached yet (first load / deep
+  // link); mirrors getWorkoutProgressPreferCache (no per-call revalidation —
+  // the cache is refreshed by the next getOneRM()/saveOneRM()).
+  static async getOneRMPreferCache(): Promise<OneRM> {
+    if (cache.oneRM) return cache.oneRM;
+    return this.getOneRM();
+  }
+
   // Save OneRM directly to API
   static async saveOneRM(oneRM: OneRM): Promise<void> {
     try {

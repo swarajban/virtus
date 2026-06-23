@@ -47,7 +47,13 @@ export default function ExercisePage() {
   const { toast } = useToast();
   const [exercise, setExercise] = useState<ExerciseWithCalculatedWeight | null>(null);
   const [workoutName, setWorkoutName] = useState<string>("");
-  const [selectedProgram, setSelectedProgram] = useState<string>("Powerbuilding 4x");
+  // Seeded SYNCHRONOUSLY from the locally-remembered program (same key the
+  // workout page uses) so the page renders the right program's exercise on the
+  // first paint without waiting on the network user. The background
+  // getCurrentUser below corrects this if the server's selectedProgram differs.
+  const [selectedProgram, setSelectedProgram] = useState<string>(
+    () => localStorage.getItem('selected-program') || 'Powerbuilding 4x'
+  );
   const [userSets, setUserSets] = useState(1);
   const [userReps, setUserReps] = useState(1);
   const [userWeight, setUserWeight] = useState(0);
@@ -95,6 +101,27 @@ export default function ExercisePage() {
     };
   }, []);
 
+  // Fetch the authoritative user program in the BACKGROUND — never on the render
+  // path. If the server's selectedProgram differs from what we rendered with
+  // (the local fallback), persist it and update state, which re-resolves the
+  // exercise for the correct program. A hung or failed request changes nothing,
+  // so it can never hold up the "Loading exercise..." spinner. The functional
+  // update returns the same reference when unchanged, so an agreeing server
+  // response triggers no re-render and no input-clobbering re-resolve.
+  useEffect(() => {
+    let active = true;
+    api.getCurrentUser()
+      .then((user) => {
+        if (!active || !user?.selectedProgram) return;
+        // Correct the program first; persist second. If setItem throws (Safari
+        // private mode / quota), the in-memory correction still lands.
+        setSelectedProgram((prev) => (prev === user.selectedProgram ? prev : user.selectedProgram));
+        try { localStorage.setItem('selected-program', user.selectedProgram); } catch {}
+      })
+      .catch(() => {});
+    return () => { active = false; };
+  }, []);
+
   const workoutNumber = parseInt(params?.workoutNumber ?? '0', 10);
   const exerciseIndex = parseInt(params?.exerciseIndex ?? '0', 10);
 
@@ -116,10 +143,13 @@ export default function ExercisePage() {
           // Progress prefers the in-memory accumulator so navigating between
           // exercises doesn't clobber an in-flight optimistic completion with a
           // stale refetch (it still fetches on the first/cold load).
-          const [oneRMData, workoutProgress, user] = await Promise.all([
-            LocalStorage.getOneRM(),
+          // Both prefer the in-memory cache and resolve instantly on a warm
+          // session — the render is NEVER gated on a network round-trip. The
+          // network user is fetched separately in the background (see the
+          // getCurrentUser effect) so a hung /api/user can't hold the spinner up.
+          const [oneRMData, workoutProgress] = await Promise.all([
+            LocalStorage.getOneRMPreferCache(),
             LocalStorage.getWorkoutProgressPreferCache(),
-            api.getCurrentUser().catch(() => null)
           ]);
 
           // Exercise library + 1RM map served from the shared TanStack cache.
@@ -140,10 +170,10 @@ export default function ExercisePage() {
           const data = programJson;
           setOneRM(oneRMData);
 
-          // Handle new JSON structure with programs - use user's selected program
-          const selectedProgramName = user?.selectedProgram || 'Powerbuilding 4x';
-          setSelectedProgram(selectedProgramName);
-          const workoutData = resolveProgramWorkouts(data, selectedProgramName);
+          // Resolve against the program in local state (seeded from localStorage,
+          // corrected by the background getCurrentUser effect) — never block the
+          // render on the network user.
+          const workoutData = resolveProgramWorkouts(data, selectedProgram);
           const foundWorkout = workoutData.find((w: any) => w.workout_number === workoutNumber);
           
           if (foundWorkout && foundWorkout.exercises[exerciseIndex]) {
@@ -295,7 +325,7 @@ export default function ExercisePage() {
     return () => {
       isMounted = false;
     };
-  }, [workoutNumber, exerciseIndex, programJson, allExercisesData, allOneRMsData]);
+  }, [workoutNumber, exerciseIndex, programJson, allExercisesData, allOneRMsData, selectedProgram]);
 
   if (programError && !programJson) {
     return <ProgramDataError onRetry={() => refetchProgram()} />;
