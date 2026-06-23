@@ -26,13 +26,22 @@ export default function WorkoutPage() {
   const [showReset, setShowReset] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [oneRM, setOneRM] = useState<OneRM | null>(null);
-  const [workoutProgressMap, setWorkoutProgressMap] = useState<Record<number, WorkoutProgress>>({});
-  // Whether the per-workout progress has loaded yet. The exercise LIST renders
-  // immediately from cached program data, but the status-dependent action
-  // buttons stay hidden until progress is known — otherwise a warm-cache render
-  // would briefly show "Start Workout" for an already-in-progress workout, and
-  // tapping it would overwrite saved exercise progress with {} (data loss).
-  const [progressLoaded, setProgressLoaded] = useState(false);
+  // Seed SYNCHRONOUSLY from the warm in-memory cache so the correct action button
+  // paints on the FIRST render when navigating back — no network-blocked flicker.
+  const [workoutProgressMap, setWorkoutProgressMap] = useState<Record<number, WorkoutProgress>>(
+    () => LocalStorage.getCachedWorkoutProgress()
+  );
+  // Whether the per-workout progress is known yet. The status-dependent action
+  // buttons stay hidden behind a disabled "Loading…" placeholder until it is —
+  // otherwise a render with no progress would briefly show "Start Workout" for an
+  // already-in-progress workout, and tapping it would overwrite saved exercise
+  // progress with {} (data loss). A WARM cache already knows every workout's
+  // status (no entry = not_started), so it counts as loaded and the real button
+  // paints immediately; only a genuinely COLD cache (never fetched) shows the
+  // placeholder and blocks the start guard.
+  const [progressLoaded, setProgressLoaded] = useState<boolean>(
+    () => LocalStorage.hasCachedWorkoutProgress()
+  );
 
   const workoutNumber = params ? parseInt(params.workoutNumber) : 0;
 
@@ -51,12 +60,27 @@ export default function WorkoutPage() {
   // arrive — never a dead blank on slow wifi.
   useEffect(() => {
     let active = true;
-    setProgressLoaded(false);
+    // Re-seed synchronously from the cache (the page may have remounted, or the
+    // workoutNumber switched, and the cache may have warmed since mount). A warm
+    // cache is authoritative → progress is "loaded" and the real button stays
+    // visible; only a cold cache leaves the placeholder until the fetch resolves.
+    // Crucially we do NOT reset progressLoaded to false when warm — that reset was
+    // the "Start Workout button gone for a bit" flicker.
+    setWorkoutProgressMap(LocalStorage.getCachedWorkoutProgress());
+    setProgressLoaded(LocalStorage.hasCachedWorkoutProgress());
     LocalStorage.getOneRM().then((v) => { if (active) setOneRM(v); }).catch(() => {});
+    // Background revalidation (stale-while-revalidate): corrects a stale cache when
+    // it returns, and flips progressLoaded → true on a cold start. Never hides the
+    // button while in flight on a warm cache.
     LocalStorage.getWorkoutProgress()
       .then((v) => { if (active) setWorkoutProgressMap(v || {}); })
       .catch(() => {})
-      .finally(() => { if (active) setProgressLoaded(true); });
+      // Only count as "loaded" once a fetch has actually succeeded. getWorkoutProgress
+      // swallows network errors and resolves with {} WITHOUT warming the cache, so a
+      // failed COLD fetch must NOT flip progressLoaded→true — that would un-block the
+      // start guard and let a tap overwrite real server progress with {}. The fetched
+      // flag (set only on a successful GET) is the authoritative signal here.
+      .finally(() => { if (active) setProgressLoaded(LocalStorage.hasCachedWorkoutProgress()); });
     api.getCurrentUser().then((u) => { if (active) setCurrentUser(u); }).catch(() => {});
     return () => { active = false; };
   }, [workoutNumber]);
