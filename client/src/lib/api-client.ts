@@ -11,6 +11,15 @@ export function setCurrentUsername(username: string): void {
   localStorage.setItem('selected-username', username);
 }
 
+// Remember the selected program locally — workout/exercise pages seed their
+// first paint from this key before the network user resolves. Swallows
+// setItem failures (Safari private mode / quota) so callers can't crash.
+export function rememberSelectedProgram(programName: string): void {
+  try {
+    localStorage.setItem('selected-program', programName);
+  } catch {}
+}
+
 // Helper function to make API requests with username
 async function apiRequest(url: string, options: RequestInit = {}) {
   const username = getCurrentUsername();

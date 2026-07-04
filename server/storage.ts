@@ -55,8 +55,8 @@ export interface IStorage {
   getExerciseHistory(userId: number, exerciseName?: string): Promise<ExerciseHistoryEntry[]>;
   saveExerciseHistory(userId: number, history: ExerciseHistoryEntry, workoutNumber?: number): Promise<void>;
   deleteExerciseHistoryEntry(userId: number, entryId: number): Promise<void>;
-  clearWorkoutProgress(userId: number, workoutNumber: number): Promise<void>;
-  clearExerciseHistoryForWorkout(userId: number, workoutNumber: number): Promise<void>;
+  clearWorkoutProgress(userId: number, workoutNumber: number, programName?: string, programCycle?: number): Promise<void>;
+  clearExerciseHistoryForWorkout(userId: number, workoutNumber: number, programName?: string, programCycle?: number): Promise<void>;
   updateUserProgram(userId: number, programName: string): Promise<void>;
   clearAllProgress(userId: number): Promise<void>;
   recoverProgressFromHistory(userId: number, workoutNumbers: number[]): Promise<any>;
@@ -251,16 +251,46 @@ export class DatabaseStorage implements IStorage {
       console.log(`Generated new session ID: ${sessionId} for workout ${workoutNumber}, program ${targetProgram}, cycle ${targetCycle}`);
     }
 
+    // Enforce the completion invariant at the write boundary. Status only
+    // moves forward via POST (a reset DELETEs the row), so:
+    //  - a stale snapshot can't downgrade a row's status (completed can't drop
+    //    to in_progress, in_progress can't drop to not_started — e.g. a swap
+    //    posted from a client whose progress fetch failed);
+    //  - status=completed and completedAt are persisted as an atomic pair —
+    //    never one without the other, whatever a racing client sent. A payload
+    //    carrying completedAt is treated as a completion (promotion, not
+    //    stripping: legacy clients' racy bodies only ever carried completedAt
+    //    after the user actually tapped Complete Workout).
+    const statusRank: Record<string, number> = { not_started: 0, in_progress: 1, completed: 2 };
+    let status = progress.status;
+    let completedAt = progress.completedAt ? new Date(progress.completedAt) : null;
+    const existingStatus = existing[0]?.status;
+    if (existingStatus && (statusRank[status] ?? 0) < (statusRank[existingStatus] ?? 0)) {
+      console.log(`Ignoring status downgrade to '${status}' for ${existingStatus} workout ${workoutNumber} (program ${targetProgram}, cycle ${targetCycle})`);
+      status = existingStatus as typeof status;
+      if (status === 'completed') completedAt = completedAt ?? existing[0].completedAt;
+    }
+    if (completedAt && status !== 'completed') status = 'completed';
+    if (status === 'completed' && !completedAt) completedAt = new Date();
+
     const dbProgress = {
       userId,
       workoutNumber,
       programName: targetProgram,
       programCycle: targetCycle,
       sessionId,
-      status: progress.status,
-      startedAt: progress.startedAt ? new Date(progress.startedAt) : null,
-      completedAt: progress.completedAt ? new Date(progress.completedAt) : null,
-      exerciseProgress: progress.exerciseProgress || {},
+      status,
+      // Never null out a startedAt we already have — a partial snapshot from a
+      // racing write may simply lack the field.
+      startedAt: progress.startedAt ? new Date(progress.startedAt) : existing[0]?.startedAt ?? null,
+      // Union with the existing map on update: exercise entries are only ever
+      // ADDED by clients (removal happens via reset, which DELETEs the row),
+      // so a snapshot rebuilt from a regressed/stale cache must not wholesale-
+      // erase completions an earlier write already persisted.
+      exerciseProgress: existing.length > 0
+        ? { ...((existing[0].exerciseProgress as Record<string, unknown>) ?? {}), ...(progress.exerciseProgress || {}) }
+        : (progress.exerciseProgress || {}),
+      completedAt,
     };
 
     if (existing.length > 0) {
@@ -453,25 +483,53 @@ export class DatabaseStorage implements IStorage {
     console.log(`Deleted exercise history entry ${entryId} for user ${userId}`);
   }
 
-  async clearWorkoutProgress(userId: number, workoutNumber: number): Promise<void> {
+  // Resolve the (program, cycle) scope for a per-workout operation: explicit
+  // args win, otherwise the user's current selection. Deleting by bare
+  // (userId, workoutNumber) is never right — the same workout number exists
+  // in every cycle of every program, and an unscoped delete wipes them all.
+  private async resolveWorkoutScope(userId: number, programName?: string, programCycle?: number) {
+    if (programName !== undefined && programCycle !== undefined) {
+      return { targetProgram: programName, targetCycle: programCycle };
+    }
+    const user = await this.getUser(userId);
+    return {
+      targetProgram: programName ?? user?.selectedProgram ?? "Powerbuilding 4x",
+      targetCycle: programCycle ?? user?.currentProgramCycle ?? 1,
+    };
+  }
+
+  async clearWorkoutProgress(userId: number, workoutNumber: number, programName?: string, programCycle?: number): Promise<void> {
+    // Always scoped — resetting a workout in cycle 3 must not wipe the same
+    // workout number's rows from cycles 1/2 or from other programs. Callers
+    // that omit the scope get the user's current program/cycle, not a
+    // cross-cycle wildcard.
+    const { targetProgram, targetCycle } = await this.resolveWorkoutScope(userId, programName, programCycle);
     await db
       .delete(workoutProgress)
       .where(and(
         eq(workoutProgress.userId, userId),
-        eq(workoutProgress.workoutNumber, workoutNumber)
+        eq(workoutProgress.workoutNumber, workoutNumber),
+        eq(workoutProgress.programName, targetProgram),
+        eq(workoutProgress.programCycle, targetCycle)
       ));
-    console.log(`Cleared workout progress for user ${userId}, workout ${workoutNumber}`);
+    console.log(`Cleared workout progress for user ${userId}, workout ${workoutNumber}, program ${targetProgram}, cycle ${targetCycle}`);
   }
 
-  async clearExerciseHistoryForWorkout(userId: number, workoutNumber: number): Promise<void> {
+  async clearExerciseHistoryForWorkout(userId: number, workoutNumber: number, programName?: string, programCycle?: number): Promise<void> {
     try {
-      // Get the session ID for this workout BEFORE we clear the progress
+      // Get the session ID for this workout BEFORE we clear the progress.
+      // Scoped like clearWorkoutProgress — the same workout number exists in
+      // every cycle, and an unscoped limit(1) could pick an OLD cycle's
+      // session and delete that history instead.
+      const { targetProgram, targetCycle } = await this.resolveWorkoutScope(userId, programName, programCycle);
       const progress = await db
         .select()
         .from(workoutProgress)
         .where(and(
           eq(workoutProgress.userId, userId),
-          eq(workoutProgress.workoutNumber, workoutNumber)
+          eq(workoutProgress.workoutNumber, workoutNumber),
+          eq(workoutProgress.programName, targetProgram),
+          eq(workoutProgress.programCycle, targetCycle)
         ))
         .limit(1);
       
@@ -554,9 +612,14 @@ export class DatabaseStorage implements IStorage {
     const workoutDataPath = path.join(process.cwd(), 'client/public/powerbuilding_data.json');
     const data = JSON.parse(fs.readFileSync(workoutDataPath, 'utf-8'));
     
-    // Get the user to find their selected program
+    // Get the user to find their selected program. Recovery reads AND writes
+    // are scoped to the user's current program + cycle — an unscoped update
+    // would stamp completions onto every prior cycle's rows for the same
+    // workout numbers, and an unscoped insert would file rows under the
+    // schema defaults ('Powerbuilding 4x', cycle 1) regardless of reality.
     const user = await db.select().from(users).where(eq(users.id, userId)).limit(1);
     const selectedProgram = user[0]?.selectedProgram || data.programs[0].name;
+    const currentCycle = user[0]?.currentProgramCycle ?? 1;
     const program = data.programs.find((p: any) => p.name === selectedProgram) || data.programs[0];
     
     // Get exercise history for this user
@@ -642,16 +705,18 @@ export class DatabaseStorage implements IStorage {
       
       console.log(`Built exercise progress with ${globalIndex} total entries (warmups + working sets)`);
       
-      // Check if workout progress already exists
+      // Check if workout progress already exists (in the current program/cycle)
       const existing = await db
         .select()
         .from(workoutProgress)
         .where(and(
           eq(workoutProgress.userId, userId),
-          eq(workoutProgress.workoutNumber, workoutNumber)
+          eq(workoutProgress.workoutNumber, workoutNumber),
+          eq(workoutProgress.programName, selectedProgram),
+          eq(workoutProgress.programCycle, currentCycle)
         ))
         .limit(1);
-      
+
       if (existing.length > 0) {
         // Update existing record
         await db
@@ -664,7 +729,9 @@ export class DatabaseStorage implements IStorage {
           })
           .where(and(
             eq(workoutProgress.userId, userId),
-            eq(workoutProgress.workoutNumber, workoutNumber)
+            eq(workoutProgress.workoutNumber, workoutNumber),
+            eq(workoutProgress.programName, selectedProgram),
+            eq(workoutProgress.programCycle, currentCycle)
           ));
         console.log(`Updated workout ${workoutNumber} with ${globalIndex} exercises`);
       } else {
@@ -674,6 +741,8 @@ export class DatabaseStorage implements IStorage {
           .values({
             userId,
             workoutNumber,
+            programName: selectedProgram,
+            programCycle: currentCycle,
             status: "completed",
             startedAt: historicalExercises[0].performedAt,
             completedAt: historicalExercises[historicalExercises.length - 1].performedAt,
