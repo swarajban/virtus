@@ -98,7 +98,10 @@ export default function SettingsPage() {
 
       const result = await response.json();
       setSelectedProgram(programName);
-      
+      // Keep the locally-remembered program in sync — workout/exercise pages
+      // seed their first paint from this key before the network user resolves.
+      try { localStorage.setItem('selected-program', programName); } catch {}
+
       toast({
         title: "Success!",
         description: `Switched to ${programName} - Cycle ${result.cycle}`,

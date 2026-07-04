@@ -24,6 +24,50 @@ const CACHE_DURATION = 2000; // 2 seconds
 // accumulated map on each — guarantees the final POST carries every completion.
 let workoutProgressSaveChain: Promise<void> = Promise.resolve();
 
+// Count of queued-but-unsettled saves per workout. While a workout has a
+// pending save, a wholesale refetch must not replace its cache entry with the
+// server's older row — that would regress an optimistic completion back to
+// in_progress and the queued POST would then persist the regression.
+const pendingWorkoutProgressSaves = new Map<number, number>();
+
+const STATUS_RANK: Record<WorkoutProgress["status"], number> = {
+  not_started: 0,
+  in_progress: 1,
+  completed: 2,
+};
+
+// Merge two snapshots of the same workout's progress without ever downgrading
+// status. Within a session, status only moves forward (a reset DELETEs the row
+// instead of posting a downgrade), so whichever side is further along wins —
+// and completedAt travels WITH the completed status as an atomic pair: it is
+// present iff the merged status is completed. This is what makes a completion
+// un-clobberable: a stale in_progress snapshot merged in any order can no
+// longer produce {status: in_progress, completedAt: set}.
+// exerciseProgress is a per-key union with `next` (the newer side) winning.
+function mergeWorkoutProgress(
+  base: WorkoutProgress | undefined,
+  next: WorkoutProgress
+): WorkoutProgress {
+  if (!base) return next;
+  const status =
+    STATUS_RANK[next.status] >= STATUS_RANK[base.status] ? next.status : base.status;
+  const completedAt =
+    status === "completed"
+      ? next.completedAt ?? base.completedAt ?? new Date().toISOString()
+      : undefined;
+  return {
+    ...base,
+    ...next,
+    status,
+    completedAt,
+    startedAt: next.startedAt ?? base.startedAt,
+    exerciseProgress: {
+      ...(base.exerciseProgress ?? {}),
+      ...(next.exerciseProgress ?? {}),
+    },
+  };
+}
+
 export class DatabaseStorage {
   // Initialize with user selection
   static async initialize() {
@@ -65,10 +109,24 @@ export class DatabaseStorage {
     try {
       // Return fresh data from API
       const progress = await api.getWorkoutProgress();
-      cache.workoutProgress = progress;
+      // The server map replaces the cache WHOLESALE — that is what keeps the
+      // flat, cycle-unaware cache honest across a program/cycle switch (old
+      // cycle entries vanish because the new cycle's fetch doesn't contain
+      // them). The one exception: workouts with a save still in flight. Their
+      // optimistic entry is FURTHER ALONG than the server row this response
+      // was built from, so replacing it would regress a completion that the
+      // queued POST is about to (re)send. Keep those, merged monotonically.
+      const merged: Record<number, WorkoutProgress> = { ...progress };
+      for (const [key, entry] of Object.entries(cache.workoutProgress ?? {})) {
+        const workoutNumber = Number(key);
+        if ((pendingWorkoutProgressSaves.get(workoutNumber) ?? 0) > 0) {
+          merged[workoutNumber] = mergeWorkoutProgress(merged[workoutNumber], entry);
+        }
+      }
+      cache.workoutProgress = merged;
       cache.workoutProgressFetched = true;
       cache.lastFetch.workoutProgress = Date.now();
-      return progress;
+      return merged;
     } catch (error) {
       console.error("Failed to fetch workout progress:", error);
       return cache.workoutProgress || {};
@@ -93,31 +151,54 @@ export class DatabaseStorage {
   //     merged with this write's own snapshot — so no completion is ever dropped,
   //     even if a refetch clobbered the cache or an earlier POST is retrying.
   static saveWorkoutProgress(workoutNumber: number, progress: WorkoutProgress): Promise<void> {
-    // 1) Optimistic local accumulator update.
-    cache.workoutProgress = { ...(cache.workoutProgress ?? {}), [workoutNumber]: progress };
+    // 1) Optimistic local accumulator update — monotonic merge, so a write
+    //    carrying an older status (e.g. an exercise-complete's in_progress
+    //    snapshot) can never knock a just-completed workout back down.
+    cache.workoutProgress = {
+      ...(cache.workoutProgress ?? {}),
+      [workoutNumber]: mergeWorkoutProgress(cache.workoutProgress?.[workoutNumber], progress),
+    };
 
     // 2) Serialized network write that always sends the freshest full map.
     const run = async () => {
+      // At send time, merge this write's own snapshot with the accumulator:
+      // later completions (latest) win per exercise key, this write's entries
+      // fill anything a clobbering refetch dropped, and the monotonic status
+      // rule guarantees the body can never pair completedAt with a status
+      // that a stale snapshot dragged back to in_progress.
       const latest = cache.workoutProgress?.[workoutNumber];
-      const body: WorkoutProgress = latest
-        ? {
-            ...progress,
-            ...latest,
-            // Union of exercise entries: later completions (latest) win, but this
-            // write's own entries fill anything a clobbering refetch dropped.
-            exerciseProgress: {
-              ...(progress.exerciseProgress ?? {}),
-              ...(latest.exerciseProgress ?? {}),
-            },
-          }
-        : progress;
+      const body: WorkoutProgress = latest ? mergeWorkoutProgress(progress, latest) : progress;
       await api.saveWorkoutProgress(workoutNumber, body);
-      // Keep the cache in sync with exactly what we persisted.
-      cache.workoutProgress = { ...(cache.workoutProgress ?? {}), [workoutNumber]: body };
+      // Fold what we persisted back into the cache. Merging (not overwriting)
+      // matters: a NEWER write may have been queued while this POST was in
+      // flight, and overwriting would regress its optimistic status until its
+      // own turn — the exact window that produced completed_at-without-status
+      // rows. If the entry was cleared (reset) mid-flight, don't resurrect it.
+      const current = cache.workoutProgress?.[workoutNumber];
+      if (current) {
+        cache.workoutProgress = {
+          ...cache.workoutProgress,
+          [workoutNumber]: mergeWorkoutProgress(body, current),
+        };
+      }
       cache.lastFetch.workoutProgress = Date.now();
     };
 
+    // Track the in-flight save so a concurrent refetch won't replace this
+    // workout's optimistic entry with the server's older row (see
+    // getWorkoutProgress). Released when this save settles either way.
+    pendingWorkoutProgressSaves.set(
+      workoutNumber,
+      (pendingWorkoutProgressSaves.get(workoutNumber) ?? 0) + 1
+    );
+    const release = () => {
+      const remaining = (pendingWorkoutProgressSaves.get(workoutNumber) ?? 1) - 1;
+      if (remaining <= 0) pendingWorkoutProgressSaves.delete(workoutNumber);
+      else pendingWorkoutProgressSaves.set(workoutNumber, remaining);
+    };
+
     const result = workoutProgressSaveChain.then(run, run);
+    result.then(release, release);
     // Keep the chain alive even if this write rejects; the caller handles its own
     // rejection (e.g. the completion path's retry loop).
     workoutProgressSaveChain = result.then(() => undefined, () => undefined);
@@ -208,6 +289,14 @@ export class DatabaseStorage {
   static async clearWorkoutProgress(workoutNumber: number): Promise<void> {
     try {
       await api.clearWorkoutProgress(workoutNumber);
+      // Drop the local entry too — otherwise the stale completed snapshot
+      // lingers in the accumulator and the monotonic merge would resurrect it
+      // on the next save (a reset MUST be able to go back to not_started).
+      if (cache.workoutProgress && workoutNumber in cache.workoutProgress) {
+        const next = { ...cache.workoutProgress };
+        delete next[workoutNumber];
+        cache.workoutProgress = next;
+      }
       console.log("Workout progress cleared successfully");
     } catch (error) {
       console.error("Failed to clear workout progress:", error);

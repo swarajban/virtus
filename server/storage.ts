@@ -55,8 +55,8 @@ export interface IStorage {
   getExerciseHistory(userId: number, exerciseName?: string): Promise<ExerciseHistoryEntry[]>;
   saveExerciseHistory(userId: number, history: ExerciseHistoryEntry, workoutNumber?: number): Promise<void>;
   deleteExerciseHistoryEntry(userId: number, entryId: number): Promise<void>;
-  clearWorkoutProgress(userId: number, workoutNumber: number): Promise<void>;
-  clearExerciseHistoryForWorkout(userId: number, workoutNumber: number): Promise<void>;
+  clearWorkoutProgress(userId: number, workoutNumber: number, programName?: string, programCycle?: number): Promise<void>;
+  clearExerciseHistoryForWorkout(userId: number, workoutNumber: number, programName?: string, programCycle?: number): Promise<void>;
   updateUserProgram(userId: number, programName: string): Promise<void>;
   clearAllProgress(userId: number): Promise<void>;
   recoverProgressFromHistory(userId: number, workoutNumbers: number[]): Promise<any>;
@@ -251,15 +251,32 @@ export class DatabaseStorage implements IStorage {
       console.log(`Generated new session ID: ${sessionId} for workout ${workoutNumber}, program ${targetProgram}, cycle ${targetCycle}`);
     }
 
+    // Enforce the completion invariant at the write boundary. Status only
+    // moves forward via POST (a reset DELETEs the row), so:
+    //  - a stale snapshot can't downgrade a completed row back to in_progress;
+    //  - status=completed and completedAt are persisted as an atomic pair —
+    //    never one without the other, whatever a racing client sent.
+    let status = progress.status;
+    let completedAt = progress.completedAt ? new Date(progress.completedAt) : null;
+    if (existing[0]?.status === 'completed' && status !== 'completed') {
+      console.log(`Ignoring status downgrade to '${status}' for completed workout ${workoutNumber} (program ${targetProgram}, cycle ${targetCycle})`);
+      status = 'completed';
+      completedAt = completedAt ?? existing[0].completedAt;
+    }
+    if (completedAt && status !== 'completed') status = 'completed';
+    if (status === 'completed' && !completedAt) completedAt = new Date();
+
     const dbProgress = {
       userId,
       workoutNumber,
       programName: targetProgram,
       programCycle: targetCycle,
       sessionId,
-      status: progress.status,
-      startedAt: progress.startedAt ? new Date(progress.startedAt) : null,
-      completedAt: progress.completedAt ? new Date(progress.completedAt) : null,
+      status,
+      // Never null out a startedAt we already have — a partial snapshot from a
+      // racing write may simply lack the field.
+      startedAt: progress.startedAt ? new Date(progress.startedAt) : existing[0]?.startedAt ?? null,
+      completedAt,
       exerciseProgress: progress.exerciseProgress || {},
     };
 
@@ -453,26 +470,38 @@ export class DatabaseStorage implements IStorage {
     console.log(`Deleted exercise history entry ${entryId} for user ${userId}`);
   }
 
-  async clearWorkoutProgress(userId: number, workoutNumber: number): Promise<void> {
+  async clearWorkoutProgress(userId: number, workoutNumber: number, programName?: string, programCycle?: number): Promise<void> {
+    // Scope the delete to the user's CURRENT program + cycle when provided —
+    // resetting a workout in cycle 3 must not wipe the same workout number's
+    // rows from cycles 1/2 or from other programs.
+    const conditions = [
+      eq(workoutProgress.userId, userId),
+      eq(workoutProgress.workoutNumber, workoutNumber),
+    ];
+    if (programName !== undefined) conditions.push(eq(workoutProgress.programName, programName));
+    if (programCycle !== undefined) conditions.push(eq(workoutProgress.programCycle, programCycle));
     await db
       .delete(workoutProgress)
-      .where(and(
-        eq(workoutProgress.userId, userId),
-        eq(workoutProgress.workoutNumber, workoutNumber)
-      ));
-    console.log(`Cleared workout progress for user ${userId}, workout ${workoutNumber}`);
+      .where(and(...conditions));
+    console.log(`Cleared workout progress for user ${userId}, workout ${workoutNumber}, program ${programName ?? 'any'}, cycle ${programCycle ?? 'any'}`);
   }
 
-  async clearExerciseHistoryForWorkout(userId: number, workoutNumber: number): Promise<void> {
+  async clearExerciseHistoryForWorkout(userId: number, workoutNumber: number, programName?: string, programCycle?: number): Promise<void> {
     try {
-      // Get the session ID for this workout BEFORE we clear the progress
+      // Get the session ID for this workout BEFORE we clear the progress.
+      // Scoped to the current program/cycle when provided — the same workout
+      // number exists in every cycle, and limit(1) across all of them could
+      // pick an OLD cycle's session and delete that history instead.
+      const progressConditions = [
+        eq(workoutProgress.userId, userId),
+        eq(workoutProgress.workoutNumber, workoutNumber),
+      ];
+      if (programName !== undefined) progressConditions.push(eq(workoutProgress.programName, programName));
+      if (programCycle !== undefined) progressConditions.push(eq(workoutProgress.programCycle, programCycle));
       const progress = await db
         .select()
         .from(workoutProgress)
-        .where(and(
-          eq(workoutProgress.userId, userId),
-          eq(workoutProgress.workoutNumber, workoutNumber)
-        ))
+        .where(and(...progressConditions))
         .limit(1);
       
       if (!progress[0]?.sessionId) {

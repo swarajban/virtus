@@ -82,7 +82,10 @@ export function ProgramSelectionModal({
       }
 
       const result = await response.json();
-      
+      // Keep the locally-remembered program in sync — workout/exercise pages
+      // seed their first paint from this key before the network user resolves.
+      try { localStorage.setItem('selected-program', selectedProgramForStart); } catch {}
+
       toast({
         title: "Success!",
         description: `Started ${selectedProgramForStart} - Cycle ${result.cycle}`,

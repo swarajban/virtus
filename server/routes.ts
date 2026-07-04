@@ -220,7 +220,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await getUserFromRequest(req);
       const workoutNumber = parseInt(req.params.workoutNumber);
       
-      await storage.clearWorkoutProgress(user.id, workoutNumber);
+      // Scope to the user's current program + cycle — resetting a workout in
+      // the current cycle must not delete prior cycles' rows for that number.
+      await storage.clearWorkoutProgress(user.id, workoutNumber, user.selectedProgram, user.currentProgramCycle);
       res.json({ success: true });
     } catch (error) {
       console.error('Error clearing workout progress:', error);
@@ -234,7 +236,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const user = await getUserFromRequest(req);
       const workoutNumber = parseInt(req.params.workoutNumber);
       
-      await storage.clearExerciseHistoryForWorkout(user.id, workoutNumber);
+      // Scoped like clearWorkoutProgress: only the current program/cycle's
+      // session history for this workout number is affected.
+      await storage.clearExerciseHistoryForWorkout(user.id, workoutNumber, user.selectedProgram, user.currentProgramCycle);
       res.json({ success: true });
     } catch (error) {
       console.error('Error clearing exercise history for workout:', error);

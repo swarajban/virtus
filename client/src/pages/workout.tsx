@@ -44,6 +44,22 @@ export default function WorkoutPage() {
   );
 
   const workoutNumber = params ? parseInt(params.workoutNumber) : 0;
+  // Bumped when the page comes back to life (iOS Safari freeze/resume, bfcache
+  // restore, tab switch) so the data effect below refetches. A resumed page
+  // otherwise keeps rendering — and writing from — a snapshot that may predate
+  // a program/cycle switch made elsewhere.
+  const [resumeTick, setResumeTick] = useState(0);
+  useEffect(() => {
+    const onResume = () => {
+      if (document.visibilityState === "visible") setResumeTick((t) => t + 1);
+    };
+    window.addEventListener("pageshow", onResume);
+    document.addEventListener("visibilitychange", onResume);
+    return () => {
+      window.removeEventListener("pageshow", onResume);
+      document.removeEventListener("visibilitychange", onResume);
+    };
+  }, []);
 
   // Program structure (646KB JSON) — cached app-wide, staleTime Infinity.
   const { data: programJson, isError: programError, refetch: refetchProgram } = usePowerbuildingData();
@@ -83,7 +99,7 @@ export default function WorkoutPage() {
       .finally(() => { if (active) setProgressLoaded(LocalStorage.hasCachedWorkoutProgress()); });
     api.getCurrentUser().then((u) => { if (active) setCurrentUser(u); }).catch(() => {});
     return () => { active = false; };
-  }, [workoutNumber]);
+  }, [workoutNumber, resumeTick]);
 
   // Prefer the authoritative user program once loaded; before that, fall back to
   // the locally-remembered program (not a hardcoded default) so users on a
@@ -138,6 +154,26 @@ export default function WorkoutPage() {
 
   if (programError && !programJson) {
     return <ProgramDataError onRetry={() => refetchProgram()} />;
+  }
+
+  // The program data is loaded but this workout number isn't in the selected
+  // program's list (e.g. a stale link or a restored URL from a program with
+  // more workouts). Show a way out instead of spinning forever — and never
+  // let a Start/Complete write happen against an off-list number.
+  if (programJson && currentUser && !foundWorkout) {
+    return (
+      <div className="max-w-md mx-auto bg-white min-h-screen flex items-center justify-center">
+        <div className="text-center px-6">
+          <p className="text-gray-900 font-semibold mb-2">Workout not found</p>
+          <p className="text-gray-600 text-sm mb-4">
+            Workout #{workoutNumber} isn't part of {selectedProgramName}.
+          </p>
+          <Button onClick={() => { setNavDirection("back"); setLocation('/'); }}>
+            Back to Home
+          </Button>
+        </div>
+      </div>
+    );
   }
 
   // Block ONLY on a true cold load with no cached program structure yet. On a

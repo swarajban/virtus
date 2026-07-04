@@ -66,6 +66,31 @@ export default function HomePage() {
     loadWorkouts(true);
   }, [programJson]);
 
+  // Revalidate when the page comes back to life (iOS Safari freeze/resume,
+  // bfcache restore, tab switch). Without this, a page resumed days or weeks
+  // later still shows — and ROUTES FROM — the old snapshot: its "Next Workout"
+  // can point at a workout number from a previous program/cycle, and completing
+  // that workout writes under the wrong workout_number in the CURRENT cycle
+  // (the cycle-3 completion that landed on workout 25). The ref keeps the
+  // listeners stable while loadWorkouts' identity changes across renders.
+  const loadWorkoutsRef = useRef(loadWorkouts);
+  useEffect(() => {
+    loadWorkoutsRef.current = loadWorkouts;
+  }, [loadWorkouts]);
+  useEffect(() => {
+    const revalidate = () => {
+      if (document.visibilityState === "visible") {
+        loadWorkoutsRef.current(true);
+      }
+    };
+    window.addEventListener("pageshow", revalidate);
+    document.addEventListener("visibilitychange", revalidate);
+    return () => {
+      window.removeEventListener("pageshow", revalidate);
+      document.removeEventListener("visibilitychange", revalidate);
+    };
+  }, []);
+
   const completedWorkouts = workouts.filter(w => w.progress?.status === "completed").length;
   const totalWorkouts = workouts.length;
   const progressPercentage = totalWorkouts > 0 ? (completedWorkouts / totalWorkouts) * 100 : 0;
