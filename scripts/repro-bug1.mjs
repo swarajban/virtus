@@ -25,7 +25,9 @@ const USER = process.argv[2] || "repro_bug1";
 const BASE = process.env.BASE_URL || "http://localhost:5000";
 
 const psql = (sql) =>
-  execSync(`psql "${PGURL}" -tAc ${JSON.stringify(sql)}`).toString().trim();
+  // Collapse whitespace: JSON.stringify escapes newlines as literal \n which
+  // bash passes through to psql as backslash-n, breaking multi-line SQL.
+  execSync(`psql "${PGURL}" -tAc ${JSON.stringify(sql.replace(/\s+/g, " "))}`).toString().trim();
 
 // --- setup: fresh test user frozen mid-PB2.0-cycle-2 (24 of 48 done) ---
 psql(`DELETE FROM workout_progress WHERE user_id IN (SELECT id FROM users WHERE username='${USER}')`);

@@ -29,6 +29,8 @@ import { LocalStorage } from "@/lib/storage";
 import { api } from "@/lib/api-client";
 import { enhanceExerciseWithCalculations, getActualPercentage } from "@/lib/workout-utils";
 import { usePowerbuildingData, resolveProgramWorkouts, skipWarmups } from "@/hooks/use-powerbuilding-data";
+import { usePageResume } from "@/hooks/use-page-resume";
+import { rememberSelectedProgram } from "@/lib/api-client";
 import { useAllExercises, useAllOneRMs, exerciseHistoryQueryOptions } from "@/hooks/use-exercises-data";
 import { useQueryClient } from "@tanstack/react-query";
 import { ProgramDataError } from "@/components/program-data-error";
@@ -116,11 +118,32 @@ export default function ExercisePage() {
         // Correct the program first; persist second. If setItem throws (Safari
         // private mode / quota), the in-memory correction still lands.
         setSelectedProgram((prev) => (prev === user.selectedProgram ? prev : user.selectedProgram));
-        try { localStorage.setItem('selected-program', user.selectedProgram); } catch {}
+        rememberSelectedProgram(user.selectedProgram);
       })
       .catch(() => {});
     return () => { active = false; };
   }, []);
+
+  // Revalidate when the page comes back to life (iOS Safari freeze/resume,
+  // bfcache restore). A frozen exercise page can outlive a program/cycle
+  // switch made elsewhere; without this, completing an exercise would POST the
+  // old snapshot and the server would file it under the CURRENT cycle (the
+  // same stale-resume class as the workout-25 incident). Deliberately narrow:
+  // - correct selectedProgram (triggers a data reload ONLY if it actually
+  //   changed — a normal tab flip never clobbers half-entered sets/reps/weight);
+  // - refresh the shared progress accumulator so a later completion merges
+  //   against the current cycle's map, not the pre-freeze one (in-flight saves
+  //   are protected by the pending-saves guard in storage.ts).
+  usePageResume(() => {
+    api.getCurrentUser()
+      .then((user) => {
+        if (!user?.selectedProgram) return;
+        setSelectedProgram((prev) => (prev === user.selectedProgram ? prev : user.selectedProgram));
+        rememberSelectedProgram(user.selectedProgram);
+      })
+      .catch(() => {});
+    LocalStorage.getWorkoutProgress().catch(() => {});
+  });
 
   const workoutNumber = parseInt(params?.workoutNumber ?? '0', 10);
   const exerciseIndex = parseInt(params?.exerciseIndex ?? '0', 10);

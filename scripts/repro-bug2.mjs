@@ -26,7 +26,9 @@ const USER = process.argv[2] || "repro_bug2";
 const BASE = process.env.BASE_URL || "http://localhost:5000";
 
 const psql = (sql) =>
-  execSync(`psql "${PGURL}" -tAc ${JSON.stringify(sql)}`).toString().trim();
+  // Collapse whitespace: JSON.stringify escapes newlines as literal \n which
+  // bash passes through to psql as backslash-n, breaking multi-line SQL.
+  execSync(`psql "${PGURL}" -tAc ${JSON.stringify(sql.replace(/\s+/g, " "))}`).toString().trim();
 
 // --- setup: workout 2 in_progress, everything done except last exercise ---
 const doneEntry = (sets, reps, weight) =>

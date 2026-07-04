@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { ArrowLeft, Settings as SettingsIcon, User, RefreshCw } from "lucide-react";
-import { api } from "@/lib/api-client";
+import { api, rememberSelectedProgram } from "@/lib/api-client";
 import { useToast } from "@/hooks/use-toast";
 import { UserSelector } from "@/components/user-selector";
 import { ProgramSelectionModal } from "@/components/program-selection-modal";
@@ -100,7 +100,7 @@ export default function SettingsPage() {
       setSelectedProgram(programName);
       // Keep the locally-remembered program in sync — workout/exercise pages
       // seed their first paint from this key before the network user resolves.
-      try { localStorage.setItem('selected-program', programName); } catch {}
+      rememberSelectedProgram(programName);
 
       toast({
         title: "Success!",

@@ -11,6 +11,7 @@ import type { WorkoutWithProgress, ExerciseWithCalculatedWeight } from "@/types/
 import type { User, OneRM, WorkoutProgress } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { usePowerbuildingData, resolveProgramWorkouts } from "@/hooks/use-powerbuilding-data";
+import { usePageResume } from "@/hooks/use-page-resume";
 import { useAllExercises, useAllOneRMs } from "@/hooks/use-exercises-data";
 import { PageMotion } from "@/components/page-motion";
 import { ProgramDataError } from "@/components/program-data-error";
@@ -47,19 +48,15 @@ export default function WorkoutPage() {
   // Bumped when the page comes back to life (iOS Safari freeze/resume, bfcache
   // restore, tab switch) so the data effect below refetches. A resumed page
   // otherwise keeps rendering — and writing from — a snapshot that may predate
-  // a program/cycle switch made elsewhere.
+  // a program/cycle switch made elsewhere. progressLoaded drops to false FIRST
+  // so the status-dependent action buttons are hidden until the refetch lands:
+  // a tap in that window would write the stale snapshot's status into the
+  // CURRENT cycle. (The buttons come back via the effect's finally either way.)
   const [resumeTick, setResumeTick] = useState(0);
-  useEffect(() => {
-    const onResume = () => {
-      if (document.visibilityState === "visible") setResumeTick((t) => t + 1);
-    };
-    window.addEventListener("pageshow", onResume);
-    document.addEventListener("visibilitychange", onResume);
-    return () => {
-      window.removeEventListener("pageshow", onResume);
-      document.removeEventListener("visibilitychange", onResume);
-    };
-  }, []);
+  usePageResume(() => {
+    setProgressLoaded(false);
+    setResumeTick((t) => t + 1);
+  });
 
   // Program structure (646KB JSON) — cached app-wide, staleTime Infinity.
   const { data: programJson, isError: programError, refetch: refetchProgram } = usePowerbuildingData();
@@ -81,9 +78,14 @@ export default function WorkoutPage() {
     // cache is authoritative → progress is "loaded" and the real button stays
     // visible; only a cold cache leaves the placeholder until the fetch resolves.
     // Crucially we do NOT reset progressLoaded to false when warm — that reset was
-    // the "Start Workout button gone for a bit" flicker.
+    // the "Start Workout button gone for a bit" flicker. EXCEPTION: a resume
+    // (resumeTick > 0 run) keeps the buttons hidden until the refetch settles,
+    // because a warm cache from before a freeze may belong to a previous
+    // program/cycle — see usePageResume above.
     setWorkoutProgressMap(LocalStorage.getCachedWorkoutProgress());
-    setProgressLoaded(LocalStorage.hasCachedWorkoutProgress());
+    if (resumeTick === 0) {
+      setProgressLoaded(LocalStorage.hasCachedWorkoutProgress());
+    }
     LocalStorage.getOneRM().then((v) => { if (active) setOneRM(v); }).catch(() => {});
     // Background revalidation (stale-while-revalidate): corrects a stale cache when
     // it returns, and flips progressLoaded → true on a cold start. Never hides the
@@ -204,7 +206,12 @@ export default function WorkoutPage() {
       exerciseProgress: workout.progress?.exerciseProgress || {}, // PRESERVE existing exercise progress
     };
     await LocalStorage.saveWorkoutProgress(workoutNumber, progress);
-    setWorkoutProgressMap((prev) => ({ ...prev, [workoutNumber]: progress }));
+    // Render what was actually persisted: the accumulator may have merged in a
+    // racing exercise-completion that this snapshot lacks.
+    setWorkoutProgressMap((prev) => ({
+      ...prev,
+      [workoutNumber]: LocalStorage.getCachedWorkoutProgress()[workoutNumber] ?? progress,
+    }));
   };
 
   const handleCompleteWorkout = async () => {
@@ -218,7 +225,11 @@ export default function WorkoutPage() {
       exerciseProgress: workout.progress?.exerciseProgress || {}, // PRESERVE existing exercise progress
     };
     await LocalStorage.saveWorkoutProgress(workoutNumber, progress);
-    setWorkoutProgressMap((prev) => ({ ...prev, [workoutNumber]: progress }));
+    // Render what was actually persisted (see handleStartWorkout).
+    setWorkoutProgressMap((prev) => ({
+      ...prev,
+      [workoutNumber]: LocalStorage.getCachedWorkoutProgress()[workoutNumber] ?? progress,
+    }));
   };
 
   const handleResetWorkout = async () => {

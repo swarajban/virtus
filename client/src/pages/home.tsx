@@ -10,6 +10,7 @@ import { Play, Settings, Activity, Dumbbell } from "lucide-react";
 import type { WorkoutWithProgress } from "@/types/workout";
 import type { User } from "@shared/schema";
 import { usePowerbuildingData, resolveProgramWorkouts } from "@/hooks/use-powerbuilding-data";
+import { usePageResume } from "@/hooks/use-page-resume";
 import { PageMotion } from "@/components/page-motion";
 import { ProgramDataError } from "@/components/program-data-error";
 import { setNavDirection } from "@/lib/motion";
@@ -45,8 +46,13 @@ export default function HomePage() {
         setCurrentUser(user);
       }
 
-      // Handle new JSON structure with programs - use user's selected program
-      const selectedProgramName = user?.selectedProgram || 'Powerbuilding 4x';
+      // Handle new JSON structure with programs - use user's selected program.
+      // When the user fetch fails (flaky wifi — exactly when resume
+      // revalidation runs), fall back to the locally-remembered program, not a
+      // hardcoded default: rendering the wrong program's list would route
+      // "Next Workout" to a number from the wrong program.
+      const selectedProgramName =
+        user?.selectedProgram || localStorage.getItem('selected-program') || 'Powerbuilding 4x';
       const workoutData = resolveProgramWorkouts(programJson, selectedProgramName);
       
       const workoutsWithProgress = workoutData.map((workout: any) => ({
@@ -72,24 +78,12 @@ export default function HomePage() {
   // can point at a workout number from a previous program/cycle, and completing
   // that workout writes under the wrong workout_number in the CURRENT cycle
   // (the cycle-3 completion that landed on workout 25). The ref keeps the
-  // listeners stable while loadWorkouts' identity changes across renders.
+  // callback fresh while loadWorkouts' identity changes across renders.
   const loadWorkoutsRef = useRef(loadWorkouts);
   useEffect(() => {
     loadWorkoutsRef.current = loadWorkouts;
   }, [loadWorkouts]);
-  useEffect(() => {
-    const revalidate = () => {
-      if (document.visibilityState === "visible") {
-        loadWorkoutsRef.current(true);
-      }
-    };
-    window.addEventListener("pageshow", revalidate);
-    document.addEventListener("visibilitychange", revalidate);
-    return () => {
-      window.removeEventListener("pageshow", revalidate);
-      document.removeEventListener("visibilitychange", revalidate);
-    };
-  }, []);
+  usePageResume(() => loadWorkoutsRef.current(true));
 
   const completedWorkouts = workouts.filter(w => w.progress?.status === "completed").length;
   const totalWorkouts = workouts.length;

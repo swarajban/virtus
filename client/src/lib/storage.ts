@@ -44,6 +44,9 @@ const STATUS_RANK: Record<WorkoutProgress["status"], number> = {
 // un-clobberable: a stale in_progress snapshot merged in any order can no
 // longer produce {status: in_progress, completedAt: set}.
 // exerciseProgress is a per-key union with `next` (the newer side) winning.
+// The {...base, ...next} spread is NOT redundant with the explicit fields
+// below: it fills keys only one side carries (server-fetched entries have no
+// programName, client snapshots always do).
 function mergeWorkoutProgress(
   base: WorkoutProgress | undefined,
   next: WorkoutProgress
@@ -116,11 +119,14 @@ export class DatabaseStorage {
       // optimistic entry is FURTHER ALONG than the server row this response
       // was built from, so replacing it would regress a completion that the
       // queued POST is about to (re)send. Keep those, merged monotonically.
-      const merged: Record<number, WorkoutProgress> = { ...progress };
-      for (const [key, entry] of Object.entries(cache.workoutProgress ?? {})) {
-        const workoutNumber = Number(key);
-        if ((pendingWorkoutProgressSaves.get(workoutNumber) ?? 0) > 0) {
-          merged[workoutNumber] = mergeWorkoutProgress(merged[workoutNumber], entry);
+      let merged: Record<number, WorkoutProgress> = progress;
+      if (pendingWorkoutProgressSaves.size > 0) {
+        merged = { ...progress };
+        for (const [key, entry] of Object.entries(cache.workoutProgress ?? {})) {
+          const workoutNumber = Number(key);
+          if ((pendingWorkoutProgressSaves.get(workoutNumber) ?? 0) > 0) {
+            merged[workoutNumber] = mergeWorkoutProgress(merged[workoutNumber], entry);
+          }
         }
       }
       cache.workoutProgress = merged;
@@ -198,10 +204,11 @@ export class DatabaseStorage {
     };
 
     const result = workoutProgressSaveChain.then(run, run);
-    result.then(release, release);
-    // Keep the chain alive even if this write rejects; the caller handles its own
-    // rejection (e.g. the completion path's retry loop).
-    workoutProgressSaveChain = result.then(() => undefined, () => undefined);
+    // One derived promise does double duty: release the pending marker on
+    // either outcome AND keep the chain alive (release returns undefined and
+    // never throws). The caller handles its own rejection via `result` (e.g.
+    // the completion path's retry loop).
+    workoutProgressSaveChain = result.then(release, release);
     return result;
   }
 
@@ -285,23 +292,34 @@ export class DatabaseStorage {
     }
   }
 
-  // Clear workout progress directly from API
-  static async clearWorkoutProgress(workoutNumber: number): Promise<void> {
-    try {
-      await api.clearWorkoutProgress(workoutNumber);
-      // Drop the local entry too — otherwise the stale completed snapshot
-      // lingers in the accumulator and the monotonic merge would resurrect it
-      // on the next save (a reset MUST be able to go back to not_started).
-      if (cache.workoutProgress && workoutNumber in cache.workoutProgress) {
-        const next = { ...cache.workoutProgress };
-        delete next[workoutNumber];
-        cache.workoutProgress = next;
+  // Clear workout progress directly from API. Serialized through the SAME
+  // chain as saves: a completion POST still queued for this workout must land
+  // BEFORE the DELETE — otherwise the queued write would re-create the row
+  // right after the reset and the workout would resurrect as completed on the
+  // next refetch. Reset came last, so reset must win.
+  static clearWorkoutProgress(workoutNumber: number): Promise<void> {
+    const run = async () => {
+      try {
+        await api.clearWorkoutProgress(workoutNumber);
+        // Drop the local entry too — otherwise the stale completed snapshot
+        // lingers in the accumulator and the monotonic merge would resurrect it
+        // on the next save (a reset MUST be able to go back to not_started).
+        if (cache.workoutProgress && workoutNumber in cache.workoutProgress) {
+          const next = { ...cache.workoutProgress };
+          delete next[workoutNumber];
+          cache.workoutProgress = next;
+        }
+        console.log("Workout progress cleared successfully");
+      } catch (error) {
+        console.error("Failed to clear workout progress:", error);
+        throw error;
       }
-      console.log("Workout progress cleared successfully");
-    } catch (error) {
-      console.error("Failed to clear workout progress:", error);
-      throw error;
-    }
+    };
+    const result = workoutProgressSaveChain.then(run, run);
+    // Keep the chain alive whichever way the DELETE settles; the caller
+    // handles rejection via `result`.
+    workoutProgressSaveChain = result.then(() => undefined, () => undefined);
+    return result;
   }
 
   // Clear exercise history for a workout directly from API

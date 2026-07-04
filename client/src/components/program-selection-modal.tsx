@@ -3,6 +3,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import { rememberSelectedProgram } from "@/lib/api-client";
 import { CheckCircle2, Loader2 } from "lucide-react";
 
 interface Program {
@@ -84,7 +85,7 @@ export function ProgramSelectionModal({
       const result = await response.json();
       // Keep the locally-remembered program in sync — workout/exercise pages
       // seed their first paint from this key before the network user resolves.
-      try { localStorage.setItem('selected-program', selectedProgramForStart); } catch {}
+      rememberSelectedProgram(selectedProgramForStart);
 
       toast({
         title: "Success!",
