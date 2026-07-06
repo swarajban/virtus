@@ -70,6 +70,17 @@ export function calculateWeight(
   return Math.ceil(calculatedWeight / 5) * 5;
 }
 
+// Per-set RIR prescriptions (Min-Max programs). An RIR of 0 is meaningful
+// ("to failure"), so presence is decided on null/undefined — never truthiness.
+export function getRirSets(exercise: {
+  rir_set_1?: number | null;
+  rir_set_2?: number | null;
+}): { setNumber: number; rir: number }[] {
+  return [exercise.rir_set_1, exercise.rir_set_2]
+    .map((rir, i) => ({ setNumber: i + 1, rir }))
+    .filter((s): s is { setNumber: number; rir: number } => s.rir != null);
+}
+
 export function enhanceExerciseWithCalculations(
   exercise: Exercise, 
   oneRM?: OneRM,

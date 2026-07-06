@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, Play, Check, CheckCircle, ArrowRight, Circle, RotateCcw, Repeat, Copy } from "lucide-react";
 import { LocalStorage } from "@/lib/storage";
 import { api } from "@/lib/api-client";
-import { getWorkoutStatusBadge, formatDate, enhanceExerciseWithCalculations } from "@/lib/workout-utils";
+import { getWorkoutStatusBadge, formatDate, enhanceExerciseWithCalculations, getRirSets } from "@/lib/workout-utils";
 import type { WorkoutWithProgress, ExerciseWithCalculatedWeight } from "@/types/workout";
 import type { User, OneRM, WorkoutProgress } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
@@ -499,7 +499,9 @@ export default function WorkoutPage() {
                       {exercise.type_of_set}
                     </Badge>
                     <span>
-                      {exercise.number_of_sets} x {exercise.number_of_reps || "AMRAP"}
+                      {exercise.number_of_sets} x{" "}
+                      {exercise.number_of_reps ||
+                        (exercise.is_amrap ? "AMRAP" : "Hold")}
                     </span>
                     {exercise.calculatedWeight && (
                       <span>{exercise.calculatedWeight} lbs</span>
@@ -510,6 +512,11 @@ export default function WorkoutPage() {
                     {exercise.rpe && (
                       <span>RPE {exercise.rpe}</span>
                     )}
+                    {getRirSets(exercise).map(({ setNumber, rir }) => (
+                      <span key={setNumber} className="whitespace-nowrap">
+                        S{setNumber}: {rir} RIR
+                      </span>
+                    ))}
                   </div>
                   
                   {exercise.notes && (

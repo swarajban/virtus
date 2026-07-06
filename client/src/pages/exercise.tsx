@@ -27,7 +27,7 @@ import { ArrowLeft, Check, CheckCircle, Info, ExternalLink, Repeat, Clock, Chevr
 import { motion, useReducedMotion } from "framer-motion";
 import { LocalStorage } from "@/lib/storage";
 import { api } from "@/lib/api-client";
-import { enhanceExerciseWithCalculations, getActualPercentage } from "@/lib/workout-utils";
+import { enhanceExerciseWithCalculations, getActualPercentage, getRirSets } from "@/lib/workout-utils";
 import { usePowerbuildingData, resolveProgramWorkouts, skipWarmups } from "@/hooks/use-powerbuilding-data";
 import { usePageResume } from "@/hooks/use-page-resume";
 import { rememberSelectedProgram } from "@/lib/api-client";
@@ -248,6 +248,9 @@ export default function ExercisePage() {
             if (!isMounted) return;
 
             setExercise(enhancedExercise);
+            // Per-exercise UI state: the page stays mounted across Next/Prev,
+            // so an opened RIR hint must not leak onto the next exercise.
+            setShowRirHint(false);
             setWorkoutName(foundWorkout.workout_name);
             // Count WORKING exercises only (nav skips warm-ups, so the header
             // must too). Predicate matches skipWarmups (the nav source of truth):
@@ -644,11 +647,7 @@ export default function ExercisePage() {
 
   const exerciseOneRM = getOneRMForExercise();
 
-  // RIR prescriptions (Min-Max programs). 0 is meaningful ("to failure"), so
-  // filter on null/undefined — never truthiness.
-  const rirSets = [exercise.rir_set_1, exercise.rir_set_2]
-    .map((rir, i) => ({ setNumber: i + 1, rir }))
-    .filter((s): s is { setNumber: number; rir: number } => s.rir != null);
+  const rirSets = getRirSets(exercise);
 
   return (
     <div className="max-w-md mx-auto bg-white min-h-screen relative">
@@ -725,7 +724,9 @@ export default function ExercisePage() {
           )}
         </div>
         <p className="text-sm opacity-90">
-          {exercise.number_of_sets} x {exercise.number_of_reps || "AMRAP"}
+          {exercise.number_of_sets} x{" "}
+          {exercise.number_of_reps ||
+            (exercise.is_amrap ? "AMRAP" : "Hold")}
           {exercise.load_percentage && ` @ ${exercise.load_percentage}% 1RM`}
           {exercise.rpe && ` (RPE ${exercise.rpe})`}
         </p>
@@ -733,12 +734,12 @@ export default function ExercisePage() {
           <>
             <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
               {rirSets.map(({ setNumber, rir }) => (
-                <span
+                <Badge
                   key={setNumber}
-                  className="inline-flex items-center rounded-full bg-green-100 text-green-800 px-2.5 py-0.5 text-xs font-semibold"
+                  className="bg-green-100 text-green-800 hover:bg-green-100 border-transparent px-2.5 py-0.5 text-xs font-semibold rounded-full"
                 >
                   Set {setNumber}: {rir} RIR
-                </span>
+                </Badge>
               ))}
               <button
                 type="button"
