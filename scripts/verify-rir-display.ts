@@ -5,7 +5,7 @@
  * localStorage convention.
  *
  * Checks:
- * 1. Min-Max exercise (Pec Deck, 2x6, RIR 1/0): both RIR chips render,
+ * 1. Min-Max exercise (Pec Flye, 2x6, RIR 1/0): both RIR chips render,
  *    including the meaningful RIR of 0, with no empty "@ % 1RM (RPE )"
  *    fragments; the RIR info hint toggles on tap.
  * 2. Min-Max single-set-RIR exercise (Smith Machine Lunge): only Set 1 chip.
@@ -77,11 +77,11 @@ async function main() {
   const browser = await webkit.launch();
   const minmaxCtx = await makeContext(browser, 'minmax-test', 'Min-Max 5x');
 
-  // --- 1. Min-Max exercise with an RIR of 0 (Pec Deck: 2x6, set1=1, set2=0)
+  // --- 1. Min-Max exercise with an RIR of 0 (Pec Flye: 2x6, set1=1, set2=0)
   {
     const page = await minmaxCtx.newPage();
     await page.goto(`${BASE}/workout/1/exercise/1`);
-    await page.getByRole('heading', { level: 2, name: 'Pec Deck' }).waitFor({ timeout: 15000 });
+    await page.getByRole('heading', { level: 2, name: 'Pec Flye' }).waitFor({ timeout: 15000 });
 
     // Positive checks wait for visibility (isVisible() alone would race the
     // React commit); negative checks use count() — isVisible().catch(() =>
@@ -134,7 +134,7 @@ async function main() {
   {
     const page = await minmaxCtx.newPage();
     await page.goto(`${BASE}/workout/1`);
-    await page.getByText('Pec Deck').first().waitFor({ timeout: 15000 });
+    await page.getByText('Pec Flye').first().waitFor({ timeout: 15000 });
     check('Min-Max list: per-set RIR on rows', (await page.getByText('S1: 1 RIR').count()) > 0);
     check('Min-Max list: RIR 0 rendered on rows', (await page.getByText('S2: 0 RIR').count()) > 0);
     await page.screenshot({ path: '/tmp/rir-minmax-workoutlist.png' });
