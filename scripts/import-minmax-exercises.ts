@@ -28,9 +28,10 @@ neonConfig.webSocketConstructor = ws;
 
 // name -> { youtubeLink, usesBarbell }. Names already deduped against the DB
 // (e.g. program "Cable Crunch" -> DB "Cable Crunch (Abs)").
-const MINMAX_EXERCISES: Record<string, { youtubeLink: string; usesBarbell: boolean; isNew?: boolean }> = {
+const MINMAX_EXERCISES: Record<string, { youtubeLink?: string; usesBarbell: boolean; isNew?: boolean }> = {
   // Existing DB names (only their missing youtube_link gets filled)
   'Back squat': { youtubeLink: 'https://youtu.be/v3N4tpPpmyQ', usesBarbell: true },
+  'Barbell bench press': { usesBarbell: true },
   'Cable Crunch (Abs)': { youtubeLink: 'https://youtu.be/LvJM9V3D_CQ', usesBarbell: false },
   'Chest-supported T-Bar row': { youtubeLink: 'https://youtu.be/-FAxUZoPDc4', usesBarbell: true },
   'Constant-Tension Cable Triceps Kickback': { youtubeLink: 'https://youtu.be/FGJ64JyKod0', usesBarbell: false },
@@ -38,7 +39,6 @@ const MINMAX_EXERCISES: Record<string, { youtubeLink: string; usesBarbell: boole
   'Deadlift': { youtubeLink: 'https://youtu.be/xbnan2iNh-Q', usesBarbell: true },
   'Hip Thrust': { youtubeLink: 'https://youtu.be/ELgSmlwFsFQ', usesBarbell: false },
   'Hip abduction': { youtubeLink: 'https://youtu.be/iGd7fQffkkM', usesBarbell: false },
-  'Incline bench press': { youtubeLink: 'https://youtu.be/ad0NL7TH2-I', usesBarbell: true },
   'Leg extension': { youtubeLink: 'https://youtu.be/G0_M9LBCT0o', usesBarbell: false },
   'Leg press': { youtubeLink: 'https://youtu.be/ksBaBSfmZf4', usesBarbell: false },
   'Lying leg curl': { youtubeLink: 'https://youtu.be/y28L1m1PYUQ', usesBarbell: false },
@@ -115,7 +115,9 @@ async function importMinMaxExercises() {
 
     const patch: { youtubeLink?: string; usesBarbell?: boolean } = {};
     // Never overwrite a real link; do fill NULL or '' left by earlier tooling.
-    if (!existing[0].youtubeLink) {
+    // Skip entirely when the map intentionally provides no link (youtubeLink
+    // undefined) — e.g. a shared barbell lift we don't want a video forced on.
+    if (youtubeLink && !existing[0].youtubeLink) {
       patch.youtubeLink = youtubeLink;
     }
     // For the program's new exercises this map is authoritative for
