@@ -78,6 +78,7 @@ export default function ExercisePage() {
   const [swappedFromOriginal, setSwappedFromOriginal] = useState<string | null>(null);
   const [warmupInfo, setWarmupInfo] = useState<any>(null);
   const [isWarmupExpanded, setIsWarmupExpanded] = useState(false);
+  const [showRirHint, setShowRirHint] = useState(false);
 
   // Cached program JSON — fetched once per session, served from memory after.
   // Navigation reads the workout's exercise list from this ref synchronously,
@@ -643,6 +644,12 @@ export default function ExercisePage() {
 
   const exerciseOneRM = getOneRMForExercise();
 
+  // RIR prescriptions (Min-Max programs). 0 is meaningful ("to failure"), so
+  // filter on null/undefined — never truthiness.
+  const rirSets = [exercise.rir_set_1, exercise.rir_set_2]
+    .map((rir, i) => ({ setNumber: i + 1, rir }))
+    .filter((s): s is { setNumber: number; rir: number } => s.rir != null);
+
   return (
     <div className="max-w-md mx-auto bg-white min-h-screen relative">
       {/* Modern Header - Changed from sticky to relative on mobile */}
@@ -722,6 +729,35 @@ export default function ExercisePage() {
           {exercise.load_percentage && ` @ ${exercise.load_percentage}% 1RM`}
           {exercise.rpe && ` (RPE ${exercise.rpe})`}
         </p>
+        {rirSets.length > 0 && (
+          <>
+            <div className="mt-1.5 flex items-center gap-1.5 flex-wrap">
+              {rirSets.map(({ setNumber, rir }) => (
+                <span
+                  key={setNumber}
+                  className="inline-flex items-center rounded-full bg-green-100 text-green-800 px-2.5 py-0.5 text-xs font-semibold"
+                >
+                  Set {setNumber}: {rir} RIR
+                </span>
+              ))}
+              <button
+                type="button"
+                onClick={() => setShowRirHint((v) => !v)}
+                className="p-2 -my-1.5 text-green-700 rounded-full active:bg-green-200/70 transition-colors"
+                aria-label="What is RIR?"
+                aria-expanded={showRirHint}
+              >
+                <Info className="h-3.5 w-3.5" />
+              </button>
+            </div>
+            {showRirHint && (
+              <p className="mt-1 text-xs text-gray-500">
+                RIR = reps in reserve: stop that many reps shy of failure (0 = go
+                to failure).
+              </p>
+            )}
+          </>
+        )}
         {swappedFromOriginal && (
           <p className="text-xs text-green-600 mt-1">
             <Repeat className="h-3 w-3 inline mr-1" />

@@ -13,6 +13,8 @@ export interface ExerciseWithCalculatedWeight {
   is_amrap: boolean;
   load_percentage: number | null;
   rpe: number | null;
+  rir_set_1?: number | null;
+  rir_set_2?: number | null;
   notes: string;
   calculatedWeight?: number;
   userWeight?: number;
