@@ -164,6 +164,8 @@ export const exerciseSchema = z.object({
   is_amrap: z.boolean(),
   load_percentage: z.number().nullable(),
   rpe: z.number().nullable(),
+  rir_set_1: z.number().nullable().optional(), // Reps in reserve for set 1 (0 = to failure)
+  rir_set_2: z.number().nullable().optional(), // Reps in reserve for set 2
   notes: z.string(),
   onermExerciseId: z.number().nullable().optional(), // Added for 1RM reference
 });

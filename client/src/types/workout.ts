@@ -1,19 +1,12 @@
-import type { Workout, WorkoutProgress, OneRM, ExerciseHistoryEntry } from "@shared/schema";
+import type { Workout, WorkoutProgress, OneRM, ExerciseHistoryEntry, Exercise } from "@shared/schema";
 
 export interface WorkoutWithProgress extends Workout {
   progress?: WorkoutProgress;
 }
 
-export interface ExerciseWithCalculatedWeight {
-  name: string;
-  superset_label: string | null;
-  type_of_set: "warm-up" | "working";
-  number_of_sets: number;
-  number_of_reps: number | null;
-  is_amrap: boolean;
-  load_percentage: number | null;
-  rpe: number | null;
-  notes: string;
+// Derives from the zod-inferred Exercise so new schema fields (e.g. the RIR
+// prescriptions) can't silently go missing from this type.
+export interface ExerciseWithCalculatedWeight extends Exercise {
   calculatedWeight?: number;
   userWeight?: number;
   userSets?: number;
