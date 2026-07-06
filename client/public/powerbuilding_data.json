@@ -3863,7 +3863,7 @@
                             "is_amrap": false,
                             "load_percentage": null,
                             "rpe": 8.0,
-                            "notes": "45\u00b0 incline, keep shoulder blades retracted and depressed"
+                            "notes": "45° incline, keep shoulder blades retracted and depressed"
                         },
                         {
                             "name": "Dumbbell Incline Press",
@@ -3874,7 +3874,7 @@
                             "is_amrap": false,
                             "load_percentage": null,
                             "rpe": 8.0,
-                            "notes": "45\u00b0 incline, keep shoulder blades retracted and depressed"
+                            "notes": "45° incline, keep shoulder blades retracted and depressed"
                         },
                         {
                             "name": "Pendlay row",
@@ -6512,7 +6512,7 @@
                     "workout_number": 21,
                     "week_number": 5,
                     "day_number": 1,
-                    "workout_name": "Week 5 Day 1: SQUAT TEST \ud83c\udfaf",
+                    "workout_name": "Week 5 Day 1: SQUAT TEST 🎯",
                     "exercises": [
                         {
                             "name": "Back squat",
@@ -6553,7 +6553,7 @@
                     "workout_number": 22,
                     "week_number": 5,
                     "day_number": 3,
-                    "workout_name": "Week 5 Day 3: BENCH TEST \ud83c\udfaf",
+                    "workout_name": "Week 5 Day 3: BENCH TEST 🎯",
                     "exercises": [
                         {
                             "name": "Barbell bench press",
@@ -6594,7 +6594,7 @@
                     "workout_number": 23,
                     "week_number": 5,
                     "day_number": 5,
-                    "workout_name": "Week 5 Day 5: DEADLIFT TEST \ud83c\udfaf",
+                    "workout_name": "Week 5 Day 5: DEADLIFT TEST 🎯",
                     "exercises": [
                         {
                             "name": "Deadlift",
@@ -13062,7 +13062,7 @@
                             "rir_set_2": 1
                         },
                         {
-                            "name": "Pec Deck",
+                            "name": "Pec Flye",
                             "superset_label": null,
                             "type_of_set": "working",
                             "number_of_sets": 2,
@@ -13088,7 +13088,7 @@
                             "rir_set_2": 0
                         },
                         {
-                            "name": "Pull-Up (Wide Grip)",
+                            "name": "Weighted pull-up",
                             "superset_label": null,
                             "type_of_set": "working",
                             "number_of_sets": 2,
@@ -13299,7 +13299,7 @@
                             "rir_set_2": 1
                         },
                         {
-                            "name": "High-Cable Lateral Raise",
+                            "name": "Cable lateral raise",
                             "superset_label": null,
                             "type_of_set": "working",
                             "number_of_sets": 2,
@@ -13372,7 +13372,7 @@
                             "rir_set_2": 2
                         },
                         {
-                            "name": "Machine Hip Thrust",
+                            "name": "Hip Thrust",
                             "superset_label": null,
                             "type_of_set": "working",
                             "number_of_sets": 2,
@@ -13557,7 +13557,7 @@
                             "rir_set_2": 0
                         },
                         {
-                            "name": "Pec Deck",
+                            "name": "Pec Flye",
                             "superset_label": null,
                             "type_of_set": "working",
                             "number_of_sets": 2,
@@ -13583,7 +13583,7 @@
                             "rir_set_2": 0
                         },
                         {
-                            "name": "Pull-Up (Wide Grip)",
+                            "name": "Weighted pull-up",
                             "superset_label": null,
                             "type_of_set": "working",
                             "number_of_sets": 2,
@@ -13794,7 +13794,7 @@
                             "rir_set_2": 0
                         },
                         {
-                            "name": "High-Cable Lateral Raise",
+                            "name": "Cable lateral raise",
                             "superset_label": null,
                             "type_of_set": "working",
                             "number_of_sets": 2,
@@ -13867,7 +13867,7 @@
                             "rir_set_2": 1
                         },
                         {
-                            "name": "Machine Hip Thrust",
+                            "name": "Hip Thrust",
                             "superset_label": null,
                             "type_of_set": "working",
                             "number_of_sets": 2,
@@ -14052,7 +14052,7 @@
                             "rir_set_2": 0
                         },
                         {
-                            "name": "Pec Deck",
+                            "name": "Pec Flye",
                             "superset_label": null,
                             "type_of_set": "working",
                             "number_of_sets": 2,
@@ -14078,7 +14078,7 @@
                             "rir_set_2": 0
                         },
                         {
-                            "name": "Pull-Up (Wide Grip)",
+                            "name": "Weighted pull-up",
                             "superset_label": null,
                             "type_of_set": "working",
                             "number_of_sets": 2,
@@ -14289,7 +14289,7 @@
                             "rir_set_2": 0
                         },
                         {
-                            "name": "High-Cable Lateral Raise",
+                            "name": "Cable lateral raise",
                             "superset_label": null,
                             "type_of_set": "working",
                             "number_of_sets": 2,
@@ -14362,7 +14362,7 @@
                             "rir_set_2": 1
                         },
                         {
-                            "name": "Machine Hip Thrust",
+                            "name": "Hip Thrust",
                             "superset_label": null,
                             "type_of_set": "working",
                             "number_of_sets": 2,
@@ -14547,7 +14547,7 @@
                             "rir_set_2": 0
                         },
                         {
-                            "name": "Pec Deck",
+                            "name": "Pec Flye",
                             "superset_label": null,
                             "type_of_set": "working",
                             "number_of_sets": 2,
@@ -14573,7 +14573,7 @@
                             "rir_set_2": 0
                         },
                         {
-                            "name": "Pull-Up (Wide Grip)",
+                            "name": "Weighted pull-up",
                             "superset_label": null,
                             "type_of_set": "working",
                             "number_of_sets": 2,
@@ -14784,7 +14784,7 @@
                             "rir_set_2": 0
                         },
                         {
-                            "name": "High-Cable Lateral Raise",
+                            "name": "Cable lateral raise",
                             "superset_label": null,
                             "type_of_set": "working",
                             "number_of_sets": 2,
@@ -14857,7 +14857,7 @@
                             "rir_set_2": 1
                         },
                         {
-                            "name": "Machine Hip Thrust",
+                            "name": "Hip Thrust",
                             "superset_label": null,
                             "type_of_set": "working",
                             "number_of_sets": 2,
@@ -15042,7 +15042,7 @@
                             "rir_set_2": 0
                         },
                         {
-                            "name": "Pec Deck",
+                            "name": "Pec Flye",
                             "superset_label": null,
                             "type_of_set": "working",
                             "number_of_sets": 2,
@@ -15068,7 +15068,7 @@
                             "rir_set_2": 0
                         },
                         {
-                            "name": "Pull-Up (Wide Grip)",
+                            "name": "Weighted pull-up",
                             "superset_label": null,
                             "type_of_set": "working",
                             "number_of_sets": 2,
@@ -15279,7 +15279,7 @@
                             "rir_set_2": 0
                         },
                         {
-                            "name": "High-Cable Lateral Raise",
+                            "name": "Cable lateral raise",
                             "superset_label": null,
                             "type_of_set": "working",
                             "number_of_sets": 2,
@@ -15352,7 +15352,7 @@
                             "rir_set_2": 1
                         },
                         {
-                            "name": "Machine Hip Thrust",
+                            "name": "Hip Thrust",
                             "superset_label": null,
                             "type_of_set": "working",
                             "number_of_sets": 2,
@@ -15537,7 +15537,7 @@
                             "rir_set_2": 0
                         },
                         {
-                            "name": "Pec Deck",
+                            "name": "Pec Flye",
                             "superset_label": null,
                             "type_of_set": "working",
                             "number_of_sets": 2,
@@ -15563,7 +15563,7 @@
                             "rir_set_2": 0
                         },
                         {
-                            "name": "Pull-Up (Wide Grip)",
+                            "name": "Weighted pull-up",
                             "superset_label": null,
                             "type_of_set": "working",
                             "number_of_sets": 2,
@@ -15774,7 +15774,7 @@
                             "rir_set_2": 0
                         },
                         {
-                            "name": "High-Cable Lateral Raise",
+                            "name": "Cable lateral raise",
                             "superset_label": null,
                             "type_of_set": "working",
                             "number_of_sets": 2,
@@ -15847,7 +15847,7 @@
                             "rir_set_2": 1
                         },
                         {
-                            "name": "Machine Hip Thrust",
+                            "name": "Hip Thrust",
                             "superset_label": null,
                             "type_of_set": "working",
                             "number_of_sets": 2,
@@ -16032,7 +16032,7 @@
                             "rir_set_2": 1
                         },
                         {
-                            "name": "Pec Deck",
+                            "name": "Pec Flye",
                             "superset_label": null,
                             "type_of_set": "working",
                             "number_of_sets": 2,
@@ -16058,7 +16058,7 @@
                             "rir_set_2": 0
                         },
                         {
-                            "name": "Pull-Up (Wide Grip)",
+                            "name": "Weighted pull-up",
                             "superset_label": null,
                             "type_of_set": "working",
                             "number_of_sets": 2,
@@ -16269,7 +16269,7 @@
                             "rir_set_2": 1
                         },
                         {
-                            "name": "High-Cable Lateral Raise",
+                            "name": "Cable lateral raise",
                             "superset_label": null,
                             "type_of_set": "working",
                             "number_of_sets": 2,
@@ -16342,7 +16342,7 @@
                             "rir_set_2": 2
                         },
                         {
-                            "name": "Machine Hip Thrust",
+                            "name": "Hip Thrust",
                             "superset_label": null,
                             "type_of_set": "working",
                             "number_of_sets": 2,
@@ -16527,7 +16527,7 @@
                             "rir_set_2": 0
                         },
                         {
-                            "name": "Pec Deck",
+                            "name": "Pec Flye",
                             "superset_label": null,
                             "type_of_set": "working",
                             "number_of_sets": 2,
@@ -16553,7 +16553,7 @@
                             "rir_set_2": 0
                         },
                         {
-                            "name": "Pull-Up (Wide Grip)",
+                            "name": "Weighted pull-up",
                             "superset_label": null,
                             "type_of_set": "working",
                             "number_of_sets": 2,
@@ -16764,7 +16764,7 @@
                             "rir_set_2": 0
                         },
                         {
-                            "name": "High-Cable Lateral Raise",
+                            "name": "Cable lateral raise",
                             "superset_label": null,
                             "type_of_set": "working",
                             "number_of_sets": 2,
@@ -16837,7 +16837,7 @@
                             "rir_set_2": 1
                         },
                         {
-                            "name": "Machine Hip Thrust",
+                            "name": "Hip Thrust",
                             "superset_label": null,
                             "type_of_set": "working",
                             "number_of_sets": 2,
@@ -17022,7 +17022,7 @@
                             "rir_set_2": 0
                         },
                         {
-                            "name": "Pec Deck",
+                            "name": "Pec Flye",
                             "superset_label": null,
                             "type_of_set": "working",
                             "number_of_sets": 2,
@@ -17048,7 +17048,7 @@
                             "rir_set_2": 0
                         },
                         {
-                            "name": "Pull-Up (Wide Grip)",
+                            "name": "Weighted pull-up",
                             "superset_label": null,
                             "type_of_set": "working",
                             "number_of_sets": 2,
@@ -17259,7 +17259,7 @@
                             "rir_set_2": 0
                         },
                         {
-                            "name": "High-Cable Lateral Raise",
+                            "name": "Cable lateral raise",
                             "superset_label": null,
                             "type_of_set": "working",
                             "number_of_sets": 2,
@@ -17332,7 +17332,7 @@
                             "rir_set_2": 1
                         },
                         {
-                            "name": "Machine Hip Thrust",
+                            "name": "Hip Thrust",
                             "superset_label": null,
                             "type_of_set": "working",
                             "number_of_sets": 2,
@@ -17517,7 +17517,7 @@
                             "rir_set_2": 0
                         },
                         {
-                            "name": "Pec Deck",
+                            "name": "Pec Flye",
                             "superset_label": null,
                             "type_of_set": "working",
                             "number_of_sets": 2,
@@ -17543,7 +17543,7 @@
                             "rir_set_2": 0
                         },
                         {
-                            "name": "Pull-Up (Wide Grip)",
+                            "name": "Weighted pull-up",
                             "superset_label": null,
                             "type_of_set": "working",
                             "number_of_sets": 2,
@@ -17754,7 +17754,7 @@
                             "rir_set_2": 0
                         },
                         {
-                            "name": "High-Cable Lateral Raise",
+                            "name": "Cable lateral raise",
                             "superset_label": null,
                             "type_of_set": "working",
                             "number_of_sets": 2,
@@ -17827,7 +17827,7 @@
                             "rir_set_2": 1
                         },
                         {
-                            "name": "Machine Hip Thrust",
+                            "name": "Hip Thrust",
                             "superset_label": null,
                             "type_of_set": "working",
                             "number_of_sets": 2,
@@ -18012,7 +18012,7 @@
                             "rir_set_2": 0
                         },
                         {
-                            "name": "Pec Deck",
+                            "name": "Pec Flye",
                             "superset_label": null,
                             "type_of_set": "working",
                             "number_of_sets": 2,
@@ -18038,7 +18038,7 @@
                             "rir_set_2": 0
                         },
                         {
-                            "name": "Pull-Up (Wide Grip)",
+                            "name": "Weighted pull-up",
                             "superset_label": null,
                             "type_of_set": "working",
                             "number_of_sets": 2,
@@ -18249,7 +18249,7 @@
                             "rir_set_2": 0
                         },
                         {
-                            "name": "High-Cable Lateral Raise",
+                            "name": "Cable lateral raise",
                             "superset_label": null,
                             "type_of_set": "working",
                             "number_of_sets": 2,
@@ -18322,7 +18322,7 @@
                             "rir_set_2": 1
                         },
                         {
-                            "name": "Machine Hip Thrust",
+                            "name": "Hip Thrust",
                             "superset_label": null,
                             "type_of_set": "working",
                             "number_of_sets": 2,
@@ -18507,7 +18507,7 @@
                             "rir_set_2": 0
                         },
                         {
-                            "name": "Pec Deck",
+                            "name": "Pec Flye",
                             "superset_label": null,
                             "type_of_set": "working",
                             "number_of_sets": 2,
@@ -18533,7 +18533,7 @@
                             "rir_set_2": 0
                         },
                         {
-                            "name": "Pull-Up (Wide Grip)",
+                            "name": "Weighted pull-up",
                             "superset_label": null,
                             "type_of_set": "working",
                             "number_of_sets": 2,
@@ -18744,7 +18744,7 @@
                             "rir_set_2": 0
                         },
                         {
-                            "name": "High-Cable Lateral Raise",
+                            "name": "Cable lateral raise",
                             "superset_label": null,
                             "type_of_set": "working",
                             "number_of_sets": 2,
@@ -18817,7 +18817,7 @@
                             "rir_set_2": 1
                         },
                         {
-                            "name": "Machine Hip Thrust",
+                            "name": "Hip Thrust",
                             "superset_label": null,
                             "type_of_set": "working",
                             "number_of_sets": 2,
