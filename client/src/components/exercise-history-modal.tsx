@@ -35,9 +35,14 @@ function groupBySession(entries: ExerciseHistoryEntry[]): HistorySession[] {
 
   const sessions: HistorySession[] = [];
   for (const [key, rows] of Array.from(map.entries())) {
-    // Order groups by set_group so the display matches logging order
-    // (e.g. 2×1 @ 315 then 3×3 @ 275); nulls sort first, stable otherwise.
-    const ordered = [...rows].sort((a, b) => (a.setGroup ?? 0) - (b.setGroup ?? 0));
+    // Order groups by (exercise_index, set_group) so the display matches logging
+    // order (e.g. 2×1 @ 315 then 3×3 @ 275). When the same lift was logged as two
+    // working blocks in one session (same session_id, different exercise_index),
+    // ordering by exercise_index first keeps each block's groups together instead
+    // of interleaving them (both blocks start at set_group 0).
+    const ordered = [...rows].sort(
+      (a, b) => ((a.exerciseIndex ?? 0) - (b.exerciseIndex ?? 0)) || ((a.setGroup ?? 0) - (b.setGroup ?? 0))
+    );
     const topWeight = Math.max(0, ...ordered.map((r) => r.weight || 0));
     sessions.push({
       key,
