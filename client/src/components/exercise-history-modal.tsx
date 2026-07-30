@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { LocalStorage } from "@/lib/storage";
 import { formatDate } from "@/lib/workout-utils";
@@ -11,15 +11,60 @@ interface ExerciseHistoryModalProps {
   exerciseName: string;
 }
 
-export function ExerciseHistoryModal({ 
-  isOpen, 
-  onClose, 
-  exerciseName 
+// One workout session's worth of rows for this exercise, collapsed from the N
+// set-group rows that share a session_id. Legacy rows with no session_id each
+// become their own single-group session (keyed by row id).
+interface HistorySession {
+  key: string;
+  date: string;
+  ids: number[];
+  groups: { sets: number; reps: number; weight: number }[];
+  topWeight: number;
+  notes?: string;
+}
+
+function groupBySession(entries: ExerciseHistoryEntry[]): HistorySession[] {
+  const map = new Map<string, ExerciseHistoryEntry[]>();
+  for (const entry of entries) {
+    // A missing session_id (legacy data) can't be grouped — give each such row
+    // its own bucket so nothing collapses together incorrectly.
+    const key = entry.sessionId ? `s:${entry.sessionId}` : `r:${entry.id}`;
+    if (!map.has(key)) map.set(key, []);
+    map.get(key)!.push(entry);
+  }
+
+  const sessions: HistorySession[] = [];
+  for (const [key, rows] of Array.from(map.entries())) {
+    // Order groups by (exercise_index, set_group) so the display matches logging
+    // order (e.g. 2×1 @ 315 then 3×3 @ 275). When the same lift was logged as two
+    // working blocks in one session (same session_id, different exercise_index),
+    // ordering by exercise_index first keeps each block's groups together instead
+    // of interleaving them (both blocks start at set_group 0).
+    const ordered = [...rows].sort(
+      (a, b) => ((a.exerciseIndex ?? 0) - (b.exerciseIndex ?? 0)) || ((a.setGroup ?? 0) - (b.setGroup ?? 0))
+    );
+    const topWeight = Math.max(0, ...ordered.map((r) => r.weight || 0));
+    sessions.push({
+      key,
+      date: ordered[0].date,
+      ids: ordered.map((r) => r.id!).filter((id) => id != null),
+      groups: ordered.map((r) => ({ sets: r.sets, reps: r.reps, weight: r.weight })),
+      topWeight,
+      notes: ordered.find((r) => r.notes)?.notes,
+    });
+  }
+  return sessions;
+}
+
+export function ExerciseHistoryModal({
+  isOpen,
+  onClose,
+  exerciseName,
 }: ExerciseHistoryModalProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [exerciseHistory, setExerciseHistory] = useState<ExerciseHistoryEntry[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [deletingEntryId, setDeletingEntryId] = useState<number | null>(null);
+  const [deletingSessionKey, setDeletingSessionKey] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadExerciseHistory() {
@@ -27,9 +72,7 @@ export function ExerciseHistoryModal({
         setIsLoading(true);
         try {
           const history = await LocalStorage.getExerciseHistory();
-          const filteredHistory = history
-            .filter(entry => entry.exerciseName === exerciseName)
-            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+          const filteredHistory = history.filter((entry) => entry.exerciseName === exerciseName);
           setExerciseHistory(filteredHistory);
         } catch (error) {
           console.error("Error loading exercise history:", error);
@@ -38,14 +81,21 @@ export function ExerciseHistoryModal({
         setIsLoading(false);
       }
     }
-    
+
     loadExerciseHistory();
   }, [isOpen, exerciseName]);
 
+  // Collapse rows into sessions, newest-first for the list.
+  const sessions = useMemo(() => {
+    return groupBySession(exerciseHistory).sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()
+    );
+  }, [exerciseHistory]);
+
   useEffect(() => {
     let chartInstance: any = null;
-    
-    if (isOpen && exerciseHistory.length > 0 && canvasRef.current) {
+
+    if (isOpen && sessions.length > 0 && canvasRef.current) {
       // Import Chart.js dynamically
       import('chart.js/auto').then(({ default: Chart }) => {
         const ctx = canvasRef.current?.getContext('2d');
@@ -57,17 +107,19 @@ export function ExerciseHistoryModal({
           existingChart.destroy();
         }
 
-        // Sort chart data in ascending order (oldest to newest for left to right)
-        const chartData = [...exerciseHistory].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-        const dates = chartData.map(entry => formatDate(entry.date));
-        const weights = chartData.map(entry => entry.weight);
+        // One point per SESSION, plotting the TOP-SET weight (oldest→newest).
+        const chartData = [...sessions].sort(
+          (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+        );
+        const dates = chartData.map((s) => formatDate(s.date));
+        const weights = chartData.map((s) => s.topWeight);
 
         chartInstance = new Chart(ctx, {
           type: 'line',
           data: {
             labels: dates,
             datasets: [{
-              label: 'Weight (lbs)',
+              label: 'Top set (lbs)',
               data: weights,
               borderColor: 'rgb(59, 130, 246)',
               backgroundColor: 'rgba(59, 130, 246, 0.1)',
@@ -115,34 +167,42 @@ export function ExerciseHistoryModal({
         console.error('Failed to load Chart.js:', error);
       });
     }
-    
+
     // Cleanup function
     return () => {
       if (chartInstance) {
         chartInstance.destroy();
       }
     };
-  }, [isOpen, exerciseHistory]);
+  }, [isOpen, sessions]);
 
-  const handleDeleteEntry = async (entryId: number) => {
-    if (!entryId || !confirm('Are you sure you want to delete this exercise record?')) {
+  // Delete a WHOLE session's set-groups at once so multi-group logs can't be
+  // half-removed (which would orphan groups and skew the top-set chart).
+  const handleDeleteSession = async (session: HistorySession) => {
+    if (session.ids.length === 0) return;
+    const label =
+      session.groups.length > 1
+        ? `all ${session.groups.length} set groups from ${formatDate(session.date)}`
+        : `this exercise record`;
+    if (!confirm(`Are you sure you want to delete ${label}?`)) {
       return;
     }
-    
-    setDeletingEntryId(entryId);
+
+    setDeletingSessionKey(session.key);
     try {
-      await LocalStorage.deleteExerciseHistoryEntry(entryId);
-      // Reload the exercise history after deletion
+      if (session.ids.length === 1) {
+        await LocalStorage.deleteExerciseHistoryEntry(session.ids[0]);
+      } else {
+        await LocalStorage.deleteExerciseHistoryEntries(session.ids);
+      }
+      // Reload after deletion
       const history = await LocalStorage.getExerciseHistory();
-      const filteredHistory = history
-        .filter(entry => entry.exerciseName === exerciseName)
-        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-      setExerciseHistory(filteredHistory);
+      setExerciseHistory(history.filter((entry) => entry.exerciseName === exerciseName));
     } catch (error) {
-      console.error('Failed to delete exercise history entry:', error);
+      console.error('Failed to delete exercise history session:', error);
       alert('Failed to delete exercise record. Please try again.');
     } finally {
-      setDeletingEntryId(null);
+      setDeletingSessionKey(null);
     }
   };
 
@@ -153,50 +213,62 @@ export function ExerciseHistoryModal({
           <DialogTitle>Exercise History</DialogTitle>
           <DialogDescription>{exerciseName}</DialogDescription>
         </DialogHeader>
-        
+
         {isLoading ? (
           <div className="text-center py-8 text-gray-500">
             <p>Loading exercise history...</p>
           </div>
-        ) : exerciseHistory.length > 0 ? (
+        ) : sessions.length > 0 ? (
           <div className="space-y-4">
             {/* Chart Container */}
             <div className="relative w-full h-48 border rounded-lg p-2">
-              <canvas 
-                ref={canvasRef} 
+              <canvas
+                ref={canvasRef}
                 className="w-full h-full"
               />
             </div>
-            
-            {/* History List */}
+
+            {/* History List — one entry per session, multiple group lines */}
             <div className="overflow-y-auto max-h-64 space-y-3 pr-2">
-              {exerciseHistory.map((entry, index) => (
-                <div key={entry.id || index} className="bg-gray-50 p-3 rounded-lg relative">
-                  <div className="flex justify-between items-start mb-1">
-                    <span className="font-medium">{formatDate(entry.date)}</span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-gray-600">{entry.weight} lbs</span>
-                      {entry.id && (
-                        <button
-                          onClick={() => handleDeleteEntry(entry.id!)}
-                          disabled={deletingEntryId === entry.id}
-                          className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                          title="Delete this record"
-                          data-testid={`button-delete-history-${entry.id}`}
-                        >
-                          <Trash2 size={14} />
-                        </button>
+              {sessions.map((session) => {
+                const multi = session.groups.length > 1;
+                return (
+                  <div key={session.key} className="bg-gray-50 p-3 rounded-lg relative">
+                    <div className="flex justify-between items-start mb-1">
+                      <span className="font-medium">{formatDate(session.date)}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-600">
+                          {multi ? `top ${session.topWeight}` : session.topWeight} lbs
+                        </span>
+                        {session.ids.length > 0 && (
+                          <button
+                            onClick={() => handleDeleteSession(session)}
+                            disabled={deletingSessionKey === session.key}
+                            className="p-1 text-red-500 hover:text-red-700 hover:bg-red-50 rounded disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                            title={multi ? "Delete all set groups from this session" : "Delete this record"}
+                            data-testid={`button-delete-history-${session.key}`}
+                          >
+                            <Trash2 size={14} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <div className="text-sm text-gray-600">
+                      {session.groups.map((g, i) => (
+                        <div key={i} className="flex items-center gap-2">
+                          <span>
+                            {g.sets} x {g.reps}
+                            {multi && <span className="text-gray-400"> @ {g.weight} lbs</span>}
+                          </span>
+                        </div>
+                      ))}
+                      {session.notes && (
+                        <p className="mt-1 text-xs">{session.notes}</p>
                       )}
                     </div>
                   </div>
-                  <div className="text-sm text-gray-600">
-                    <span>{entry.sets} x {entry.reps}</span>
-                    {entry.notes && (
-                      <p className="mt-1 text-xs">{entry.notes}</p>
-                    )}
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         ) : (

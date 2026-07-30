@@ -200,6 +200,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Save a batch of exercise-history rows (multiple set-groups for one exercise
+  // in one session) atomically — all-or-nothing, delete-then-insert so
+  // re-completing replaces rather than duplicates. See saveExerciseHistoryBatch.
+  app.post("/api/exercise-history/batch", async (req, res) => {
+    try {
+      const user = await getUserFromRequest(req);
+      const { entries, workoutNumber } = req.body;
+      if (!Array.isArray(entries) || entries.length === 0) {
+        return res.status(400).json({ error: "entries must be a non-empty array" });
+      }
+      await storage.saveExerciseHistoryBatch(user.id, entries, workoutNumber);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error saving exercise history batch:", error);
+      res.status(500).json({ error: "Failed to save exercise history batch" });
+    }
+  });
+
+  // Delete several exercise-history rows at once (a whole session's set-groups
+  // for one exercise) so multi-group logs can't be half-deleted.
+  app.post("/api/exercise-history/delete-batch", async (req, res) => {
+    try {
+      const user = await getUserFromRequest(req);
+      const { entryIds } = req.body;
+      if (!Array.isArray(entryIds) || entryIds.length === 0) {
+        return res.status(400).json({ error: "entryIds must be a non-empty array" });
+      }
+      await storage.deleteExerciseHistoryEntries(user.id, entryIds.map((n: any) => parseInt(n)));
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting exercise history entries:", error);
+      res.status(500).json({ error: "Failed to delete exercise history entries" });
+    }
+  });
+
   // Delete individual exercise history entry
   app.delete("/api/exercise-history/:entryId", async (req, res) => {
     try {

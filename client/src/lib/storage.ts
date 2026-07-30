@@ -280,6 +280,19 @@ export class DatabaseStorage {
     }
   }
 
+  // Save multiple exercise-history rows (set-groups) for one exercise+session
+  // atomically. NETWORK call — never await on a tap's hot path (the completion
+  // path fires it through persistWithRetry, off the navigation path).
+  static async saveExerciseHistoryBatch(entries: ExerciseHistoryEntry[], workoutNumber?: number): Promise<void> {
+    try {
+      await api.saveExerciseHistoryBatch(entries, workoutNumber);
+      console.log("Exercise history batch saved to API successfully");
+    } catch (error) {
+      console.error("Failed to save exercise history batch to API:", error);
+      throw error;
+    }
+  }
+
   // Delete exercise history entry directly from API
   static async deleteExerciseHistoryEntry(entryId: number): Promise<void> {
     try {
@@ -288,6 +301,17 @@ export class DatabaseStorage {
       console.log("Exercise history entry deleted successfully");
     } catch (error) {
       console.error("Failed to delete exercise history entry:", error);
+      throw error;
+    }
+  }
+
+  // Delete several exercise-history rows at once (a whole session's set-groups).
+  static async deleteExerciseHistoryEntries(entryIds: number[]): Promise<void> {
+    try {
+      await api.deleteExerciseHistoryEntries(entryIds);
+      console.log("Exercise history entries deleted successfully");
+    } catch (error) {
+      console.error("Failed to delete exercise history entries:", error);
       throw error;
     }
   }

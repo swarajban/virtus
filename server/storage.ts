@@ -16,10 +16,11 @@ import {
   type OneRM,
   type ExerciseHistoryEntry,
   type ExerciseDB,
-  type InsertExercise
+  type InsertExercise,
+  getTopSetGroup,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, like, ilike, sql } from "drizzle-orm";
+import { eq, and, desc, like, ilike, sql, inArray } from "drizzle-orm";
 
 // Interface for storage operations
 export interface IStorage {
@@ -54,7 +55,9 @@ export interface IStorage {
   // Exercise History operations  
   getExerciseHistory(userId: number, exerciseName?: string): Promise<ExerciseHistoryEntry[]>;
   saveExerciseHistory(userId: number, history: ExerciseHistoryEntry, workoutNumber?: number): Promise<void>;
+  saveExerciseHistoryBatch(userId: number, entries: ExerciseHistoryEntry[], workoutNumber?: number): Promise<void>;
   deleteExerciseHistoryEntry(userId: number, entryId: number): Promise<void>;
+  deleteExerciseHistoryEntries(userId: number, entryIds: number[]): Promise<void>;
   clearWorkoutProgress(userId: number, workoutNumber: number, programName?: string, programCycle?: number): Promise<void>;
   clearExerciseHistoryForWorkout(userId: number, workoutNumber: number, programName?: string, programCycle?: number): Promise<void>;
   updateUserProgram(userId: number, programName: string): Promise<void>;
@@ -385,23 +388,30 @@ export class DatabaseStorage implements IStorage {
       sets: h.sets,
       reps: h.reps,
       weight: h.weight,
+      sessionId: h.sessionId, // lets the history views group N rows into one session
+      setGroup: h.setGroup,   // ordering of the set-group within the session
+      exerciseIndex: h.exerciseIndex, // workout slot this row was logged under
       notes: h.notes || undefined,
       typeOfSet: h.typeOfSet as "warm-up" | "working" | undefined,
     }));
   }
 
-  async saveExerciseHistory(userId: number, history: ExerciseHistoryEntry, workoutNumber?: number): Promise<void> {
-    // Resolve session_id, program_name, and program_cycle from workout_progress
-    // (the authoritative source for active session state). Filter by program_name
-    // and program_cycle in addition to workout_number, since workout_number repeats
-    // across programs and cycles.
+  // Resolve session_id, program_name, and program_cycle from workout_progress
+  // (the authoritative source for active session state). Filter by program_name
+  // and program_cycle in addition to workout_number, since workout_number repeats
+  // across programs and cycles.
+  private async resolveHistoryContext(
+    userId: number,
+    programName: string,
+    workoutNumber?: number
+  ): Promise<{ sessionId: string | undefined; resolvedProgramName: string; resolvedProgramCycle: number | undefined }> {
     let sessionId: string | undefined;
-    let resolvedProgramName: string = history.programName;
+    let resolvedProgramName: string = programName;
     let resolvedProgramCycle: number | undefined;
 
     if (workoutNumber) {
       const user = await this.getUser(userId);
-      const targetProgram = user?.selectedProgram ?? history.programName;
+      const targetProgram = user?.selectedProgram ?? programName;
       const targetCycle = user?.currentProgramCycle ?? 1;
 
       const progress = await db
@@ -434,25 +444,18 @@ export class DatabaseStorage implements IStorage {
       }
     }
 
+    return { sessionId, resolvedProgramName, resolvedProgramCycle };
+  }
+
+  async saveExerciseHistory(userId: number, history: ExerciseHistoryEntry, workoutNumber?: number): Promise<void> {
+    const { sessionId, resolvedProgramName, resolvedProgramCycle } =
+      await this.resolveHistoryContext(userId, history.programName, workoutNumber);
+
     // Get exercise by name to get its ID
     const exercise = await this.getExerciseByName(history.exerciseName);
     if (!exercise) {
       throw new Error(`Exercise not found: ${history.exerciseName}`);
     }
-
-    console.log("Inserting exercise history:", {
-      userId,
-      exerciseId: exercise.id,
-      exerciseName: history.exerciseName,
-      sessionId,
-      programName: resolvedProgramName,
-      programCycle: resolvedProgramCycle,
-      sets: history.sets,
-      reps: history.reps,
-      weight: history.weight,
-      notes: history.notes,
-      typeOfSet: history.typeOfSet || "working",
-    });
 
     await db
       .insert(exerciseHistory)
@@ -466,11 +469,77 @@ export class DatabaseStorage implements IStorage {
         sets: history.sets,
         reps: history.reps,
         weight: history.weight,
+        setGroup: history.setGroup ?? null,
+        exerciseIndex: history.exerciseIndex ?? null,
         notes: history.notes,
         typeOfSet: history.typeOfSet || "working",
       });
 
     console.log("Exercise history saved successfully with sessionId:", sessionId);
+  }
+
+  // Atomic multi-group write for ONE exercise in ONE session. All N set-groups
+  // are inserted in a single transaction so flaky wifi can never leave a partial
+  // subset saved (the caller wraps this whole call in one persistWithRetry).
+  // Re-completing the same exercise must REPLACE, not duplicate: inside the same
+  // transaction we delete any existing rows for this (session, exercise) first,
+  // then insert the fresh set. The delete is scoped by session_id so it can only
+  // run when we actually resolved one; without a session (no workout_progress
+  // match) we fall back to a plain insert, matching the single-entry path.
+  async saveExerciseHistoryBatch(userId: number, entries: ExerciseHistoryEntry[], workoutNumber?: number): Promise<void> {
+    if (entries.length === 0) return;
+
+    const first = entries[0];
+    const { sessionId, resolvedProgramName, resolvedProgramCycle } =
+      await this.resolveHistoryContext(userId, first.programName, workoutNumber);
+
+    const exercise = await this.getExerciseByName(first.exerciseName);
+    if (!exercise) {
+      throw new Error(`Exercise not found: ${first.exerciseName}`);
+    }
+
+    // All rows in a batch belong to ONE workout slot (one exercise instance).
+    const exerciseIndex = first.exerciseIndex ?? null;
+
+    const rows = entries.map((h, i) => ({
+      userId,
+      exerciseId: exercise.id,
+      exerciseName: h.exerciseName,
+      programName: resolvedProgramName,
+      programCycle: resolvedProgramCycle,
+      sessionId,
+      sets: h.sets,
+      reps: h.reps,
+      weight: h.weight,
+      // Preserve an explicit setGroup if the client sent one, else use position.
+      setGroup: h.setGroup ?? i,
+      exerciseIndex: h.exerciseIndex ?? exerciseIndex,
+      notes: h.notes,
+      typeOfSet: h.typeOfSet || "working",
+    }));
+
+    await db.transaction(async (tx) => {
+      if (sessionId) {
+        // Delete-then-insert so re-completing replaces rather than appends 2N
+        // rows. Scoped per exercise INSTANCE (exercise_index) so completing a
+        // second working block of the same lift in the same session doesn't wipe
+        // the first block's rows. Legacy/unknown index (null) falls back to
+        // per-exercise scope, matching the pre-instance behavior.
+        await tx
+          .delete(exerciseHistory)
+          .where(and(
+            eq(exerciseHistory.userId, userId),
+            eq(exerciseHistory.sessionId, sessionId),
+            eq(exerciseHistory.exerciseId, exercise.id),
+            exerciseIndex == null
+              ? sql`${exerciseHistory.exerciseIndex} IS NULL`
+              : eq(exerciseHistory.exerciseIndex, exerciseIndex)
+          ));
+      }
+      await tx.insert(exerciseHistory).values(rows);
+    });
+
+    console.log(`Exercise history batch saved: ${rows.length} group(s) for session ${sessionId}`);
   }
 
   async deleteExerciseHistoryEntry(userId: number, entryId: number): Promise<void> {
@@ -481,6 +550,19 @@ export class DatabaseStorage implements IStorage {
         eq(exerciseHistory.userId, userId)
       ));
     console.log(`Deleted exercise history entry ${entryId} for user ${userId}`);
+  }
+
+  // Delete several rows at once (used when the history modal deletes a whole
+  // session's set-group set for an exercise, so groups can't be orphaned).
+  async deleteExerciseHistoryEntries(userId: number, entryIds: number[]): Promise<void> {
+    if (entryIds.length === 0) return;
+    await db
+      .delete(exerciseHistory)
+      .where(and(
+        inArray(exerciseHistory.id, entryIds),
+        eq(exerciseHistory.userId, userId)
+      ));
+    console.log(`Deleted ${entryIds.length} exercise history entries for user ${userId}`);
   }
 
   // Resolve the (program, cycle) scope for a per-workout operation: explicit
@@ -689,14 +771,23 @@ export class DatabaseStorage implements IStorage {
           globalIndex++;
         }
         
-        // Process working sets
+        // Process working sets. Multiple rows sharing this exercise (the
+        // multi-group case) collapse back into ONE progress entry whose `groups`
+        // array rebuilds each logged set-group, ordered by set_group. The
+        // top-level sets/reps/weight mirror the TOP SET for graceful degradation.
         const workingSets = exerciseHistories.filter(h => h.typeOfSet === 'working' || !h.typeOfSet);
-        for (const working of workingSets) {
+        if (workingSets.length > 0) {
+          const ordered = [...workingSets].sort(
+            (a, b) => (a.setGroup ?? 0) - (b.setGroup ?? 0)
+          );
+          const groups = ordered.map(w => ({ sets: w.sets, reps: w.reps, weight: w.weight }));
+          const top = getTopSetGroup(groups);
           exerciseProgressData[globalIndex.toString()] = {
-            sets: working.sets,
-            reps: working.reps,
-            weight: working.weight,
-            notes: working.notes || "",
+            sets: top.sets,
+            reps: top.reps,
+            weight: top.weight,
+            groups,
+            notes: ordered[0].notes || "",
             completed: true
           };
           globalIndex++;
