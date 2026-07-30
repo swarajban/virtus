@@ -23,7 +23,7 @@ import {
 import { ExerciseHistoryModal } from "@/components/exercise-history-modal";
 import { PlateCalculator } from "@/components/plate-calculator";
 import { RestTimerBar } from "@/components/rest-timer";
-import { ArrowLeft, Check, CheckCircle, Info, ExternalLink, Repeat, Clock, ChevronDown } from "lucide-react";
+import { ArrowLeft, Check, CheckCircle, Info, ExternalLink, Repeat, Clock, ChevronDown, X, Plus } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 import { LocalStorage } from "@/lib/storage";
 import { api } from "@/lib/api-client";
@@ -38,6 +38,8 @@ import { DURATION, RACK_EASE } from "@/lib/motion";
 import { haptic } from "@/lib/haptics";
 import type { ExerciseWithCalculatedWeight } from "@/types/workout";
 import type { OneRM } from "@shared/schema";
+import type { SetGroup } from "@shared/set-groups";
+import { getSetGroups, getTopSetGroup } from "@shared/set-groups";
 import { useToast } from "@/hooks/use-toast";
 
 // Import types
@@ -56,9 +58,10 @@ export default function ExercisePage() {
   const [selectedProgram, setSelectedProgram] = useState<string>(
     () => localStorage.getItem('selected-program') || 'Powerbuilding 4x'
   );
-  const [userSets, setUserSets] = useState(1);
-  const [userReps, setUserReps] = useState(1);
-  const [userWeight, setUserWeight] = useState(0);
+  // One or more logged set-groups (e.g. 2x1 @ 315, then 3x3 @ 275). Default is a
+  // single group, seeded from the prescription + calculatedWeight, so the common
+  // case is unchanged. Kept as the source of truth for the input list below.
+  const [groups, setGroups] = useState<SetGroup[]>([{ sets: 1, reps: 1, weight: 0 }]);
   const [userNotes, setUserNotes] = useState("");
   const [showHistory, setShowHistory] = useState(false);
   const [oneRM, setOneRM] = useState<OneRM | null>(null);
@@ -310,29 +313,44 @@ export default function ExercisePage() {
                   retry: 1,
                 });
                 if (history && history.length > 0) {
-                  // Sort by date descending to get most recent
+                  // Sort by date descending to get most recent session.
                   const sortedHistory = [...history].sort((a: any, b: any) =>
                     new Date(b.date).getTime() - new Date(a.date).getTime()
                   );
-                  defaultWeight = sortedHistory[0].weight || 0;
+                  // Default to that session's TOP SET, not an arbitrary row —
+                  // a multi-group session has N rows with the same session_id
+                  // and the heaviest is the meaningful default.
+                  const latest = sortedHistory[0];
+                  const latestSessionRows = sortedHistory.filter((h: any) =>
+                    latest.sessionId != null
+                      ? h.sessionId === latest.sessionId
+                      : h === latest
+                  );
+                  defaultWeight = Math.max(
+                    0,
+                    ...latestSessionRows.map((h: any) => h.weight || 0)
+                  );
                 }
               } catch (error) {
                 console.error('Error fetching exercise history for default weight:', error);
               }
             }
             
-            // Set initial values
-            setUserSets(enhancedExercise.number_of_sets);
-            setUserReps(enhancedExercise.number_of_reps || 1);
-            setUserWeight(defaultWeight);
+            // Set initial values — a single group from the prescription + default
+            // weight (the common case, unchanged from before).
+            setGroups([{
+              sets: enhancedExercise.number_of_sets,
+              reps: enhancedExercise.number_of_reps || 1,
+              weight: defaultWeight,
+            }]);
             setUserNotes(""); // Clear notes for new exercises
 
-            // If completed, load the saved values (overrides history-based default)
+            // If completed, load the saved values (overrides history-based
+            // default). getSetGroups rebuilds a single group from legacy
+            // top-level sets/reps/weight when no groups array was stored.
             if (isCompleted && currentProgress?.exerciseProgress?.[exerciseKey]) {
               const savedProgress = currentProgress.exerciseProgress[exerciseKey];
-              setUserSets(savedProgress.sets);
-              setUserReps(savedProgress.reps);
-              setUserWeight(savedProgress.weight || 0);
+              setGroups(getSetGroups(savedProgress));
               setUserNotes(savedProgress.notes || "");
             }
           }
@@ -405,30 +423,48 @@ export default function ExercisePage() {
     const wn = workoutNumber;
     const exerciseKey = `${exerciseIndex}`;
     const isWorkingSet = exercise.type_of_set === "working";
-    const hasWeight = userWeight !== null && userWeight !== undefined;
+    // Normalize the group snapshot; the TOP SET (heaviest, tie-break first) is
+    // mirrored into the top-level sets/reps/weight so any read site that misses
+    // the groups array still degrades gracefully to the heaviest group.
+    const cleanGroups: SetGroup[] = groups.map((g) => ({
+      sets: g.sets,
+      reps: g.reps,
+      weight: g.weight,
+    }));
+    const topSet = getTopSetGroup(cleanGroups);
     const completion = {
-      sets: userSets,
-      reps: userReps,
-      weight: userWeight,
+      sets: topSet.sets,
+      reps: topSet.reps,
+      weight: topSet.weight ?? undefined,
+      groups: cleanGroups,
       notes: userNotes,
       completed: true,
     };
-    const historyEntry = (isWorkingSet && hasWeight)
-      ? {
-          programName: selectedProgram,
-          date: new Date().toISOString(),
-          exerciseName: exercise.name,
-          sets: userSets,
-          reps: userReps,
-          weight: userWeight,
-          notes: userNotes,
-          typeOfSet: exercise.type_of_set as "warm-up" | "working",
-        }
-      : null;
+    // One history row per group that has a weight — set_group preserves order.
+    // The whole array is written in ONE atomic batch below.
+    const historyEntries = isWorkingSet
+      ? cleanGroups
+          .map((g, idx) => ({ g, idx }))
+          .filter(({ g }) => g.weight !== null && g.weight !== undefined)
+          .map(({ g, idx }) => ({
+            programName: selectedProgram,
+            date: new Date().toISOString(),
+            exerciseName: exercise.name,
+            sets: g.sets,
+            reps: g.reps,
+            weight: g.weight as number,
+            setGroup: idx,
+            // Scopes re-complete dedup to THIS workout slot, so completing a
+            // second block of the same lift can't wipe the first block's rows.
+            exerciseIndex,
+            notes: userNotes,
+            typeOfSet: exercise.type_of_set as "warm-up" | "working",
+          }))
+      : [];
 
-    // Working set with no weight: still mark complete, but warn that no history
-    // was logged (unchanged behavior).
-    if (isWorkingSet && !hasWeight) {
+    // Working set with no weight on any group: still mark complete, but warn
+    // that no history was logged (unchanged behavior).
+    if (isWorkingSet && historyEntries.length === 0) {
       toast({
         title: "No weight entered",
         description: "Exercise marked complete, but history was not saved because no weight was entered.",
@@ -472,9 +508,11 @@ export default function ExercisePage() {
       }
     };
 
-    // Fire-and-forget the writes — navigation below NEVER awaits them.
-    if (historyEntry) {
-      void persistWithRetry(() => LocalStorage.saveExerciseHistory(historyEntry, wn), "set");
+    // Fire-and-forget the writes — navigation below NEVER awaits them. The whole
+    // group array goes in ONE batch call wrapped in ONE persistWithRetry, so a
+    // retry can never leave a partial subset of groups saved (all-or-nothing).
+    if (historyEntries.length > 0) {
+      void persistWithRetry(() => LocalStorage.saveExerciseHistoryBatch(historyEntries, wn), "set");
     }
 
     // Progress is a read-modify-write: the server overwrites exerciseProgress
@@ -535,6 +573,30 @@ export default function ExercisePage() {
       }
     }, rewardMs);
   };
+
+  // --- Set-group editing ---------------------------------------------------
+  const updateGroup = (index: number, patch: Partial<SetGroup>) => {
+    setGroups((gs) => gs.map((g, i) => (i === index ? { ...g, ...patch } : g)));
+  };
+
+  // "+ Add set group" copies the previous group's weight (and sets/reps as
+  // sensible defaults) so logging a second group is one tap from a good start.
+  const addGroup = () => {
+    haptic(8);
+    setGroups((gs) => {
+      const prev = gs[gs.length - 1] ?? { sets: 1, reps: 1, weight: 0 };
+      return [...gs, { sets: prev.sets, reps: prev.reps, weight: prev.weight }];
+    });
+  };
+
+  const removeGroup = (index: number) => {
+    haptic(8);
+    setGroups((gs) => (gs.length > 1 ? gs.filter((_, i) => i !== index) : gs));
+  };
+
+  // Readouts (Actual %, plate calculator) reflect the TOP SET so the page stays
+  // quiet regardless of how many groups are logged.
+  const topSetWeight = getTopSetGroup(groups).weight ?? 0;
 
   const handlePreviousExercise = (e?: React.MouseEvent | React.TouchEvent) => {
     if (e) {
@@ -911,56 +973,107 @@ export default function ExercisePage() {
 
       {/* Exercise Input */}
       <div className="p-4 space-y-6">
-        {/* Sets and Reps */}
+        {/* Set groups — one row per (sets × reps @ weight). A single group is
+            the default and reads like the old Sets/Reps + Weight inputs; headers
+            and the remove control only appear once there is more than one group. */}
         <Card>
           <CardContent className="p-4">
-            <h3 className="font-semibold mb-4">Sets & Reps</h3>
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Sets
-                </label>
-                <WeightInput
-                  value={userSets}
-                  onChange={setUserSets}
-                  step={1}
-                  min={1}
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Reps
-                </label>
-                <WeightInput
-                  value={userReps}
-                  onChange={setUserReps}
-                  step={1}
-                  min={1}
-                />
-              </div>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold">Sets, reps &amp; weight</h3>
+              {groups.length > 1 && (
+                <span className="text-xs font-medium text-gray-400">
+                  {groups.length} groups
+                </span>
+              )}
             </div>
-          </CardContent>
-        </Card>
 
-        {/* Weight */}
-        <Card>
-          <CardContent className="p-4">
-            <h3 className="font-semibold mb-4">Weight (lbs)</h3>
-            <WeightInput
-              value={userWeight}
-              onChange={setUserWeight}
-              step={5}
-              min={0}
-              className="mb-2"
-            />
-            {exerciseOneRM > 0 && userWeight > 0 && (
-              <div className="text-center">
+            <div className="space-y-3">
+              {groups.map((group, i) => {
+                const multi = groups.length > 1;
+                return (
+                  <div
+                    key={i}
+                    className={multi ? "rounded-xl border border-gray-200 p-3" : ""}
+                  >
+                    {multi && (
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="inline-flex items-center gap-1.5 text-sm font-semibold text-gray-700">
+                          <span className="inline-flex items-center justify-center h-5 min-w-5 px-1.5 rounded-full bg-green-100 text-green-700 text-xs font-bold">
+                            {i + 1}
+                          </span>
+                          Set group
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => removeGroup(i)}
+                          className="h-11 w-11 -my-1.5 -mr-2 flex items-center justify-center text-gray-400 rounded-full active:bg-red-50 active:text-red-600 transition-colors"
+                          aria-label={`Remove set group ${i + 1}`}
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    )}
+                    <div className="grid grid-cols-2 gap-3 mb-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1.5">
+                          Sets
+                        </label>
+                        <WeightInput
+                          value={group.sets}
+                          onChange={(v) => updateGroup(i, { sets: v })}
+                          step={1}
+                          min={1}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1.5">
+                          Reps
+                        </label>
+                        <WeightInput
+                          value={group.reps}
+                          onChange={(v) => updateGroup(i, { reps: v })}
+                          step={1}
+                          min={1}
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-500 mb-1.5">
+                        Weight (lbs)
+                      </label>
+                      <WeightInput
+                        value={group.weight ?? 0}
+                        onChange={(v) => updateGroup(i, { weight: v })}
+                        step={5}
+                        min={0}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            <button
+              type="button"
+              onClick={addGroup}
+              className="mt-3 w-full h-11 flex items-center justify-center gap-1.5 rounded-lg border border-dashed border-gray-300 text-sm font-medium text-green-700 active:bg-green-50 transition-colors"
+            >
+              <Plus className="h-4 w-4" />
+              Add set group
+            </button>
+
+            {/* Top-set readouts — kept once, quiet, regardless of group count. */}
+            {exerciseOneRM > 0 && topSetWeight > 0 && (
+              <div className="mt-3 text-center">
                 <span className="text-sm text-gray-600">
-                  Actual: {getActualPercentage(userWeight, exerciseOneRM)} of 1RM
+                  Actual: {getActualPercentage(topSetWeight, exerciseOneRM)} of 1RM
+                  {groups.length > 1 && " (top set)"}
                 </span>
               </div>
             )}
-            {userWeight > 0 && exerciseDbData?.usesBarbell && <PlateCalculator weight={userWeight} />}
+            {topSetWeight > 0 && exerciseDbData?.usesBarbell && (
+              <PlateCalculator weight={topSetWeight} />
+            )}
           </CardContent>
         </Card>
 

@@ -39,23 +39,28 @@ export default function ExerciseHistoryPage() {
   // the cache serves instantly and this never shows.
   const isLoading = historyLoading && historyData.length === 0;
 
-  // Group exercises by name and count occurrences
+  // Group exercises by name. "times performed" counts distinct SESSIONS, not
+  // rows — a multi-group log (N rows sharing one session_id) is one performance.
   const groupedExercises = useMemo(() => {
-    const groups: Record<string, ExerciseGroup> = {};
-    
+    const groups: Record<string, ExerciseGroup & { sessionKeys: Set<string> }> = {};
+
     exerciseHistory.forEach((entry) => {
       if (!groups[entry.exerciseName]) {
         groups[entry.exerciseName] = {
           name: entry.exerciseName,
           count: 0,
-          entries: []
+          entries: [],
+          sessionKeys: new Set<string>(),
         };
       }
-      groups[entry.exerciseName].count++;
-      groups[entry.exerciseName].entries.push(entry);
+      const g = groups[entry.exerciseName];
+      g.entries.push(entry);
+      // Legacy rows without a session_id each count as their own session.
+      g.sessionKeys.add(entry.sessionId ? `s:${entry.sessionId}` : `r:${entry.id}`);
     });
 
     return Object.values(groups)
+      .map((g) => ({ name: g.name, entries: g.entries, count: g.sessionKeys.size }))
       .sort((a, b) => a.name.localeCompare(b.name)); // Sort alphabetically by name
   }, [exerciseHistory]);
 

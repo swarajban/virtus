@@ -91,9 +91,23 @@ export const api = {
     });
   },
 
+  async saveExerciseHistoryBatch(entries: ExerciseHistoryEntry[], workoutNumber?: number): Promise<void> {
+    await apiRequest('/api/exercise-history/batch', {
+      method: 'POST',
+      body: JSON.stringify({ entries, workoutNumber }),
+    });
+  },
+
   async deleteExerciseHistoryEntry(entryId: number): Promise<void> {
     await apiRequest(`/api/exercise-history/${entryId}`, {
       method: 'DELETE',
+    });
+  },
+
+  async deleteExerciseHistoryEntries(entryIds: number[]): Promise<void> {
+    await apiRequest('/api/exercise-history/delete-batch', {
+      method: 'POST',
+      body: JSON.stringify({ entryIds }),
     });
   },
 

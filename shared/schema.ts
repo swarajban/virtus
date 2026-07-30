@@ -3,6 +3,13 @@ import { relations } from "drizzle-orm";
 import { pgTable, text, timestamp, varchar, integer, real, boolean, jsonb, serial, index } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import { setGroupSchema } from "./set-groups";
+
+// Re-export the drizzle-free set-group helpers so server code can keep importing
+// them from "@shared/schema". The CLIENT must import them from "@shared/set-groups"
+// directly to avoid executing this drizzle-laden module in the browser.
+export { setGroupSchema, getSetGroups, getTopSetGroup } from "./set-groups";
+export type { SetGroup } from "./set-groups";
 
 // Exercise table - stores exercise definitions
 export const exercises = pgTable("exercises", {
@@ -69,6 +76,15 @@ export const exerciseHistory = pgTable("exercise_history", {
   sets: integer("sets").notNull(),
   reps: integer("reps").notNull(),
   weight: real("weight").notNull(),
+  // Ordering of a set-group within one (session, exercise). NULL for legacy rows
+  // and single-group logs; 0,1,2… when an exercise is logged as multiple groups
+  // (e.g. 2x1 @ 315 then 3x3 @ 275). Nullable so existing rows are untouched.
+  setGroup: integer("set_group"),
+  // The workout exercise INDEX this row was logged under. Needed because the
+  // same exercise (e.g. Back squat) can appear as SEPARATE working blocks in one
+  // workout — same session_id AND exercise_id — so the re-complete dedup must be
+  // scoped per instance, not per exercise. Nullable for legacy rows.
+  exerciseIndex: integer("exercise_index"),
   notes: text("notes"),
   typeOfSet: varchar("type_of_set", { length: 20 }).default("working"),
   performedAt: timestamp("performed_at").defaultNow().notNull(),
@@ -191,6 +207,12 @@ export const exerciseProgressSchema = z.object({
   sets: z.number(),
   reps: z.number(),
   weight: z.number().optional(),
+  // Optional multi-group logging. When absent, the top-level sets/reps/weight
+  // ARE the single group (see getSetGroups). Backwards compatible — existing
+  // jsonb has no `groups` key and keeps working. The top-level sets/reps/weight
+  // are always kept in sync with the TOP SET so any read site that misses the
+  // groups array still degrades gracefully to the heaviest group.
+  groups: z.array(setGroupSchema).optional(),
   notes: z.string().optional(),
   completed: z.boolean().default(false),
   swappedExercise: z.object({
@@ -224,6 +246,14 @@ export const exerciseHistoryEntrySchema = z.object({
   sets: z.number(),
   reps: z.number(),
   weight: z.number(),
+  // Links rows logged in the same workout so the history views can group N
+  // set-group rows into ONE session entry. Present on new rows; null on legacy.
+  sessionId: z.string().nullable().optional(),
+  // 0,1,2… ordering of the set-group within the session/exercise; null/absent
+  // for legacy single-group rows.
+  setGroup: z.number().nullable().optional(),
+  // Workout exercise index this row was logged under (per-instance dedup key).
+  exerciseIndex: z.number().nullable().optional(),
   notes: z.string().optional(),
   typeOfSet: z.enum(["warm-up", "working"]).optional(),
 });

@@ -9,6 +9,7 @@ import { api } from "@/lib/api-client";
 import { getWorkoutStatusBadge, formatDate, enhanceExerciseWithCalculations, getRirSets } from "@/lib/workout-utils";
 import type { WorkoutWithProgress, ExerciseWithCalculatedWeight } from "@/types/workout";
 import type { User, OneRM, WorkoutProgress } from "@shared/schema";
+import { getSetGroups, getTopSetGroup } from "@shared/set-groups";
 import { useToast } from "@/hooks/use-toast";
 import { usePowerbuildingData, resolveProgramWorkouts } from "@/hooks/use-powerbuilding-data";
 import { usePageResume } from "@/hooks/use-page-resume";
@@ -312,10 +313,15 @@ export default function WorkoutPage() {
       if (!progress?.completed) return;
       if (exercise.type_of_set !== "working") return;
 
-      const weight = progress.weight != null ? progress.weight : exercise.calculatedWeight;
-      lines.push(
-        `${exercise.name}: ${progress.sets} x ${progress.reps} @ ${weight} lbs`
-      );
+      // Emit the full group list: "2 x 1 @ 315 lbs, 3 x 3 @ 275 lbs". A single
+      // group renders exactly as before via the getSetGroups fallback.
+      const groupText = getSetGroups(progress)
+        .map((g) => {
+          const w = g.weight != null ? g.weight : exercise.calculatedWeight;
+          return `${g.sets} x ${g.reps} @ ${w} lbs`;
+        })
+        .join(", ");
+      lines.push(`${exercise.name}: ${groupText}`);
     });
 
     const summaryText = lines.join("\n");
@@ -457,6 +463,18 @@ export default function WorkoutPage() {
             .map(({ exercise, originalIndex }) => {
               const exerciseStatus = getExerciseStatus(exercise, originalIndex);
 
+              // Completed rows show logged reality (e.g. "2×1, 3×3 · top 315")
+              // instead of the prescription. Truncated to ~2 groups + "+N".
+              const rowProgress = workout?.progress?.exerciseProgress?.[`${originalIndex}`];
+              let loggedSummary: string | null = null;
+              if (exerciseStatus === "completed" && rowProgress) {
+                const gs = getSetGroups(rowProgress);
+                const shown = gs.slice(0, 2).map((g) => `${g.sets}×${g.reps}`).join(", ");
+                const extra = gs.length > 2 ? ` +${gs.length - 2}` : "";
+                const top = getTopSetGroup(gs).weight;
+                loggedSummary = `${shown}${extra}${top != null ? ` · top ${top}` : ""}`;
+              }
+
               return (
                 <Card
                   key={originalIndex}
@@ -498,6 +516,12 @@ export default function WorkoutPage() {
                       <Badge variant="default">
                       {exercise.type_of_set}
                     </Badge>
+                    {loggedSummary ? (
+                      <span className="font-medium text-gray-700 whitespace-nowrap">
+                        {loggedSummary}
+                      </span>
+                    ) : (
+                      <>
                     <span>
                       {exercise.number_of_sets} x{" "}
                       {exercise.number_of_reps ||
@@ -517,6 +541,8 @@ export default function WorkoutPage() {
                         S{setNumber}: {rir} RIR
                       </span>
                     ))}
+                      </>
+                    )}
                   </div>
                   
                   {exercise.notes && (
