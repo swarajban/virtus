@@ -979,7 +979,7 @@ export default function ExercisePage() {
         <Card>
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="font-semibold">Sets, reps &amp; weight</h3>
+              <h3 className="font-semibold">Sets, reps, &amp; weight</h3>
               {groups.length > 1 && (
                 <span className="text-xs font-medium text-gray-400">
                   {groups.length} groups
