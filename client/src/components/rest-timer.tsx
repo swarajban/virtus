@@ -21,8 +21,9 @@ const loadTimerState = () => {
     if (state.isRunning && state.startTime) {
       // Guard against malformed startTime
       if (typeof state.startTime !== 'number' || !isFinite(state.startTime)) {
-        // Malformed startTime, reset to stopped state
-        const cleanState = { isRunning: false, startTime: null, setCounter: state.setCounter };
+        // Malformed startTime: the persisted state is untrustworthy, so drop the set
+        // count with it rather than carrying a stale number into a fresh session.
+        const cleanState = { isRunning: false, startTime: null, setCounter: 0 };
         localStorage.setItem('restTimerState', JSON.stringify(cleanState));
         return cleanState;
       }
@@ -30,8 +31,10 @@ const loadTimerState = () => {
       const elapsed = Date.now() - state.startTime;
       // Stale if elapsed > 30min OR negative (future timestamp from clock skew)
       if (elapsed > STALE_TIMER_MS || elapsed < 0) {
-        // Timer is stale (> 30 min or clock skew), reset to stopped state
-        const cleanState = { isRunning: false, startTime: null, setCounter: state.setCounter };
+        // Timer is stale (> 30 min or clock skew) — treat this as a NEW session, not
+        // a continuation, so zero the set counter along with the clock. Otherwise the
+        // bar shows 0:00 next to a leftover set count from the previous workout.
+        const cleanState = { isRunning: false, startTime: null, setCounter: 0 };
         localStorage.setItem('restTimerState', JSON.stringify(cleanState));
         return cleanState;
       }
