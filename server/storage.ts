@@ -22,6 +22,10 @@ import {
 import { db } from "./db";
 import { eq, and, desc, like, ilike, sql, inArray } from "drizzle-orm";
 
+// The transaction handle drizzle passes to db.transaction(fn) — used to type our
+// advisory-locked get-or-create helper so every statement runs on the same session.
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
 // Interface for storage operations
 export interface IStorage {
   // User operations
@@ -230,92 +234,118 @@ export class DatabaseStorage implements IStorage {
     return result;
   }
 
+  // Serialize the check-then-write of a workout_progress row across concurrent
+  // writers. On the FIRST exercise of a workout the optimistic history write and
+  // the workout-progress write race, and there is NO unique constraint on
+  // (user, workout, program, cycle) to ON CONFLICT against — so we take a
+  // transaction-scoped Postgres advisory lock keyed on that tuple. Same key on
+  // every path (this method and getOrCreateSessionForHistory) => the read and the
+  // insert/update run one-at-a-time, so concurrent writes can't create duplicate
+  // rows or mint two sessions. Runtime-only; requires no schema change. The lock
+  // is released automatically when the transaction commits.
+  private readonly WP_LOCK_NAMESPACE = 30471; // arbitrary, stable classifier
+  private async withWorkoutProgressLock<T>(
+    userId: number,
+    workoutNumber: number,
+    programName: string,
+    programCycle: number,
+    fn: (tx: Tx) => Promise<T>
+  ): Promise<T> {
+    const key = `${userId}:${workoutNumber}:${programName}:${programCycle}`;
+    return db.transaction(async (tx) => {
+      await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtext(${key}), ${this.WP_LOCK_NAMESPACE})`);
+      return fn(tx);
+    });
+  }
+
   async saveWorkoutProgress(userId: number, workoutNumber: number, progress: WorkoutProgress, programName?: string, programCycle?: number): Promise<string> {
     // Get user to determine defaults
     const user = await this.getUser(userId);
     const targetCycle = programCycle ?? user?.currentProgramCycle ?? 1;
     const targetProgram = programName ?? user?.selectedProgram ?? "Powerbuilding 4x";
-    
-    const existing = await db
-      .select()
-      .from(workoutProgress)
-      .where(and(
-        eq(workoutProgress.userId, userId),
-        eq(workoutProgress.workoutNumber, workoutNumber),
-        eq(workoutProgress.programName, targetProgram),
-        eq(workoutProgress.programCycle, targetCycle)
-      ))
-      .limit(1);
 
-    // Generate session ID if this is a new workout start or restart
-    let sessionId = existing[0]?.sessionId;
-    if (!sessionId || (progress.status === 'in_progress' && existing[0]?.status === 'not_started')) {
-      sessionId = `session_${Date.now()}_${Math.random().toString(36).substring(7)}`;
-      console.log(`Generated new session ID: ${sessionId} for workout ${workoutNumber}, program ${targetProgram}, cycle ${targetCycle}`);
-    }
-
-    // Enforce the completion invariant at the write boundary. Status only
-    // moves forward via POST (a reset DELETEs the row), so:
-    //  - a stale snapshot can't downgrade a row's status (completed can't drop
-    //    to in_progress, in_progress can't drop to not_started — e.g. a swap
-    //    posted from a client whose progress fetch failed);
-    //  - status=completed and completedAt are persisted as an atomic pair —
-    //    never one without the other, whatever a racing client sent. A payload
-    //    carrying completedAt is treated as a completion (promotion, not
-    //    stripping: legacy clients' racy bodies only ever carried completedAt
-    //    after the user actually tapped Complete Workout).
-    const statusRank: Record<string, number> = { not_started: 0, in_progress: 1, completed: 2 };
-    let status = progress.status;
-    let completedAt = progress.completedAt ? new Date(progress.completedAt) : null;
-    const existingStatus = existing[0]?.status;
-    if (existingStatus && (statusRank[status] ?? 0) < (statusRank[existingStatus] ?? 0)) {
-      console.log(`Ignoring status downgrade to '${status}' for ${existingStatus} workout ${workoutNumber} (program ${targetProgram}, cycle ${targetCycle})`);
-      status = existingStatus as typeof status;
-      if (status === 'completed') completedAt = completedAt ?? existing[0].completedAt;
-    }
-    if (completedAt && status !== 'completed') status = 'completed';
-    if (status === 'completed' && !completedAt) completedAt = new Date();
-
-    const dbProgress = {
-      userId,
-      workoutNumber,
-      programName: targetProgram,
-      programCycle: targetCycle,
-      sessionId,
-      status,
-      // Never null out a startedAt we already have — a partial snapshot from a
-      // racing write may simply lack the field.
-      startedAt: progress.startedAt ? new Date(progress.startedAt) : existing[0]?.startedAt ?? null,
-      // Union with the existing map on update: exercise entries are only ever
-      // ADDED by clients (removal happens via reset, which DELETEs the row),
-      // so a snapshot rebuilt from a regressed/stale cache must not wholesale-
-      // erase completions an earlier write already persisted.
-      exerciseProgress: existing.length > 0
-        ? { ...((existing[0].exerciseProgress as Record<string, unknown>) ?? {}), ...(progress.exerciseProgress || {}) }
-        : (progress.exerciseProgress || {}),
-      completedAt,
-    };
-
-    if (existing.length > 0) {
-      await db
-        .update(workoutProgress)
-        .set({
-          ...dbProgress,
-          updatedAt: new Date(),
-        })
+    return this.withWorkoutProgressLock(userId, workoutNumber, targetProgram, targetCycle, async (tx) => {
+      const existing = await tx
+        .select()
+        .from(workoutProgress)
         .where(and(
           eq(workoutProgress.userId, userId),
           eq(workoutProgress.workoutNumber, workoutNumber),
           eq(workoutProgress.programName, targetProgram),
           eq(workoutProgress.programCycle, targetCycle)
-        ));
-    } else {
-      await db
-        .insert(workoutProgress)
-        .values(dbProgress);
-    }
-    
-    return sessionId || '';
+        ))
+        .limit(1);
+
+      // Generate session ID if this is a new workout start or restart
+      let sessionId = existing[0]?.sessionId;
+      if (!sessionId || (progress.status === 'in_progress' && existing[0]?.status === 'not_started')) {
+        sessionId = `session_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+        console.log(`Generated new session ID: ${sessionId} for workout ${workoutNumber}, program ${targetProgram}, cycle ${targetCycle}`);
+      }
+
+      // Enforce the completion invariant at the write boundary. Status only
+      // moves forward via POST (a reset DELETEs the row), so:
+      //  - a stale snapshot can't downgrade a row's status (completed can't drop
+      //    to in_progress, in_progress can't drop to not_started — e.g. a swap
+      //    posted from a client whose progress fetch failed);
+      //  - status=completed and completedAt are persisted as an atomic pair —
+      //    never one without the other, whatever a racing client sent. A payload
+      //    carrying completedAt is treated as a completion (promotion, not
+      //    stripping: legacy clients' racy bodies only ever carried completedAt
+      //    after the user actually tapped Complete Workout).
+      const statusRank: Record<string, number> = { not_started: 0, in_progress: 1, completed: 2 };
+      let status = progress.status;
+      let completedAt = progress.completedAt ? new Date(progress.completedAt) : null;
+      const existingStatus = existing[0]?.status;
+      if (existingStatus && (statusRank[status] ?? 0) < (statusRank[existingStatus] ?? 0)) {
+        console.log(`Ignoring status downgrade to '${status}' for ${existingStatus} workout ${workoutNumber} (program ${targetProgram}, cycle ${targetCycle})`);
+        status = existingStatus as typeof status;
+        if (status === 'completed') completedAt = completedAt ?? existing[0].completedAt;
+      }
+      if (completedAt && status !== 'completed') status = 'completed';
+      if (status === 'completed' && !completedAt) completedAt = new Date();
+
+      const dbProgress = {
+        userId,
+        workoutNumber,
+        programName: targetProgram,
+        programCycle: targetCycle,
+        sessionId,
+        status,
+        // Never null out a startedAt we already have — a partial snapshot from a
+        // racing write may simply lack the field.
+        startedAt: progress.startedAt ? new Date(progress.startedAt) : existing[0]?.startedAt ?? null,
+        // Union with the existing map on update: exercise entries are only ever
+        // ADDED by clients (removal happens via reset, which DELETEs the row),
+        // so a snapshot rebuilt from a regressed/stale cache must not wholesale-
+        // erase completions an earlier write already persisted.
+        exerciseProgress: existing.length > 0
+          ? { ...((existing[0].exerciseProgress as Record<string, unknown>) ?? {}), ...(progress.exerciseProgress || {}) }
+          : (progress.exerciseProgress || {}),
+        completedAt,
+      };
+
+      if (existing.length > 0) {
+        await tx
+          .update(workoutProgress)
+          .set({
+            ...dbProgress,
+            updatedAt: new Date(),
+          })
+          .where(and(
+            eq(workoutProgress.userId, userId),
+            eq(workoutProgress.workoutNumber, workoutNumber),
+            eq(workoutProgress.programName, targetProgram),
+            eq(workoutProgress.programCycle, targetCycle)
+          ));
+      } else {
+        await tx
+          .insert(workoutProgress)
+          .values(dbProgress);
+      }
+
+      return sessionId || '';
+    });
   }
 
   // Exercise operations
@@ -414,7 +444,75 @@ export class DatabaseStorage implements IStorage {
       const targetProgram = user?.selectedProgram ?? programName;
       const targetCycle = user?.currentProgramCycle ?? 1;
 
-      const progress = await db
+      // Bounded retry re-read. On the FIRST exercise of a workout the optimistic
+      // history write (PR #20) can beat the workout-progress write to the server,
+      // so the SELECT finds nothing and we used to insert a NULL session_id — the
+      // grouped history UI then can't attach the row to its workout. The competing
+      // progress write is normally in flight and lands within milliseconds, so we
+      // re-read a few times before giving up. Strictly bounded (~<400ms worst case,
+      // and zero extra latency for the common case where the row already exists):
+      // this runs inside a request handler and must not hang a write.
+      const RETRIES = 3;
+      const DELAY_MS = 120;
+      let wp: WorkoutProgressDB | undefined;
+      for (let attempt = 0; attempt <= RETRIES; attempt++) {
+        const progress = await db
+          .select()
+          .from(workoutProgress)
+          .where(and(
+            eq(workoutProgress.userId, userId),
+            eq(workoutProgress.workoutNumber, workoutNumber),
+            eq(workoutProgress.programName, targetProgram),
+            eq(workoutProgress.programCycle, targetCycle)
+          ))
+          .limit(1);
+        wp = progress[0];
+        if (wp?.sessionId) break;
+        if (attempt < RETRIES) await new Promise((r) => setTimeout(r, DELAY_MS));
+      }
+
+      if (wp?.sessionId) {
+        sessionId = wp.sessionId;
+        resolvedProgramName = wp.programName;
+        resolvedProgramCycle = wp.programCycle ?? undefined;
+      } else {
+        // Still unresolved after the retries — the workout-progress write never
+        // arrived (or the existing row has an empty session_id). Do NOT insert a
+        // NULL session: deterministically get-or-create the session under the same
+        // advisory lock saveWorkoutProgress uses, so we can neither duplicate the
+        // row nor clobber a concurrent progress write's monotonic status merge.
+        console.warn(
+          `resolveHistoryContext: no workout_progress session for user=${userId} workout=${workoutNumber} ` +
+          `program=${targetProgram} cycle=${targetCycle} after ${RETRIES + 1} reads — creating/attaching session`
+        );
+        const created = await this.getOrCreateSessionForHistory(userId, targetProgram, targetCycle, workoutNumber);
+        sessionId = created.sessionId;
+        resolvedProgramName = targetProgram;
+        resolvedProgramCycle = created.programCycle;
+      }
+    }
+
+    return { sessionId, resolvedProgramName, resolvedProgramCycle };
+  }
+
+  // Deterministic fallback for the first-exercise race: ensure a workout_progress
+  // row with a session_id exists so the history row can group, WITHOUT a schema
+  // change and WITHOUT clobbering a concurrent workout-progress write. Runs under
+  // the same advisory lock as saveWorkoutProgress, so the read-then-write below is
+  // serialized against it:
+  //   - row already has a session  -> reuse it (the racing progress write won);
+  //   - row exists with empty session -> attach one, touching ONLY session_id
+  //     (status/completedAt/exerciseProgress are left intact per PR #27);
+  //   - no row -> create it as in_progress (auto-start, PR #24) so a late progress
+  //     write MERGES into THIS session instead of minting a second one.
+  private async getOrCreateSessionForHistory(
+    userId: number,
+    targetProgram: string,
+    targetCycle: number,
+    workoutNumber: number
+  ): Promise<{ sessionId: string; programCycle: number }> {
+    return this.withWorkoutProgressLock(userId, workoutNumber, targetProgram, targetCycle, async (tx) => {
+      const existing = await tx
         .select()
         .from(workoutProgress)
         .where(and(
@@ -425,26 +523,43 @@ export class DatabaseStorage implements IStorage {
         ))
         .limit(1);
 
-      const wp = progress[0];
-      if (wp) {
-        if (!wp.sessionId) {
-          console.error(
-            `saveExerciseHistory: workout_progress row for user=${userId} workout=${workoutNumber} ` +
-            `program=${targetProgram} cycle=${targetCycle} has empty session_id`
-          );
-        }
-        sessionId = wp.sessionId || undefined;
-        resolvedProgramName = wp.programName;
-        resolvedProgramCycle = wp.programCycle ?? undefined;
-      } else {
-        console.warn(
-          `saveExerciseHistory: no workout_progress match for user=${userId} workout=${workoutNumber} ` +
-          `program=${targetProgram} cycle=${targetCycle} — falling back to client-supplied programName`
-        );
+      const wp = existing[0];
+      if (wp?.sessionId) {
+        return { sessionId: wp.sessionId, programCycle: wp.programCycle ?? targetCycle };
       }
-    }
 
-    return { sessionId, resolvedProgramName, resolvedProgramCycle };
+      const newSession = `session_${Date.now()}_${Math.random().toString(36).substring(7)}`;
+
+      if (wp) {
+        await tx
+          .update(workoutProgress)
+          .set({ sessionId: newSession, updatedAt: new Date() })
+          .where(eq(workoutProgress.id, wp.id));
+        console.warn(
+          `getOrCreateSessionForHistory: attached session ${newSession} to empty-session ` +
+          `workout_progress row id=${wp.id} (user=${userId} workout=${workoutNumber})`
+        );
+        return { sessionId: newSession, programCycle: wp.programCycle ?? targetCycle };
+      }
+
+      await tx.insert(workoutProgress).values({
+        userId,
+        workoutNumber,
+        programName: targetProgram,
+        programCycle: targetCycle,
+        sessionId: newSession,
+        status: "in_progress",
+        startedAt: new Date(),
+        exerciseProgress: {},
+        completedAt: null,
+      });
+      console.warn(
+        `getOrCreateSessionForHistory: created in_progress workout_progress row for user=${userId} ` +
+        `workout=${workoutNumber} program=${targetProgram} cycle=${targetCycle} with session ${newSession} ` +
+        `(progress write had not arrived)`
+      );
+      return { sessionId: newSession, programCycle: targetCycle };
+    });
   }
 
   async saveExerciseHistory(userId: number, history: ExerciseHistoryEntry, workoutNumber?: number): Promise<void> {
