@@ -243,6 +243,12 @@ export class DatabaseStorage implements IStorage {
   // insert/update run one-at-a-time, so concurrent writes can't create duplicate
   // rows or mint two sessions. Runtime-only; requires no schema change. The lock
   // is released automatically when the transaction commits.
+  //
+  // INVARIANT: every caller must derive the SAME (programName, programCycle) for a
+  // given workout, or the two writers would hash different keys and lose mutual
+  // serialization. Today both paths resolve to the user's selectedProgram /
+  // currentProgramCycle (saveWorkoutProgress and resolveHistoryContext), so they
+  // always agree — keep it that way if you add callers.
   private readonly WP_LOCK_NAMESPACE = 30471; // arbitrary, stable classifier
   private async withWorkoutProgressLock<T>(
     userId: number,
