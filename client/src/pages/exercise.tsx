@@ -299,59 +299,78 @@ export default function ExercisePage() {
             const isCompleted = currentProgress?.exerciseProgress?.[exerciseKey]?.completed || false;
             setIsExerciseCompleted(isCompleted);
 
-            // Fetch exercise history to get most recent weight if no calculatedWeight
-            let defaultWeight = enhancedExercise.calculatedWeight || 0;
-            
-            if (!enhancedExercise.calculatedWeight && !isCompleted) {
-              try {
-                // Cached via TanStack (shares the exercise-history cache key
-                // with the detail view) instead of a raw fetch. retry:1 keeps
-                // this non-critical default-weight lookup from holding the
-                // exercise loader through the full retry:3 backoff on flaky wifi.
-                const history = await queryClient.fetchQuery({
-                  ...exerciseHistoryQueryOptions(enhancedExercise.name),
-                  retry: 1,
-                });
-                if (history && history.length > 0) {
-                  // Sort by date descending to get most recent session.
-                  const sortedHistory = [...history].sort((a: any, b: any) =>
-                    new Date(b.date).getTime() - new Date(a.date).getTime()
-                  );
-                  // Default to that session's TOP SET, not an arbitrary row —
-                  // a multi-group session has N rows with the same session_id
-                  // and the heaviest is the meaningful default.
-                  const latest = sortedHistory[0];
-                  const latestSessionRows = sortedHistory.filter((h: any) =>
-                    latest.sessionId != null
-                      ? h.sessionId === latest.sessionId
-                      : h === latest
-                  );
-                  defaultWeight = Math.max(
-                    0,
-                    ...latestSessionRows.map((h: any) => h.weight || 0)
-                  );
-                }
-              } catch (error) {
-                console.error('Error fetching exercise history for default weight:', error);
-              }
-            }
-            
-            // Set initial values — a single group from the prescription + default
-            // weight (the common case, unchanged from before).
-            setGroups([{
-              sets: enhancedExercise.number_of_sets,
-              reps: enhancedExercise.number_of_reps || 1,
-              weight: defaultWeight,
-            }]);
-            setUserNotes(""); // Clear notes for new exercises
-
-            // If completed, load the saved values (overrides history-based
-            // default). getSetGroups rebuilds a single group from legacy
-            // top-level sets/reps/weight when no groups array was stored.
+            // --- Per-exercise INPUT state -------------------------------------
+            // Seed the set-groups BEFORE any network work. The page stays MOUNTED
+            // across Next/Prev (param-only route change), and `setExercise` above
+            // has already swapped the visible exercise. The history lookup below
+            // is a NETWORK call, so seeding after it would leave the NEW exercise
+            // rendering the PREVIOUS exercise's set-groups until it resolved —
+            // e.g. navigating off an exercise logged as 2 groups onto a normal
+            // single-group one kept showing 2 groups. Not just cosmetic: completing
+            // in that window would log the previous exercise's groups here.
             if (isCompleted && currentProgress?.exerciseProgress?.[exerciseKey]) {
+              // Already logged: restore exactly what was saved. getSetGroups
+              // rebuilds a single group from legacy top-level sets/reps/weight
+              // when no groups array was stored.
               const savedProgress = currentProgress.exerciseProgress[exerciseKey];
               setGroups(getSetGroups(savedProgress));
               setUserNotes(savedProgress.notes || "");
+            } else {
+              // Not logged yet: one group from the prescription, weight from the
+              // 1RM calculation when we have one (synchronous, no network).
+              setGroups([{
+                sets: enhancedExercise.number_of_sets,
+                reps: enhancedExercise.number_of_reps || 1,
+                weight: enhancedExercise.calculatedWeight || 0,
+              }]);
+              setUserNotes(""); // Clear notes for new exercises
+
+              // No calculated weight — refine the default from the last session in
+              // the BACKGROUND. Cached via TanStack (shares the exercise-history
+              // cache key with the detail view) instead of a raw fetch. retry:1
+              // keeps this non-critical lookup from holding the exercise loader
+              // through the full retry:3 backoff on flaky wifi.
+              if (!enhancedExercise.calculatedWeight) {
+                try {
+                  const history = await queryClient.fetchQuery({
+                    ...exerciseHistoryQueryOptions(enhancedExercise.name),
+                    retry: 1,
+                  });
+                  // The cleanup for this effect flips isMounted on nav, so a late
+                  // response for the PREVIOUS exercise can never patch this one.
+                  if (!isMounted) return;
+                  if (history && history.length > 0) {
+                    // Sort by date descending to get most recent session.
+                    const sortedHistory = [...history].sort((a: any, b: any) =>
+                      new Date(b.date).getTime() - new Date(a.date).getTime()
+                    );
+                    // Default to that session's TOP SET, not an arbitrary row —
+                    // a multi-group session has N rows with the same session_id
+                    // and the heaviest is the meaningful default.
+                    const latest = sortedHistory[0];
+                    const latestSessionRows = sortedHistory.filter((h: any) =>
+                      latest.sessionId != null
+                        ? h.sessionId === latest.sessionId
+                        : h === latest
+                    );
+                    const historyWeight = Math.max(
+                      0,
+                      ...latestSessionRows.map((h: any) => h.weight || 0)
+                    );
+                    // Only fill in an untouched single group — never clobber a
+                    // weight the user has already typed, or groups they've added.
+                    if (historyWeight > 0) {
+                      setGroups((gs) =>
+                        gs.length === 1 && !gs[0].weight
+                          ? [{ ...gs[0], weight: historyWeight }]
+                          : gs
+                      );
+                    }
+                  }
+                } catch (error) {
+                  console.error('Error fetching exercise history for default weight:', error);
+                }
+              }
             }
           }
         } catch (error) {
