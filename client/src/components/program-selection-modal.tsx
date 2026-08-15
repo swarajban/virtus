@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { rememberSelectedProgram } from "@/lib/api-client";
 import { CheckCircle2, Loader2 } from "lucide-react";
+import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
 
 interface Program {
   name: string;
@@ -35,7 +36,7 @@ export function ProgramSelectionModal({
       if (isOpen) {
         setIsLoading(true);
         try {
-          const response = await fetch('/api/programs');
+          const response = await fetchWithTimeout('/api/programs');
           if (!response.ok) {
             throw new Error('Failed to fetch programs');
           }
@@ -68,7 +69,7 @@ export function ProgramSelectionModal({
         throw new Error('No user selected');
       }
       
-      const response = await fetch('/api/start-new-program', {
+      const response = await fetchWithTimeout('/api/start-new-program', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

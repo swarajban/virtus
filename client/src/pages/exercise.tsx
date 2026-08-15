@@ -45,6 +45,8 @@ import { useToast } from "@/hooks/use-toast";
 // Import types
 import { Workout } from "@shared/schema";
 
+type GroupSeedSource = "empty" | "calculated" | "history" | "saved";
+
 export default function ExercisePage() {
   const [, setLocation] = useLocation();
   const [match, params] = useRoute("/workout/:workoutNumber/exercise/:exerciseIndex");
@@ -64,7 +66,7 @@ export default function ExercisePage() {
   const [groups, setGroups] = useState<SetGroup[]>([{ sets: 1, reps: 1, weight: 0 }]);
   const [userNotes, setUserNotes] = useState("");
   const [showHistory, setShowHistory] = useState(false);
-  const [oneRM, setOneRM] = useState<OneRM | null>(null);
+  const [oneRM, setOneRM] = useState<OneRM | null>(() => LocalStorage.getCachedOneRM());
   // "Exercise N of M" counts WORKING exercises only (warm-ups are skipped during
   // nav and must not inflate the count). totalExercises = M (working total);
   // currentWorkingNumber = N (1-based rank of the current exercise among working).
@@ -82,6 +84,7 @@ export default function ExercisePage() {
   const [warmupInfo, setWarmupInfo] = useState<any>(null);
   const [isWarmupExpanded, setIsWarmupExpanded] = useState(false);
   const [showRirHint, setShowRirHint] = useState(false);
+  const [workoutProgressData, setWorkoutProgressData] = useState<Record<number, any>>({});
 
   // Cached program JSON — fetched once per session, served from memory after.
   // Navigation reads the workout's exercise list from this ref synchronously,
@@ -97,7 +100,14 @@ export default function ExercisePage() {
   const queryClient = useQueryClient();
   const navExercisesRef = useRef<any[]>([]);
   const completeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const inputSeedKeyRef = useRef<string | null>(null);
+  const groupsDirtyRef = useRef(false);
+  const notesDirtyRef = useRef(false);
+  const groupSeedSourceRef = useRef<GroupSeedSource>("empty");
   const reducedMotion = useReducedMotion() ?? false;
+
+  const workoutNumber = parseInt(params?.workoutNumber ?? '0', 10);
+  const exerciseIndex = parseInt(params?.exerciseIndex ?? '0', 10);
 
   // Clear any pending completion-advance timer if the page unmounts mid-reward,
   // so it can't setState or navigate after the component is gone.
@@ -106,6 +116,266 @@ export default function ExercisePage() {
       if (completeTimerRef.current) clearTimeout(completeTimerRef.current);
     };
   }, []);
+
+  // All auto-scrolling behavior removed for better mobile experience
+
+  useEffect(() => {
+    if (!programJson) return;
+
+    const seedKey = `${selectedProgram}:${workoutNumber}:${exerciseIndex}`;
+    const isNewExercise = inputSeedKeyRef.current !== seedKey;
+
+    if (isNewExercise) {
+      inputSeedKeyRef.current = seedKey;
+      groupsDirtyRef.current = false;
+      notesDirtyRef.current = false;
+      groupSeedSourceRef.current = "empty";
+      setShowRirHint(false);
+      setIsWarmupExpanded(false);
+    }
+
+    if (!workoutNumber || exerciseIndex < 0) {
+      setExercise(null);
+      setIsInitialLoading(false);
+      return;
+    }
+
+    try {
+      const workoutData = resolveProgramWorkouts(programJson, selectedProgram);
+      const foundWorkout = workoutData.find((w: any) => w.workout_number === workoutNumber);
+
+      if (!foundWorkout || !foundWorkout.exercises[exerciseIndex]) {
+        setExercise(null);
+        setIsInitialLoading(false);
+        return;
+      }
+
+      const exerciseKey = `${exerciseIndex}`;
+      const cachedProgress = LocalStorage.getCachedWorkoutProgress();
+      const progressMap =
+        Object.keys(workoutProgressData).length > 0 ? workoutProgressData : cachedProgress;
+      const currentProgress = progressMap[workoutNumber] ?? cachedProgress[workoutNumber];
+      const savedProgress = currentProgress?.exerciseProgress?.[exerciseKey];
+      const allExercises = Array.isArray(allExercisesData) ? (allExercisesData as any[]) : [];
+      const allOneRMs = Array.isArray(allOneRMsData) ? (allOneRMsData as any[]) : [];
+
+      setAllExercises(allExercises);
+
+      const exerciseOneRMs = new Map<number, number>();
+      allOneRMs.forEach((orm: any) => {
+        exerciseOneRMs.set(orm.exerciseId, orm.weight);
+      });
+
+      let exerciseData = { ...foundWorkout.exercises[exerciseIndex] };
+      const originalExerciseName = exerciseData.name;
+      const swapInfo = savedProgress?.swappedExercise;
+      let nextExerciseDbData: any = null;
+      let nextSwappedFromOriginal: string | null = null;
+
+      if (swapInfo) {
+        const swappedExercise = allExercises.find((e: any) => e.id === swapInfo.exerciseId);
+        exerciseData = {
+          ...exerciseData,
+          name: swappedExercise?.name ?? swapInfo.name ?? exerciseData.name,
+          notes: swappedExercise?.notes || exerciseData.notes,
+          id: swappedExercise?.id ?? swapInfo.exerciseId,
+          onermExerciseId: swappedExercise?.onermExerciseId ?? exerciseData.onermExerciseId,
+        };
+        nextExerciseDbData =
+          swappedExercise ??
+          (swapInfo.exerciseId ? { id: swapInfo.exerciseId, name: exerciseData.name } : null);
+        nextSwappedFromOriginal = swapInfo.originalName || originalExerciseName;
+      } else {
+        const dbExercise = allExercises.find((e: any) => e.name === exerciseData.name);
+        if (dbExercise) {
+          nextExerciseDbData = dbExercise;
+          exerciseData = {
+            ...exerciseData,
+            id: dbExercise.id,
+            onermExerciseId: dbExercise.onermExerciseId,
+          };
+        }
+      }
+
+      const enhancedExercise = enhanceExerciseWithCalculations(
+        exerciseData,
+        oneRM ?? undefined,
+        exerciseOneRMs,
+        allExercises
+      );
+
+      setExerciseDbData(nextExerciseDbData);
+      setSwappedFromOriginal(nextSwappedFromOriginal);
+      setExercise(enhancedExercise);
+      setWorkoutName(foundWorkout.workout_name);
+
+      const allEx = foundWorkout.exercises;
+      const isWorking = (e: any) => e.type_of_set !== "warm-up";
+      const workingTotal = allEx.filter(isWorking).length;
+      const workingUpToHere = allEx.slice(0, exerciseIndex + 1).filter(isWorking).length;
+      setTotalExercises(workingTotal);
+      setCurrentWorkingNumber(
+        isWorking(allEx[exerciseIndex])
+          ? workingUpToHere
+          : Math.min(workingUpToHere + 1, workingTotal)
+      );
+      navExercisesRef.current = foundWorkout.exercises;
+
+      if (exerciseData.type_of_set === "working") {
+        let warmup = null;
+        for (let i = exerciseIndex - 1; i >= 0; i--) {
+          const prevExercise = foundWorkout.exercises[i];
+          if (prevExercise.name === exerciseData.name && prevExercise.type_of_set === "warm-up") {
+            warmup = prevExercise;
+            break;
+          }
+          if (prevExercise.name !== exerciseData.name) break;
+        }
+        setWarmupInfo(warmup);
+      } else {
+        setWarmupInfo(null);
+      }
+
+      const isCompleted = savedProgress?.completed || false;
+      setIsExerciseCompleted(isCompleted);
+
+      // Seed set-groups synchronously from the program/progress snapshot before
+      // any network work. Secondary data may arrive later, but only untouched
+      // auto-seeded inputs are updated.
+      if (isNewExercise) {
+        if (isCompleted && savedProgress) {
+          groupSeedSourceRef.current = "saved";
+          setGroups(getSetGroups(savedProgress));
+          setUserNotes(savedProgress.notes || "");
+        } else {
+          groupSeedSourceRef.current = enhancedExercise.calculatedWeight ? "calculated" : "empty";
+          setGroups([{
+            sets: enhancedExercise.number_of_sets,
+            reps: enhancedExercise.number_of_reps || 1,
+            weight: enhancedExercise.calculatedWeight || 0,
+          }]);
+          setUserNotes("");
+        }
+      } else if (isCompleted && savedProgress) {
+        if (!groupsDirtyRef.current) {
+          groupSeedSourceRef.current = "saved";
+          setGroups(getSetGroups(savedProgress));
+        }
+        if (!notesDirtyRef.current) {
+          setUserNotes(savedProgress.notes || "");
+        }
+      } else if (
+        enhancedExercise.calculatedWeight &&
+        !groupsDirtyRef.current &&
+        groupSeedSourceRef.current !== "saved"
+      ) {
+        setGroups((gs) => {
+          if (gs.length !== 1) return gs;
+          groupSeedSourceRef.current = "calculated";
+          return [{
+            ...gs[0],
+            sets: enhancedExercise.number_of_sets,
+            reps: enhancedExercise.number_of_reps || 1,
+            weight: enhancedExercise.calculatedWeight || 0,
+          }];
+        });
+      }
+
+      setIsInitialLoading(false);
+    } catch (error) {
+      console.error('Error loading exercise data:', error);
+      setIsInitialLoading(false);
+    }
+  }, [
+    workoutNumber,
+    exerciseIndex,
+    programJson,
+    allExercisesData,
+    allOneRMsData,
+    oneRM,
+    selectedProgram,
+    workoutProgressData,
+  ]);
+
+  useEffect(() => {
+    if (!programJson || !workoutNumber) return;
+
+    let active = true;
+    const cachedProgress = LocalStorage.getCachedWorkoutProgress();
+    if (Object.keys(cachedProgress).length > 0) {
+      setWorkoutProgressData(cachedProgress);
+    }
+
+    LocalStorage.getOneRMPreferCache()
+      .then(() => {
+        if (!active) return;
+        const cachedOneRM = LocalStorage.getCachedOneRM();
+        if (cachedOneRM) setOneRM(cachedOneRM);
+      })
+      .catch(() => {});
+
+    LocalStorage.getWorkoutProgressPreferCache()
+      .then((workoutProgress) => {
+        if (active) setWorkoutProgressData(workoutProgress);
+      })
+      .catch(() => {});
+
+    return () => {
+      active = false;
+    };
+  }, [programJson, workoutNumber, exerciseIndex, selectedProgram]);
+
+  useEffect(() => {
+    if (!exercise || exercise.calculatedWeight || isExerciseCompleted) return;
+
+    let active = true;
+    const seedKey = inputSeedKeyRef.current;
+
+    queryClient.fetchQuery({
+      ...exerciseHistoryQueryOptions(exercise.name),
+      retry: 1,
+    }).then((history) => {
+      if (!active || inputSeedKeyRef.current !== seedKey || !history?.length) return;
+      const sortedHistory = [...history].sort((a: any, b: any) =>
+        new Date(b.date).getTime() - new Date(a.date).getTime()
+      );
+      const latest = sortedHistory[0];
+      const latestSessionRows = sortedHistory.filter((h: any) =>
+        latest.sessionId != null ? h.sessionId === latest.sessionId : h === latest
+      );
+      const historyWeight = Math.max(
+        0,
+        ...latestSessionRows.map((h: any) => h.weight || 0)
+      );
+      if (historyWeight <= 0) return;
+
+      setGroups((gs) => {
+        if (
+          groupsDirtyRef.current ||
+          groupSeedSourceRef.current === "saved" ||
+          groupSeedSourceRef.current === "calculated" ||
+          gs.length !== 1
+        ) {
+          return gs;
+        }
+        groupSeedSourceRef.current = "history";
+        return [{ ...gs[0], weight: historyWeight }];
+      });
+    }).catch((error) => {
+      console.error('Error fetching exercise history for default weight:', error);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, [
+    queryClient,
+    exercise?.name,
+    exercise?.calculatedWeight,
+    isExerciseCompleted,
+    workoutNumber,
+    exerciseIndex,
+  ]);
 
   // Fetch the authoritative user program in the BACKGROUND — never on the render
   // path. If the server's selectedProgram differs from what we rendered with
@@ -146,250 +416,10 @@ export default function ExercisePage() {
         rememberSelectedProgram(user.selectedProgram);
       })
       .catch(() => {});
-    LocalStorage.getWorkoutProgress().catch(() => {});
+    LocalStorage.getWorkoutProgress()
+      .then((progress) => setWorkoutProgressData(progress))
+      .catch(() => {});
   });
-
-  const workoutNumber = parseInt(params?.workoutNumber ?? '0', 10);
-  const exerciseIndex = parseInt(params?.exerciseIndex ?? '0', 10);
-
-  // All auto-scrolling behavior removed for better mobile experience
-
-  useEffect(() => {
-    let isMounted = true; // Track mount state for cleanup
-
-    async function loadExerciseData() {
-      // Wait for the cached program JSON AND the shared exercise/1RM queries
-      // before building the view. All three are TanStack-cached (program JSON at
-      // staleTime Infinity; exercises/1RMs shared with the workout page), so on a
-      // warm session they resolve instantly from cache — navigation never blocks
-      // on a cold network fetch. `data` is undefined until first load.
-      if (!programJson || !allExercisesData || !allOneRMsData) return;
-      if (workoutNumber && exerciseIndex >= 0) {
-        try {
-          // Local + per-user data; the heavy reads above come from cache.
-          // Progress prefers the in-memory accumulator so navigating between
-          // exercises doesn't clobber an in-flight optimistic completion with a
-          // stale refetch (it still fetches on the first/cold load).
-          // Both prefer the in-memory cache and resolve instantly on a warm
-          // session — the render is NEVER gated on a network round-trip. The
-          // network user is fetched separately in the background (see the
-          // getCurrentUser effect) so a hung /api/user can't hold the spinner up.
-          const [oneRMData, workoutProgress] = await Promise.all([
-            LocalStorage.getOneRMPreferCache(),
-            LocalStorage.getWorkoutProgressPreferCache(),
-          ]);
-
-          // Exercise library + 1RM map served from the shared TanStack cache.
-          const allExercises = allExercisesData as any[];
-          const allOneRMs = allOneRMsData as any[];
-
-          // Check if component is still mounted before setState
-          if (!isMounted) return;
-
-          setAllExercises(allExercises); // Store all exercises for swap modal
-          
-          // Create a map of exercise ID to 1RM weight
-          const exerciseOneRMs = new Map<number, number>();
-          allOneRMs.forEach((orm: any) => {
-            exerciseOneRMs.set(orm.exerciseId, orm.weight);
-          });
-          
-          const data = programJson;
-          setOneRM(oneRMData);
-
-          // Resolve against the program in local state (seeded from localStorage,
-          // corrected by the background getCurrentUser effect) — never block the
-          // render on the network user.
-          const workoutData = resolveProgramWorkouts(data, selectedProgram);
-          const foundWorkout = workoutData.find((w: any) => w.workout_number === workoutNumber);
-          
-          if (foundWorkout && foundWorkout.exercises[exerciseIndex]) {
-            let exerciseData = foundWorkout.exercises[exerciseIndex];
-            const originalExerciseName = exerciseData.name;
-            
-            // Check if this exercise has been swapped
-            const currentProgress = workoutProgress[workoutNumber];
-            const exerciseKey = `${exerciseIndex}`;
-            const swapInfo = currentProgress?.exerciseProgress?.[exerciseKey]?.swappedExercise;
-            
-            if (swapInfo) {
-              // Use swapped exercise data
-              const swappedExercise = allExercises.find((e: any) => e.id === swapInfo.exerciseId);
-              if (swappedExercise) {
-                // Preserve original exercise structure but use swapped exercise details
-                exerciseData = {
-                  ...exerciseData,
-                  name: swappedExercise.name,
-                  notes: swappedExercise.notes || exerciseData.notes,
-                  id: swappedExercise.id,
-                  onermExerciseId: swappedExercise.onermExerciseId
-                };
-                setExerciseDbData(swappedExercise);
-                setSwappedFromOriginal(originalExerciseName);
-              }
-            } else {
-              // Find the database exercise record for original exercise
-              const dbExercise = allExercises.find((e: any) => e.name === exerciseData.name);
-              if (dbExercise) {
-                setExerciseDbData(dbExercise);
-                // Add the ID to exercise data for weight calculations
-                exerciseData.id = dbExercise.id;
-                exerciseData.onermExerciseId = dbExercise.onermExerciseId;
-              }
-              // Reset swap indicator for non-swapped exercises
-              setSwappedFromOriginal(null);
-            }
-            
-            const enhancedExercise = enhanceExerciseWithCalculations(
-              exerciseData,
-              oneRMData,
-              exerciseOneRMs,
-              allExercises
-            );
-
-            // Check if component is still mounted before setState
-            if (!isMounted) return;
-
-            setExercise(enhancedExercise);
-            // Per-exercise UI state: the page stays mounted across Next/Prev,
-            // so an opened RIR hint must not leak onto the next exercise.
-            setShowRirHint(false);
-            setWorkoutName(foundWorkout.workout_name);
-            // Count WORKING exercises only (nav skips warm-ups, so the header
-            // must too). Predicate matches skipWarmups (the nav source of truth):
-            // a set is "working" iff it is not a warm-up. M = total working sets;
-            // N = rank of the current exercise among working sets.
-            const allEx = foundWorkout.exercises;
-            const isWorking = (e: any) => e.type_of_set !== "warm-up";
-            const workingTotal = allEx.filter(isWorking).length;
-            const workingUpToHere = allEx.slice(0, exerciseIndex + 1).filter(isWorking).length;
-            setTotalExercises(workingTotal);
-            // In-app nav never lands on a warm-up, but a deep link / refresh to a
-            // warm-up index can. Showing "0 of M" there is wrong — display the
-            // number of the working set the warm-up precedes instead.
-            setCurrentWorkingNumber(
-              isWorking(allEx[exerciseIndex])
-                ? workingUpToHere
-                : Math.min(workingUpToHere + 1, workingTotal)
-            );
-            // Cache the exercise list for synchronous, fetch-free navigation.
-            navExercisesRef.current = foundWorkout.exercises;
-
-            // Find warm-up info if this is a working set
-            if (exerciseData.type_of_set === "working") {
-              // Look for matching warm-up with same name immediately before this exercise
-              let warmup = null;
-              for (let i = exerciseIndex - 1; i >= 0; i--) {
-                const prevExercise = foundWorkout.exercises[i];
-                if (prevExercise.name === exerciseData.name && prevExercise.type_of_set === "warm-up") {
-                  warmup = prevExercise;
-                  break;
-                }
-                // Stop searching if we hit a different exercise name
-                if (prevExercise.name !== exerciseData.name) {
-                  break;
-                }
-              }
-              setWarmupInfo(warmup);
-            } else {
-              setWarmupInfo(null);
-            }
-
-            // Check if exercise is already completed
-            const isCompleted = currentProgress?.exerciseProgress?.[exerciseKey]?.completed || false;
-            setIsExerciseCompleted(isCompleted);
-
-            // --- Per-exercise INPUT state -------------------------------------
-            // Seed the set-groups BEFORE any network work. The page stays MOUNTED
-            // across Next/Prev (param-only route change), and `setExercise` above
-            // has already swapped the visible exercise. The history lookup below
-            // is a NETWORK call, so seeding after it would leave the NEW exercise
-            // rendering the PREVIOUS exercise's set-groups until it resolved —
-            // e.g. navigating off an exercise logged as 2 groups onto a normal
-            // single-group one kept showing 2 groups. Not just cosmetic: completing
-            // in that window would log the previous exercise's groups here.
-            if (isCompleted && currentProgress?.exerciseProgress?.[exerciseKey]) {
-              // Already logged: restore exactly what was saved. getSetGroups
-              // rebuilds a single group from legacy top-level sets/reps/weight
-              // when no groups array was stored.
-              const savedProgress = currentProgress.exerciseProgress[exerciseKey];
-              setGroups(getSetGroups(savedProgress));
-              setUserNotes(savedProgress.notes || "");
-            } else {
-              // Not logged yet: one group from the prescription, weight from the
-              // 1RM calculation when we have one (synchronous, no network).
-              setGroups([{
-                sets: enhancedExercise.number_of_sets,
-                reps: enhancedExercise.number_of_reps || 1,
-                weight: enhancedExercise.calculatedWeight || 0,
-              }]);
-              setUserNotes(""); // Clear notes for new exercises
-
-              // No calculated weight — refine the default from the last session in
-              // the BACKGROUND. Cached via TanStack (shares the exercise-history
-              // cache key with the detail view) instead of a raw fetch. retry:1
-              // keeps this non-critical lookup from holding the exercise loader
-              // through the full retry:3 backoff on flaky wifi.
-              if (!enhancedExercise.calculatedWeight) {
-                try {
-                  const history = await queryClient.fetchQuery({
-                    ...exerciseHistoryQueryOptions(enhancedExercise.name),
-                    retry: 1,
-                  });
-                  // The cleanup for this effect flips isMounted on nav, so a late
-                  // response for the PREVIOUS exercise can never patch this one.
-                  if (!isMounted) return;
-                  if (history && history.length > 0) {
-                    // Sort by date descending to get most recent session.
-                    const sortedHistory = [...history].sort((a: any, b: any) =>
-                      new Date(b.date).getTime() - new Date(a.date).getTime()
-                    );
-                    // Default to that session's TOP SET, not an arbitrary row —
-                    // a multi-group session has N rows with the same session_id
-                    // and the heaviest is the meaningful default.
-                    const latest = sortedHistory[0];
-                    const latestSessionRows = sortedHistory.filter((h: any) =>
-                      latest.sessionId != null
-                        ? h.sessionId === latest.sessionId
-                        : h === latest
-                    );
-                    const historyWeight = Math.max(
-                      0,
-                      ...latestSessionRows.map((h: any) => h.weight || 0)
-                    );
-                    // Only fill in an untouched single group — never clobber a
-                    // weight the user has already typed, or groups they've added.
-                    if (historyWeight > 0) {
-                      setGroups((gs) =>
-                        gs.length === 1 && !gs[0].weight
-                          ? [{ ...gs[0], weight: historyWeight }]
-                          : gs
-                      );
-                    }
-                  }
-                } catch (error) {
-                  console.error('Error fetching exercise history for default weight:', error);
-                }
-              }
-            }
-          }
-        } catch (error) {
-          console.error('Error loading exercise data:', error);
-        } finally {
-          if (isMounted) {
-            setIsInitialLoading(false);
-          }
-        }
-      }
-    }
-
-    loadExerciseData();
-
-    // Cleanup: mark component as unmounted to prevent setState after unmount
-    return () => {
-      isMounted = false;
-    };
-  }, [workoutNumber, exerciseIndex, programJson, allExercisesData, allOneRMsData, selectedProgram]);
 
   if (programError && !programJson) {
     return <ProgramDataError onRetry={() => refetchProgram()} />;
@@ -595,6 +625,7 @@ export default function ExercisePage() {
 
   // --- Set-group editing ---------------------------------------------------
   const updateGroup = (index: number, patch: Partial<SetGroup>) => {
+    groupsDirtyRef.current = true;
     setGroups((gs) => gs.map((g, i) => (i === index ? { ...g, ...patch } : g)));
   };
 
@@ -602,6 +633,7 @@ export default function ExercisePage() {
   // sensible defaults) so logging a second group is one tap from a good start.
   const addGroup = () => {
     haptic(8);
+    groupsDirtyRef.current = true;
     setGroups((gs) => {
       const prev = gs[gs.length - 1] ?? { sets: 1, reps: 1, weight: 0 };
       return [...gs, { sets: prev.sets, reps: prev.reps, weight: prev.weight }];
@@ -610,6 +642,7 @@ export default function ExercisePage() {
 
   const removeGroup = (index: number) => {
     haptic(8);
+    groupsDirtyRef.current = true;
     setGroups((gs) => (gs.length > 1 ? gs.filter((_, i) => i !== index) : gs));
   };
 
@@ -1111,7 +1144,10 @@ export default function ExercisePage() {
             <Textarea
               placeholder="Add your notes..."
               value={userNotes}
-              onChange={(e) => setUserNotes(e.target.value)}
+              onChange={(e) => {
+                notesDirtyRef.current = true;
+                setUserNotes(e.target.value);
+              }}
               rows={3}
             />
           </CardContent>

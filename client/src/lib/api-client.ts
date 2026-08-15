@@ -1,5 +1,6 @@
 // API client for backend communication
 import { OneRM, WorkoutProgress, ExerciseHistoryEntry, User } from "@shared/schema";
+import { fetchWithTimeout } from "./fetch-with-timeout";
 
 // Get the current selected username
 function getCurrentUsername(): string | null {
@@ -27,7 +28,7 @@ async function apiRequest(url: string, options: RequestInit = {}) {
     throw new Error('No user selected');
   }
   
-  const response = await fetch(url, {
+  const response = await fetchWithTimeout(url, {
     ...options,
     headers: {
       'Content-Type': 'application/json',

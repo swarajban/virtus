@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
 
 /**
  * Shared TanStack Query hooks for the common `/api/*` GET reads.
@@ -12,7 +13,7 @@ import { useQuery } from "@tanstack/react-query";
  * back from an exercise hung waiting for the workout list.
  *
  * These hooks route those reads through the shared queryClient
- * (client/src/lib/queryClient.ts: staleTime 5min, gcTime 30min, retry 3 with
+ * (client/src/lib/queryClient.ts: staleTime 5min, gcTime 2h, retry 3 with
  * exponential backoff, refetchOnWindowFocus off). Crucially, every page that
  * needs the full exercise list or every-1RM map consumes the SAME query keys,
  * so the data is fetched once and served from the warm cache across
@@ -63,7 +64,7 @@ export function exerciseHistoryQueryOptions(exerciseName: string) {
   return {
     queryKey: ["/api/exercise-history", { exerciseName }] as const,
     queryFn: async () => {
-      const res = await fetch(
+      const res = await fetchWithTimeout(
         `/api/exercise-history?exerciseName=${encodeURIComponent(exerciseName)}`,
         { headers: { "x-username": username() }, credentials: "include" as const },
       );

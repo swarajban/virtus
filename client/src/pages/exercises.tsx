@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { ArrowLeft, Plus, Search, Dumbbell } from "lucide-react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
+import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
 
 export default function Exercises() {
   const [, setLocation] = useLocation();
@@ -33,7 +34,7 @@ export default function Exercises() {
       const url = searchQuery 
         ? `/api/exercises?search=${encodeURIComponent(searchQuery)}`
         : "/api/exercises";
-      const response = await fetch(url, {
+      const response = await fetchWithTimeout(url, {
         headers: { 'x-username': localStorage.getItem('selected-username') || 'demo' }
       });
       if (!response.ok) throw new Error('Failed to fetch exercises');
@@ -44,7 +45,7 @@ export default function Exercises() {
   // Create exercise mutation
   const createMutation = useMutation({
     mutationFn: async (exercise: any) => {
-      const response = await fetch("/api/exercises", {
+      const response = await fetchWithTimeout("/api/exercises", {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
