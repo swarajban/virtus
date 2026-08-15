@@ -11,6 +11,7 @@ import { UserSelector } from "@/components/user-selector";
 import { ProgramSelectionModal } from "@/components/program-selection-modal";
 import { usePowerbuildingData } from "@/hooks/use-powerbuilding-data";
 import { ProgramDataError } from "@/components/program-data-error";
+import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
 
 interface Program {
   name: string;
@@ -82,7 +83,7 @@ export default function SettingsPage() {
       }
       
       // Use start-new-program API to properly reset cycle and progress
-      const response = await fetch('/api/start-new-program', {
+      const response = await fetchWithTimeout('/api/start-new-program', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

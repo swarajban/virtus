@@ -7,6 +7,7 @@ import { ArrowLeft, Save } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAllExercises, useAllOneRMs } from "@/hooks/use-exercises-data";
+import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
 
 export default function OneRMPage() {
   const [, setLocation] = useLocation();
@@ -71,7 +72,7 @@ export default function OneRMPage() {
   // Mutation to save 1RM
   const save1RMMutation = useMutation({
     mutationFn: async ({ exerciseId, weight }: { exerciseId: number; weight: number }) => {
-      const response = await fetch(`/api/one-rm/exercise/${exerciseId}`, {
+      const response = await fetchWithTimeout(`/api/one-rm/exercise/${exerciseId}`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',

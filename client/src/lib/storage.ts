@@ -96,6 +96,10 @@ export class DatabaseStorage {
     return cache.workoutProgress ?? {};
   }
 
+  static getCachedOneRM(): OneRM | null {
+    return cache.oneRM;
+  }
+
   // True once a full GET of the workout-progress map has succeeded. A fetched
   // cache tells the full truth for every workout — a workout with no entry is
   // genuinely not_started — so callers can treat it as authoritative without a

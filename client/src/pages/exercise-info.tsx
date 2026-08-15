@@ -14,6 +14,7 @@ import { useAllExercises, useExercise, useExerciseHistory, useOneRMForExercise }
 import { LocalStorage } from "@/lib/storage";
 import { ExerciseHistoryModal } from "@/components/exercise-history-modal";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
 
 export default function ExerciseInfo() {
   const [, params] = useRoute("/exercise/:id");
@@ -79,7 +80,7 @@ export default function ExerciseInfo() {
   // Update exercise mutation
   const updateMutation = useMutation({
     mutationFn: async (updates: any) => {
-      const response = await fetch(`/api/exercises/${exerciseId}`, {
+      const response = await fetchWithTimeout(`/api/exercises/${exerciseId}`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
@@ -109,7 +110,7 @@ export default function ExerciseInfo() {
   // Mutation to save 1RM weight
   const save1RMMutation = useMutation({
     mutationFn: async (weight: number) => {
-      const response = await fetch(`/api/one-rm/exercise/${exerciseId}`, {
+      const response = await fetchWithTimeout(`/api/one-rm/exercise/${exerciseId}`, {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
@@ -130,7 +131,7 @@ export default function ExerciseInfo() {
   // Mutation to delete 1RM weight
   const delete1RMMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch(`/api/one-rm/exercise/${exerciseId}`, {
+      const response = await fetchWithTimeout(`/api/one-rm/exercise/${exerciseId}`, {
         method: 'DELETE',
         headers: { 
           'x-username': localStorage.getItem('selected-username') || 'demo'

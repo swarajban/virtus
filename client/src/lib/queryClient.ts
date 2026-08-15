@@ -1,4 +1,5 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { fetchWithTimeout } from "./fetch-with-timeout";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -19,7 +20,7 @@ export async function apiRequest(
     headers["Content-Type"] = "application/json";
   }
   
-  const res = await fetch(url, {
+  const res = await fetchWithTimeout(url, {
     method,
     headers,
     body: data ? JSON.stringify(data) : undefined,
@@ -35,9 +36,10 @@ export const getQueryFn: <T>(options: {
   on401: UnauthorizedBehavior;
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
-  async ({ queryKey }) => {
-    const res = await fetch(queryKey.join("/") as string, {
+  async ({ queryKey, signal }) => {
+    const res = await fetchWithTimeout(queryKey.join("/") as string, {
       credentials: "include",
+      signal,
       headers: {
         'x-username': localStorage.getItem('selected-username') || 'demo'
       }
@@ -58,20 +60,20 @@ const createRetryDelay = (maxDelayMs: number) =>
 /**
  * QueryClient configured for FLAKY GYM WIFI:
  *
- * - staleTime: 5min — cached data stays fresh longer for gym sessions (60-90min).
- *   Exercise/1RM data rarely changes mid-workout; longer staleTime = fewer refetches.
+ * - staleTime: 5min — freshness window only. Stale cached data still renders while
+ *   React Query revalidates in the background, so freshness does not gate exercise UI.
  *
- * - gcTime: 30min — keep cache through entire workout session (60-90min typical).
- *   Navigating away from exercises for 10min+ won't clear cache.
+ * - gcTime: 2h — keep cache through an entire 60-90min workout plus phone-lock gaps.
+ *   This prevents a 35min pause from evicting warm exercise/1RM/history data.
  *
  * - retry: 3 attempts with exponential backoff (1s → 2s → 4s), but NOT for auth errors
  *   (401/403) which won't resolve with retries. Network hiccups usually resolve quickly.
  *
  * - refetchOnWindowFocus: false — avoid refetch spam when switching to timer/music apps.
- *   Longer staleTime handles freshness; focus-based refetching creates errors on flaky wifi.
+ *   Stale cached data remains visible; focus-based refetching creates errors on flaky wifi.
  *
- * - networkMode: 'online' — pause queries/mutations when offline (prevents error spam).
- *   NOTE: Mutations are paused, NOT queued — no persistence layer for offline writes.
+ * - networkMode: 'offlineFirst' — try once even if navigator.onLine is lying (common
+ *   on iOS unlock / wifi-cell handoff), then pause retries after a real failure.
  */
 export const queryClient = new QueryClient({
   defaultOptions: {
@@ -79,8 +81,8 @@ export const queryClient = new QueryClient({
       queryFn: getQueryFn({ on401: "throw" }),
       refetchInterval: false,
       refetchOnWindowFocus: false,
-      staleTime: 5 * 60 * 1000, // 5 minutes
-      gcTime: 30 * 60 * 1000, // 30 minutes (covers typical workout session)
+      staleTime: 5 * 60 * 1000, // 5 minutes; stale cache still renders while refetching
+      gcTime: 2 * 60 * 60 * 1000, // 2 hours; covers a full workout plus lock gaps
       retry: (failureCount, error) => {
         // Don't retry auth errors (401/403) - they won't resolve
         if (error instanceof Error && /^(401|403):/.test(error.message)) {
@@ -89,12 +91,12 @@ export const queryClient = new QueryClient({
         return failureCount < 3;
       },
       retryDelay: createRetryDelay(10000), // Cap at 10s instead of 30s
-      networkMode: 'online',
+      networkMode: 'offlineFirst',
     },
     mutations: {
       retry: 3, // Match queries - writes are critical, need same resilience
       retryDelay: createRetryDelay(10000),
-      networkMode: 'online',
+      networkMode: 'offlineFirst',
     },
   },
 });

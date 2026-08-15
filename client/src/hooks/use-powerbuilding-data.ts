@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { fetchWithTimeout } from "@/lib/fetch-with-timeout";
 
 /**
  * The program JSON (~646KB) is a STATIC asset that never changes during a
@@ -12,7 +13,7 @@ import { useQuery } from "@tanstack/react-query";
 export const POWERBUILDING_DATA_KEY = ["powerbuilding-data"] as const;
 
 async function fetchPowerbuildingData() {
-  const res = await fetch("/powerbuilding_data.json");
+  const res = await fetchWithTimeout("/powerbuilding_data.json");
   if (!res.ok) {
     throw new Error(`${res.status}: failed to load workout program data`);
   }
