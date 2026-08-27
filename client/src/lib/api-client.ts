@@ -80,8 +80,11 @@ export const api = {
   },
   
   // Exercise History
-  async getExerciseHistory(exerciseName?: string): Promise<ExerciseHistoryEntry[]> {
-    const query = exerciseName ? `?exerciseName=${encodeURIComponent(exerciseName)}` : '';
+  async getExerciseHistory(exerciseName?: string, all = false): Promise<ExerciseHistoryEntry[]> {
+    const params = new URLSearchParams();
+    if (exerciseName) params.set("exerciseName", exerciseName);
+    if (all) params.set("all", "1");
+    const query = params.toString() ? `?${params.toString()}` : '';
     return apiRequest(`/api/exercise-history${query}`);
   },
   

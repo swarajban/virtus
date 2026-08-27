@@ -168,12 +168,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get exercise history
+  // Get exercise history. Time-boxed to the last 3 months by default — the
+  // exercise page only seeds from recent history, and the unbounded full-log
+  // fetch grew to the slowest read on the hot path. `?all=1` returns the full
+  // log (history page "show all"). `?since=<ISO>` overrides the window.
   app.get("/api/exercise-history", async (req, res) => {
     try {
       const user = await getUserFromRequest(req);
       const exerciseName = req.query.exerciseName as string | undefined;
-      const history = await storage.getExerciseHistory(user.id, exerciseName);
+      const wantAll = req.query.all === "1" || req.query.all === "true";
+      const sinceParam = req.query.since as string | undefined;
+      let since: Date | undefined;
+      if (sinceParam) {
+        const parsed = new Date(sinceParam);
+        if (!isNaN(parsed.getTime())) since = parsed;
+      } else if (!wantAll) {
+        since = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000); // ~3 months
+      }
+      const history = await storage.getExerciseHistory(user.id, exerciseName, since);
       res.json(history);
     } catch (error) {
       console.error("Error fetching exercise history:", error);

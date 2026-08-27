@@ -71,7 +71,7 @@ export function ExerciseHistoryModal({
       if (isOpen) {
         setIsLoading(true);
         try {
-          const history = await LocalStorage.getExerciseHistory();
+          const history = await LocalStorage.getExerciseHistory(true);
           const filteredHistory = history.filter((entry) => entry.exerciseName === exerciseName);
           setExerciseHistory(filteredHistory);
         } catch (error) {
@@ -196,7 +196,7 @@ export function ExerciseHistoryModal({
         await LocalStorage.deleteExerciseHistoryEntries(session.ids);
       }
       // Reload after deletion
-      const history = await LocalStorage.getExerciseHistory();
+      const history = await LocalStorage.getExerciseHistory(true);
       setExerciseHistory(history.filter((entry) => entry.exerciseName === exerciseName));
     } catch (error) {
       console.error('Failed to delete exercise history session:', error);

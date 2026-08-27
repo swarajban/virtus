@@ -92,6 +92,11 @@ export const exerciseHistory = pgTable("exercise_history", {
   index("idx_eh_user_exercise").on(table.userId, table.exerciseId),
   index("idx_eh_performed_at").on(table.performedAt),
   index("idx_eh_session").on(table.sessionId),
+  // Covers both history query shapes: the full log (user_id + type_of_set +
+  // recency, ordered) and the per-exercise view (same + exercise_name). Without
+  // these, both queries seq-scanned the whole table and re-sorted on every hit.
+  index("idx_eh_user_type_performed").on(table.userId, table.typeOfSet, table.performedAt),
+  index("idx_eh_user_ex_type_performed").on(table.userId, table.exerciseName, table.typeOfSet, table.performedAt),
 ]);
 
 // Define relations

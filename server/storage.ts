@@ -20,7 +20,7 @@ import {
   getTopSetGroup,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, and, desc, like, ilike, sql, inArray } from "drizzle-orm";
+import { eq, and, desc, like, ilike, sql, inArray, gte } from "drizzle-orm";
 
 // The transaction handle drizzle passes to db.transaction(fn) — used to type our
 // advisory-locked get-or-create helper so every statement runs on the same session.
@@ -57,7 +57,7 @@ export interface IStorage {
   updateExercise(id: number, exercise: Partial<InsertExercise>): Promise<void>;
   
   // Exercise History operations  
-  getExerciseHistory(userId: number, exerciseName?: string): Promise<ExerciseHistoryEntry[]>;
+  getExerciseHistory(userId: number, exerciseName?: string, since?: Date): Promise<ExerciseHistoryEntry[]>;
   saveExerciseHistory(userId: number, history: ExerciseHistoryEntry, workoutNumber?: number): Promise<void>;
   saveExerciseHistoryBatch(userId: number, entries: ExerciseHistoryEntry[], workoutNumber?: number): Promise<void>;
   deleteExerciseHistoryEntry(userId: number, entryId: number): Promise<void>;
@@ -393,29 +393,22 @@ export class DatabaseStorage implements IStorage {
       .where(eq(exercises.id, id));
   }
 
-  async getExerciseHistory(userId: number, exerciseName?: string): Promise<ExerciseHistoryEntry[]> {
-    let query = db
+  async getExerciseHistory(userId: number, exerciseName?: string, since?: Date): Promise<ExerciseHistoryEntry[]> {
+    // Time-boxed reads: without a `since` the full log scans every row the user
+    // has ever logged. History endpoints default `since` to 3 months at the
+    // route layer; callers that genuinely need the full log pass no `since`.
+    const filters = [
+      eq(exerciseHistory.userId, userId),
+      eq(exerciseHistory.typeOfSet, "working"), // Only get working sets
+    ];
+    if (exerciseName) filters.push(eq(exerciseHistory.exerciseName, exerciseName));
+    if (since) filters.push(gte(exerciseHistory.performedAt, since));
+
+    const histories = await db
       .select()
       .from(exerciseHistory)
-      .where(and(
-        eq(exerciseHistory.userId, userId),
-        eq(exerciseHistory.typeOfSet, "working") // Only get working sets
-      ))
+      .where(and(...filters))
       .orderBy(desc(exerciseHistory.performedAt));
-    
-    if (exerciseName) {
-      query = db
-        .select()
-        .from(exerciseHistory)
-        .where(and(
-          eq(exerciseHistory.userId, userId),
-          eq(exerciseHistory.exerciseName, exerciseName),
-          eq(exerciseHistory.typeOfSet, "working") // Only get working sets
-        ))
-        .orderBy(desc(exerciseHistory.performedAt));
-    }
-    
-    const histories = await query;
     
     return histories.map(h => ({
       id: h.id, // Include database ID for deletion

@@ -43,9 +43,13 @@ export function useAllOneRMs<T = any[]>() {
   return useQuery<T>({ queryKey: ALL_ONE_RMS_KEY });
 }
 
-/** The full exercise-history log (all exercises), newest-first per the API. */
+/**
+ * The full exercise-history log (all exercises, all time), newest-first. The
+ * route time-boxes the bare `/api/exercise-history` read to ~3 months; the
+ * history page wants the complete log, so this keys on the `?all=1` variant.
+ */
 export function useAllExerciseHistory<T = any[]>() {
-  return useQuery<T>({ queryKey: ALL_EXERCISE_HISTORY_KEY });
+  return useQuery<T>({ queryKey: ["/api/exercise-history?all=1"] });
 }
 
 const username = () => localStorage.getItem("selected-username") || "demo";

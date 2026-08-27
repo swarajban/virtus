@@ -262,10 +262,12 @@ export class DatabaseStorage {
     }
   }
 
-  // Get exercise history directly from API
-  static async getExerciseHistory(): Promise<ExerciseHistoryEntry[]> {
+  // Get exercise history directly from API. History views pass all=true so the
+  // log/modal still show the user's complete history even though the server
+  // time-boxes the default read to ~3 months.
+  static async getExerciseHistory(all = false): Promise<ExerciseHistoryEntry[]> {
     try {
-      return await api.getExerciseHistory();
+      return await api.getExerciseHistory(undefined, all);
     } catch (error) {
       console.error("Failed to fetch exercise history:", error);
       return [];

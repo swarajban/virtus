@@ -47,7 +47,7 @@ export default function DataDiagnostic() {
       // Get all data from API
       const [workoutProgress, exerciseHistory] = await Promise.all([
         api.getWorkoutProgress(),
-        api.getExerciseHistory()
+        api.getExerciseHistory(undefined, true)
       ]);
 
       // Count stats
