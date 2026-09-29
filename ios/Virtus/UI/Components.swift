@@ -1,6 +1,6 @@
 import SwiftUI
 
-// MARK: - Cards & buttons
+// MARK: - Grouped sections (inset-grouped look outside of List)
 
 struct CardBackground: ViewModifier {
     var padding: CGFloat = 16
@@ -9,12 +9,71 @@ struct CardBackground: ViewModifier {
         content
             .padding(padding)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 }
 
 extension View {
     func card(padding: CGFloat = 16) -> some View { modifier(CardBackground(padding: padding)) }
+
+    /// Secondary control style: Liquid Glass on iOS 26, tinted otherwise.
+    @ViewBuilder
+    func secondaryButtonStyle() -> some View {
+        if #available(iOS 26.0, *) {
+            buttonStyle(.glass)
+        } else {
+            buttonStyle(.bordered)
+        }
+    }
+
+    /// Primary call-to-action style: Liquid Glass on iOS 26, filled otherwise.
+    @ViewBuilder
+    func prominentButtonStyle() -> some View {
+        if #available(iOS 26.0, *) {
+            buttonStyle(.glassProminent)
+        } else {
+            buttonStyle(.borderedProminent)
+        }
+    }
+}
+
+/// A titled card that mirrors an inset-grouped List section, for screens that
+/// need custom controls a List row would fight with.
+struct GroupedSection<Content: View, Accessory: View>: View {
+    let title: String?
+    @ViewBuilder var accessory: Accessory
+    @ViewBuilder var content: Content
+
+    init(_ title: String? = nil, @ViewBuilder accessory: () -> Accessory, @ViewBuilder content: () -> Content) {
+        self.title = title
+        self.accessory = accessory()
+        self.content = content()
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            if title != nil || Accessory.self != EmptyView.self {
+                HStack {
+                    if let title {
+                        Text(title)
+                            .font(.footnote.weight(.semibold))
+                            .textCase(.uppercase)
+                            .foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    accessory
+                }
+                .padding(.horizontal, 16)
+            }
+            content.card()
+        }
+    }
+}
+
+extension GroupedSection where Accessory == EmptyView {
+    init(_ title: String? = nil, @ViewBuilder content: () -> Content) {
+        self.init(title, accessory: { EmptyView() }, content: content)
+    }
 }
 
 /// Instant scale-down press feedback (the web app's .press-card).
@@ -28,86 +87,59 @@ struct PressableStyle: ButtonStyle {
     }
 }
 
-struct FilledButtonStyle: ButtonStyle {
-    var background: AnyShapeStyle = AnyShapeStyle(Theme.green)
-    var foreground: Color = .white
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.body.weight(.semibold))
-            .foregroundStyle(foreground)
-            .frame(maxWidth: .infinity, minHeight: 48)
-            .padding(.horizontal, 12)
-            .background(background, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
-            .opacity(configuration.isPressed ? 0.85 : 1)
-            .scaleEffect(configuration.isPressed ? 0.97 : 1)
-            .animation(.spring(response: 0.2, dampingFraction: 0.7), value: configuration.isPressed)
-    }
-}
-
-struct OutlineButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.subheadline.weight(.medium))
-            .foregroundStyle(.primary)
-            .frame(maxWidth: .infinity, minHeight: 44)
-            .background(Color(.secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-            .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).strokeBorder(Color(.separator)))
-            .scaleEffect(configuration.isPressed ? 0.96 : 1)
-            .animation(.spring(response: 0.2, dampingFraction: 0.7), value: configuration.isPressed)
-    }
-}
-
 // MARK: - Status
 
-struct StatusBadge: View {
-    let status: WorkoutStatus
-
-    var body: some View {
-        HStack(spacing: 4) {
-            switch status {
-            case .completed: Image(systemName: "checkmark")
-            case .inProgress: Image(systemName: "clock")
-            case .notStarted: EmptyView()
-            }
-            Text(label)
-        }
-        .font(.caption.weight(.semibold))
-        .padding(.horizontal, 10)
-        .padding(.vertical, 4)
-        .foregroundStyle(status == .notStarted ? Color.secondary : Color.white)
-        .background(background, in: Capsule())
-    }
-
-    private var label: String {
-        switch status {
+extension WorkoutStatus {
+    var label: String {
+        switch self {
         case .completed: return "Completed"
         case .inProgress: return "In Progress"
         case .notStarted: return "Not Started"
         }
     }
 
-    private var background: Color {
-        switch status {
-        case .completed: return Theme.green
-        case .inProgress: return Color(hex: 0xEAB308)
-        case .notStarted: return Color(.tertiarySystemFill)
+    var symbol: String {
+        switch self {
+        case .completed: return "checkmark.circle.fill"
+        case .inProgress: return "circle.lefthalf.filled"
+        case .notStarted: return "circle"
         }
+    }
+
+    var color: Color {
+        switch self {
+        case .completed: return Theme.green
+        case .inProgress: return .orange
+        case .notStarted: return Color(.tertiaryLabel)
+        }
+    }
+}
+
+struct StatusBadge: View {
+    let status: WorkoutStatus
+
+    var body: some View {
+        Label(status.label, systemImage: status.symbol)
+            .font(.caption.weight(.semibold))
+            .padding(.horizontal, 10)
+            .padding(.vertical, 5)
+            .foregroundStyle(status == .notStarted ? Color.secondary : status.color)
+            .background((status == .notStarted ? Color(.tertiarySystemFill) : status.color.opacity(0.15)), in: Capsule())
     }
 }
 
 struct Pill: View {
     let text: String
-    var foreground: Color = .white
-    var background: Color = Theme.green
+    var foreground: Color = Theme.green
+    var background: Color? = nil
 
     var body: some View {
         Text(text)
             .font(.caption.weight(.semibold))
-            .padding(.horizontal, 10)
+            .padding(.horizontal, 9)
             .padding(.vertical, 4)
             .foregroundStyle(foreground)
-            .background(background, in: Capsule())
+            .background(background ?? foreground.opacity(0.14), in: Capsule())
     }
 }
 
@@ -115,15 +147,14 @@ struct NoteCallout: View {
     let text: String
 
     var body: some View {
-        HStack(alignment: .firstTextBaseline, spacing: 6) {
-            Image(systemName: "info.circle")
+        Label {
             Text(text)
+        } icon: {
+            Image(systemName: "lightbulb")
         }
-        .font(.footnote)
-        .foregroundStyle(Color.blue)
-        .padding(10)
+        .font(.subheadline)
+        .foregroundStyle(.secondary)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.blue.opacity(0.1), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
     }
 }
 
@@ -168,8 +199,8 @@ struct FlowLayout: Layout {
 
 // MARK: - Numeric stepper field (weight-input.tsx)
 
-/// − [value] + with a typeable field. Empty is allowed while typing and
-/// becomes 0 when editing ends.
+/// Big − value + control sized for gym use. The value is typeable; empty is
+/// allowed while typing and becomes 0 when editing ends.
 struct StepperField: View {
     @Binding var value: Double
     var step: Double = 5
@@ -180,14 +211,14 @@ struct StepperField: View {
     @FocusState private var focused: Bool
 
     var body: some View {
-        HStack(spacing: 10) {
-            stepButton("minus") { set(max(minimum, value - step)) }
+        HStack(spacing: 8) {
+            stepButton("minus", label: "Decrease") { set(max(minimum, value - step)) }
+                .disabled(value <= minimum)
             TextField("0", text: $text)
                 .keyboardType(allowsDecimal ? .decimalPad : .numberPad)
                 .multilineTextAlignment(.center)
-                .font(.title3.weight(.semibold).monospacedDigit())
+                .font(.system(.title2, design: .rounded).weight(.semibold).monospacedDigit())
                 .frame(maxWidth: .infinity, minHeight: 44)
-                .background(Color(.tertiarySystemFill), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                 .focused($focused)
                 .onChange(of: text) { _, newValue in
                     guard focused, !newValue.isEmpty else { return }
@@ -197,8 +228,10 @@ struct StepperField: View {
                 .onChange(of: focused) { _, isFocused in
                     if !isFocused { text = Fmt.num(value) }
                 }
-            stepButton("plus") { set(value + step) }
+            stepButton("plus", label: "Increase") { set(value + step) }
         }
+        .padding(4)
+        .background(Color(.tertiarySystemFill), in: Capsule())
         .onAppear { text = Fmt.num(value) }
         .onChange(of: value) { _, newValue in
             if !focused { text = Fmt.num(newValue) }
@@ -211,15 +244,16 @@ struct StepperField: View {
         text = Fmt.num(newValue)
     }
 
-    private func stepButton(_ symbol: String, action: @escaping () -> Void) -> some View {
+    private func stepButton(_ symbol: String, label: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Image(systemName: symbol)
-                .font(.body.weight(.semibold))
+                .font(.body.weight(.bold))
                 .frame(width: 44, height: 44)
-                .background(Color(.tertiarySystemFill), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                .background(Color(.secondarySystemGroupedBackground), in: Circle())
         }
-        .buttonStyle(PressableStyle(scale: 0.9))
-        .foregroundStyle(.primary)
+        .buttonStyle(PressableStyle(scale: 0.88))
+        .foregroundStyle(Theme.green)
+        .accessibilityLabel(label)
     }
 }
 
@@ -241,6 +275,7 @@ struct ToastView: View {
     var body: some View {
         HStack(alignment: .top, spacing: 10) {
             Image(systemName: toast.style == .error ? "exclamationmark.triangle.fill" : "checkmark.circle.fill")
+                .font(.title3)
                 .foregroundStyle(toast.style == .error ? Color.red : Theme.green)
             VStack(alignment: .leading, spacing: 2) {
                 Text(toast.title).font(.subheadline.weight(.semibold))
@@ -251,8 +286,8 @@ struct ToastView: View {
             Spacer(minLength: 0)
         }
         .padding(14)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .shadow(color: .black.opacity(0.15), radius: 12, y: 4)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+        .shadow(color: .black.opacity(0.12), radius: 16, y: 6)
         .padding(.horizontal, 16)
     }
 }
@@ -262,20 +297,20 @@ struct SyncBanner: View {
 
     var body: some View {
         if !model.sync.isEmpty, model.sync.lastNetworkError != nil {
-            HStack(spacing: 8) {
-                Image(systemName: "icloud.slash")
-                Text("Offline — \(model.sync.pendingCount) change\(model.sync.pendingCount == 1 ? "" : "s") waiting to sync")
+            Button {
+                model.sync.kick(resetBackoff: true)
+            } label: {
+                Label("\(model.sync.pendingCount) change\(model.sync.pendingCount == 1 ? "" : "s") waiting to sync · Retry",
+                      systemImage: "icloud.slash")
+                    .font(.footnote.weight(.medium))
                     .lineLimit(1)
-                Spacer(minLength: 0)
-                Button("Retry") { model.sync.kick(resetBackoff: true) }
-                    .font(.footnote.weight(.semibold))
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 9)
+                    .foregroundStyle(.white)
+                    .background(Color.orange, in: Capsule())
+                    .shadow(color: .black.opacity(0.15), radius: 8, y: 3)
             }
-            .font(.footnote)
-            .foregroundStyle(.white)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
-            .background(Color.orange.gradient, in: Capsule())
-            .padding(.horizontal, 16)
+            .buttonStyle(PressableStyle())
             .transition(.move(edge: .bottom).combined(with: .opacity))
         }
     }

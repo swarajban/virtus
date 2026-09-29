@@ -25,54 +25,83 @@ struct WorkoutView: View {
         let progress = model.progress[workoutNumber]
         let status = progress?.status ?? .notStarted
         let working = workout.workingIndices
+        let doneCount = working.filter { progress?.exerciseProgress?["\($0)"]?.isCompleted ?? false }.count
         let currentIndex = status == .inProgress
             ? working.first(where: { !(progress?.exerciseProgress?["\($0)"]?.isCompleted ?? false) })
             : nil
 
-        return ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                VStack(alignment: .leading, spacing: 8) {
+        return List {
+            Section {
+                VStack(alignment: .leading, spacing: 10) {
                     HStack {
-                        Text("Week \(workout.weekNumber) • Day \(workout.dayNumber)")
-                            .font(.subheadline.weight(.medium))
+                        Text("Week \(workout.weekNumber) · Day \(workout.dayNumber)")
+                            .font(.footnote.weight(.semibold))
                             .textCase(.uppercase)
                             .foregroundStyle(.secondary)
                         Spacer()
                         StatusBadge(status: status)
                     }
-                    Text(workout.workoutName).font(.title2.weight(.bold))
-                    Text(statusText(progress)).font(.subheadline).foregroundStyle(.secondary)
-                    if let cycle = model.user?.currentProgramCycle, cycle > 1 {
-                        Text("Cycle \(cycle)").font(.caption).foregroundStyle(Theme.green)
+                    Text(workout.workoutName)
+                        .font(.title2.weight(.bold))
+                    HStack(spacing: 12) {
+                        Label(statusText(progress), systemImage: status == .completed ? "calendar" : "clock")
+                        if status != .notStarted {
+                            Label("\(doneCount)/\(working.count)", systemImage: "checklist")
+                                .monospacedDigit()
+                        }
+                    }
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    if status == .inProgress {
+                        ProgressView(value: Double(doneCount), total: Double(max(working.count, 1)))
+                            .tint(Theme.green)
                     }
                 }
+                .padding(.vertical, 4)
 
-                actions(workout: workout, status: status)
+                primaryAction(workout: workout, status: status)
+                    .listRowSeparator(.hidden)
+            }
 
-                Text("Exercises").font(.headline).padding(.top, 4)
-
-                VStack(spacing: 12) {
-                    ForEach(working, id: \.self) { index in
-                        let exercise = model.resolve(workout, index: index)
-                        let entry = progress?.exerciseProgress?["\(index)"]
-                        let rowStatus: ExerciseRowStatus = (entry?.isCompleted ?? false)
-                            ? .completed
-                            : (index == currentIndex ? .current : .upcoming)
-                        Button {
-                            model.path.append(.exercise(workout: workoutNumber, index: index))
-                        } label: {
-                            ExerciseRow(exercise: exercise, entry: entry, status: rowStatus)
-                        }
-                        .buttonStyle(PressableStyle())
+            Section("Exercises") {
+                ForEach(working, id: \.self) { index in
+                    let exercise = model.resolve(workout, index: index)
+                    let entry = progress?.exerciseProgress?["\(index)"]
+                    let rowStatus: ExerciseRowStatus = (entry?.isCompleted ?? false)
+                        ? .completed
+                        : (index == currentIndex ? .current : .upcoming)
+                    NavigationLink(value: Route.exercise(workout: workoutNumber, index: index)) {
+                        ExerciseRow(exercise: exercise, entry: entry, status: rowStatus)
                     }
                 }
             }
-            .padding(16)
+
+            if status != .notStarted {
+                Section {
+                    Button(role: .destructive) {
+                        confirmReset = true
+                    } label: {
+                        Label("Reset Workout", systemImage: "arrow.counterclockwise")
+                    }
+                } footer: {
+                    Text("Clears this workout's progress and logged sets.")
+                }
+            }
         }
-        .background(Color(.systemGroupedBackground))
-        .navigationTitle("Workout")
+        .listStyle(.insetGrouped)
+        .navigationTitle("Week \(workout.weekNumber) · Day \(workout.dayNumber)")
         .navigationBarTitleDisplayMode(.inline)
         .refreshable { await model.refresh(force: true) }
+        .toolbar {
+            if status == .completed {
+                ToolbarItem(placement: .topBarTrailing) {
+                    ShareLink(item: summary(workout)) {
+                        Image(systemName: "square.and.arrow.up")
+                    }
+                    .accessibilityLabel("Share summary")
+                }
+            }
+        }
         .confirmationDialog("Reset Workout?", isPresented: $confirmReset, titleVisibility: .visible) {
             Button("Reset", role: .destructive) {
                 Haptics.warning()
@@ -84,54 +113,47 @@ struct WorkoutView: View {
     }
 
     @ViewBuilder
-    private func actions(workout: Workout, status: WorkoutStatus) -> some View {
-        VStack(spacing: 10) {
+    private func primaryAction(workout: Workout, status: WorkoutStatus) -> some View {
+        Group {
             switch status {
             case .notStarted:
                 Button {
                     Haptics.tap()
                     model.startWorkout(workoutNumber)
+                    if let first = workout.workingIndices.first {
+                        model.path.append(.exercise(workout: workoutNumber, index: first))
+                    }
                 } label: {
-                    Label("Start Workout", systemImage: "play.fill")
+                    Label("Start Workout", systemImage: "play.fill").frame(maxWidth: .infinity)
                 }
-                .buttonStyle(FilledButtonStyle())
+                .prominentButtonStyle()
             case .inProgress:
                 Button {
                     Haptics.commit()
                     model.completeWorkout(workoutNumber)
                 } label: {
-                    Label("Complete Workout", systemImage: "checkmark")
+                    Label("Complete Workout", systemImage: "checkmark").frame(maxWidth: .infinity)
                 }
-                .buttonStyle(FilledButtonStyle())
+                .prominentButtonStyle()
             case .completed:
                 Button {
                     UIPasteboard.general.string = summary(workout)
                     Haptics.tap()
                     model.showToast("Copied to clipboard", "Workout summary copied!")
                 } label: {
-                    Label("Export Summary", systemImage: "doc.on.doc")
-                }
-                .buttonStyle(FilledButtonStyle())
-            }
-
-            if status != .notStarted {
-                Button(role: .destructive) {
-                    confirmReset = true
-                } label: {
-                    Label("Reset Workout", systemImage: "arrow.counterclockwise")
-                        .font(.subheadline.weight(.semibold))
-                        .frame(maxWidth: .infinity, minHeight: 40)
+                    Label("Copy Summary", systemImage: "doc.on.doc").frame(maxWidth: .infinity)
                 }
                 .buttonStyle(.bordered)
-                .tint(.red)
             }
         }
+        .controlSize(.large)
+        .font(.body.weight(.semibold))
     }
 
     private func statusText(_ progress: WorkoutProgress?) -> String {
         switch progress?.status ?? .notStarted {
         case .completed:
-            return "Completed on \(Fmt.date(progress?.completedAt))"
+            return Fmt.date(progress?.completedAt)
         case .inProgress:
             return startedText(progress?.startedAt)
         case .notStarted:
@@ -170,75 +192,70 @@ private struct ExerciseRow: View {
     let status: ExerciseRowStatus
 
     var body: some View {
-        HStack(spacing: 0) {
-            Rectangle().fill(accent).frame(width: 4)
-            VStack(alignment: .leading, spacing: 8) {
-                HStack(alignment: .top) {
+        HStack(alignment: .top, spacing: 12) {
+            statusIcon
+                .font(.title3)
+                .frame(width: 24)
+                .padding(.top, 1)
+            VStack(alignment: .leading, spacing: 4) {
+                HStack(spacing: 6) {
+                    Text(exercise.name)
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(status == .completed ? Color.secondary : Color.primary)
+                    if exercise.swappedFrom != nil {
+                        Image(systemName: "arrow.triangle.2.circlepath")
+                            .font(.caption)
+                            .foregroundStyle(.purple)
+                            .accessibilityLabel("Swapped")
+                    }
+                }
+                Text(detailLine)
+                    .font(.subheadline)
+                    .foregroundStyle(status == .completed ? Theme.green : Color.secondary)
+                    .monospacedDigit()
+                if exercise.base.supersetLabel != nil || !WorkoutMath.rirSets(exercise.base).isEmpty {
                     HStack(spacing: 6) {
-                        Text(exercise.name).font(.headline).foregroundStyle(.primary)
-                            .multilineTextAlignment(.leading)
-                        if exercise.swappedFrom != nil {
-                            Image(systemName: "arrow.triangle.2.circlepath")
-                                .font(.caption)
-                                .foregroundStyle(.purple)
-                        }
                         if let label = exercise.base.supersetLabel {
-                            Pill(text: "Superset \(label)", background: .purple)
+                            Pill(text: "Superset \(label)", foreground: .purple)
                         }
-                    }
-                    Spacer()
-                    statusIcon
-                }
-
-                FlowLayout(spacing: 12) {
-                    Pill(text: exercise.base.typeOfSet, foreground: .primary, background: Color(.tertiarySystemFill))
-                    if status == .completed, let entry {
-                        Text(loggedSummary(entry)).fontWeight(.medium).foregroundStyle(.primary)
-                    } else {
-                        Text(exercise.base.prescription)
-                        if let weight = exercise.calculatedWeight { Text("\(Fmt.num(weight)) lbs") }
-                        if let pct = exercise.base.loadPercentage { Text("\(Fmt.num(pct))% 1RM") }
-                        if let rpe = exercise.base.rpe { Text("RPE \(Fmt.num(rpe))") }
                         ForEach(WorkoutMath.rirSets(exercise.base), id: \.set) { rir in
-                            Text("S\(rir.set): \(rir.rir) RIR")
+                            Pill(text: "S\(rir.set) · \(rir.rir) RIR", foreground: .secondary, background: Color(.tertiarySystemFill))
                         }
                     }
                 }
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
-
-                if !exercise.notes.isEmpty {
-                    NoteCallout(text: exercise.notes)
+                if !exercise.notes.isEmpty && status != .completed {
+                    Text(exercise.notes)
+                        .font(.caption)
+                        .foregroundStyle(.tertiary)
+                        .lineLimit(2)
                 }
             }
-            .padding(14)
         }
-        .background(Color(.secondarySystemGroupedBackground))
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-    }
-
-    private var accent: Color {
-        switch status {
-        case .completed: return Theme.green
-        case .current: return Theme.warning
-        case .upcoming: return Color(.systemGray4)
-        }
+        .padding(.vertical, 4)
     }
 
     @ViewBuilder private var statusIcon: some View {
         switch status {
         case .completed: Image(systemName: "checkmark.circle.fill").foregroundStyle(Theme.green)
-        case .current: Image(systemName: "arrow.right").foregroundStyle(Theme.warning)
-        case .upcoming: Image(systemName: "circle").foregroundStyle(Color(.systemGray3))
+        case .current: Image(systemName: "arrow.right.circle.fill").foregroundStyle(.orange)
+        case .upcoming: Image(systemName: "circle").foregroundStyle(Color(.tertiaryLabel))
         }
     }
 
-    /// "2×1, 3×3 · top 315" — first two groups plus a "+N" overflow.
-    private func loggedSummary(_ entry: ExerciseProgress) -> String {
-        let groups = entry.setGroups
-        var text = groups.prefix(2).map { "\($0.sets)×\($0.reps)" }.joined(separator: ", ")
-        if groups.count > 2 { text += " +\(groups.count - 2)" }
-        if let top = groups.topSet.weight { text += " · top \(Fmt.num(top))" }
-        return text
+    /// Prescription, or what was actually logged once complete
+    /// ("2×1, 3×3 · top 315").
+    private var detailLine: String {
+        if status == .completed, let entry {
+            let groups = entry.setGroups
+            var text = groups.prefix(2).map { "\($0.sets)×\($0.reps)" }.joined(separator: ", ")
+            if groups.count > 2 { text += " +\(groups.count - 2)" }
+            if let top = groups.topSet.weight { text += " · \(groups.count > 1 ? "top " : "")\(Fmt.num(top)) lbs" }
+            return text
+        }
+        var parts = [exercise.base.prescription.replacingOccurrences(of: " x ", with: " × ")]
+        if let weight = exercise.calculatedWeight { parts.append("\(Fmt.num(weight)) lbs") }
+        if let pct = exercise.base.loadPercentage { parts.append("\(Fmt.num(pct))%") }
+        if let rpe = exercise.base.rpe { parts.append("RPE \(Fmt.num(rpe))") }
+        return parts.joined(separator: " · ")
     }
 }

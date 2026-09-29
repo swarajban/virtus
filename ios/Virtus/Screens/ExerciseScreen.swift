@@ -23,12 +23,14 @@ struct ExerciseScreen: View {
                 ExerciseContent(
                     workout: workout,
                     exercise: exercise,
-                    navigate: { newIndex in index = newIndex },
+                    navigate: { newIndex in
+                        withAnimation(.snappy(duration: 0.25)) { index = newIndex }
+                    },
                     finish: { dismiss() }
                 )
                 // Fresh input state per exercise (and after a swap).
                 .id("\(workoutNumber)-\(index)-\(swapId ?? -1)")
-                .navigationTitle(workout.workoutName)
+                .transition(.opacity)
             } else {
                 ContentUnavailableView("Exercise not found", systemImage: "questionmark.circle")
             }
@@ -75,37 +77,54 @@ struct ExerciseContent: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 0) {
-                identity
-                    .padding(16)
-                setTypeBanner
+            VStack(alignment: .leading, spacing: 20) {
+                header
                 if let warmup = warmupInfo {
-                    warmupReference(warmup)
+                    warmupCard(warmup)
                 }
-                VStack(spacing: 12) {
-                    navigationRow
-                    RestTimerBar()
-                    completeButton
+                if let calculated = exercise.calculatedWeight {
+                    targetCard(calculated)
                 }
-                .padding(16)
-
-                VStack(spacing: 16) {
-                    if let calculated = exercise.calculatedWeight {
-                        recommendedCard(calculated)
-                    }
-                    setGroupsCard
-                    notesCard
-                }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 32)
+                RestTimerBar()
+                setGroupsSection
+                notesSection
             }
+            .padding(.horizontal, 16)
+            .padding(.top, 8)
+            .padding(.bottom, 24)
         }
         .scrollDismissesKeyboard(.interactively)
         .background(Color(.systemGroupedBackground))
+        .safeAreaInset(edge: .bottom, spacing: 0) { actionBar }
+        .navigationTitle("Exercise \(workingPosition.current) of \(workingPosition.total)")
         .toolbar {
+            ToolbarItemGroup(placement: .topBarTrailing) {
+                Button { showHistory = true } label: {
+                    Image(systemName: "chart.line.uptrend.xyaxis")
+                }
+                .accessibilityLabel("Exercise history")
+                Menu {
+                    if let id = exercise.exerciseId {
+                        Button {
+                            model.path.append(.exerciseInfo(id))
+                        } label: {
+                            Label("Exercise Details", systemImage: "info.circle")
+                        }
+                    }
+                    Button {
+                        showSwap = true
+                    } label: {
+                        Label("Swap Exercise", systemImage: "arrow.triangle.2.circlepath")
+                    }
+                    .disabled(model.exercises.isEmpty)
+                } label: {
+                    Image(systemName: "ellipsis.circle")
+                }
+                .accessibilityLabel("More")
+            }
             ToolbarItemGroup(placement: .keyboard) {
                 Spacer()
-                Button("Done") { hideKeyboard() }
+                Button("Done") { hideKeyboard() }.fontWeight(.semibold)
             }
         }
         .onAppear(perform: seedInputs)
@@ -138,234 +157,162 @@ struct ExerciseContent: View {
 
     // MARK: Sections
 
-    private var identity: some View {
+    private var header: some View {
         VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text("Exercise \(workingPosition.current) of \(workingPosition.total)")
-                    .font(.subheadline.weight(.medium))
+            HStack(spacing: 6) {
+                Text(setTypeText)
+                    .font(.footnote.weight(.bold))
                     .textCase(.uppercase)
-                    .foregroundStyle(.secondary)
+                    .tracking(0.4)
+                    .foregroundStyle(exercise.base.isWorking ? Theme.green : .orange)
                 Spacer()
                 if isCompleted {
-                    Label("Completed", systemImage: "checkmark.circle.fill")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(.white)
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 4)
-                        .background(Theme.green, in: Capsule())
+                    Label("Logged", systemImage: "checkmark.circle.fill")
+                        .font(.footnote.weight(.semibold))
+                        .foregroundStyle(Theme.green)
+                        .transition(.scale.combined(with: .opacity))
                 }
             }
 
             Text(exercise.name)
-                .font(.title2.weight(.bold))
+                .font(.largeTitle.weight(.bold))
+                .minimumScaleFactor(0.7)
+                .lineLimit(2)
 
-            HStack(spacing: 8) {
-                if let id = exercise.exerciseId {
-                    iconButton("info.circle", label: "Exercise details") {
-                        model.path.append(.exerciseInfo(id))
-                    }
-                }
-                if !model.exercises.isEmpty {
-                    iconButton("arrow.triangle.2.circlepath", label: "Swap exercise") { showSwap = true }
-                }
-                iconButton("clock.arrow.circlepath", label: "Exercise history") { showHistory = true }
-                if let label = exercise.base.supersetLabel {
-                    Pill(text: "Superset \(label)", background: Theme.greenDeep)
-                }
-            }
-
-            Text(prescriptionLine).font(.subheadline).foregroundStyle(.secondary)
+            Text(prescriptionLine)
+                .font(.title3.weight(.medium))
+                .foregroundStyle(.secondary)
+                .monospacedDigit()
 
             let rirSets = WorkoutMath.rirSets(exercise.base)
             if !rirSets.isEmpty {
                 HStack(spacing: 6) {
                     ForEach(rirSets, id: \.set) { rir in
-                        Pill(text: "Set \(rir.set): \(rir.rir) RIR", foreground: Theme.greenDeep, background: Theme.green.opacity(0.15))
+                        Pill(text: "Set \(rir.set): \(rir.rir) RIR")
                     }
                     Button {
                         withAnimation(.snappy) { showRirHint.toggle() }
                     } label: {
-                        Image(systemName: "info.circle").font(.footnote)
+                        Image(systemName: "questionmark.circle").font(.subheadline)
                     }
                     .accessibilityLabel("What is RIR?")
                 }
                 if showRirHint {
                     Text("RIR = reps in reserve: stop that many reps shy of failure (0 = go to failure).")
-                        .font(.caption)
+                        .font(.footnote)
                         .foregroundStyle(.secondary)
+                        .transition(.opacity)
                 }
             }
 
             if let swappedFrom = exercise.swappedFrom {
-                Label("Swapped from: \(swappedFrom)", systemImage: "arrow.triangle.2.circlepath")
-                    .font(.caption)
+                Label("Swapped from \(swappedFrom)", systemImage: "arrow.triangle.2.circlepath")
+                    .font(.footnote)
+                    .foregroundStyle(.purple)
+            }
+        }
+    }
+
+    private func warmupCard(_ warmup: ProgramExercise) -> some View {
+        DisclosureGroup(isExpanded: $warmupExpanded) {
+            if !warmup.notes.isEmpty {
+                Text(warmup.notes)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(.top, 8)
+            }
+        } label: {
+            Label(warmupText(warmup), systemImage: "flame")
+                .font(.subheadline.weight(.medium))
+                .foregroundStyle(.primary)
+        }
+        .tint(.orange)
+        .card(padding: 14)
+    }
+
+    private func targetCard(_ calculated: Double) -> some View {
+        HStack(alignment: .firstTextBaseline) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Target")
+                    .font(.footnote.weight(.semibold))
+                    .textCase(.uppercase)
+                    .foregroundStyle(.secondary)
+                Text("\(Fmt.num(calculated)) lbs")
+                    .font(.system(size: 34, weight: .bold, design: .rounded))
                     .foregroundStyle(Theme.green)
             }
-        }
-    }
-
-    private var setTypeBanner: some View {
-        let working = exercise.base.isWorking
-        var text = "\(exercise.base.typeOfSet) set"
-        if let label = exercise.base.supersetLabel { text += " • Part of Superset \(label)" }
-        return Text(text.uppercased())
-            .font(.subheadline.weight(.semibold))
-            .tracking(0.5)
-            .foregroundStyle(.white)
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 12)
-            .background(working ? AnyShapeStyle(Theme.deepGradient) : AnyShapeStyle(Theme.warmupGradient))
-    }
-
-    private func warmupReference(_ warmup: ProgramExercise) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Button {
-                withAnimation(.snappy) { warmupExpanded.toggle() }
-            } label: {
-                HStack {
-                    Image(systemName: "info.circle").font(.caption).foregroundStyle(.secondary)
-                    Text(warmupText(warmup))
-                        .font(.caption.weight(.medium))
-                        .textCase(.uppercase)
-                        .foregroundStyle(.secondary)
-                    Spacer()
-                    Image(systemName: "chevron.down")
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
-                        .rotationEffect(.degrees(warmupExpanded ? 180 : 0))
-                }
-                .contentShape(Rectangle())
-            }
-            .buttonStyle(.plain)
-            if warmupExpanded && !warmup.notes.isEmpty {
-                Text(warmup.notes)
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-                    .padding(.leading, 20)
-            }
-            Divider()
-        }
-        .padding(.horizontal, 16)
-        .padding(.top, 12)
-    }
-
-    private var navigationRow: some View {
-        HStack(spacing: 8) {
-            Button("Workout") { finish() }
-                .buttonStyle(OutlineButtonStyle())
-            Button("Previous") {
-                Haptics.tap()
-                hideKeyboard()
-                if previousIndex >= 0 { navigate(previousIndex) } else { finish() }
-            }
-            .buttonStyle(OutlineButtonStyle())
-            .disabled(index == 0)
-            .opacity(index == 0 ? 0.5 : 1)
-            Button("Next") {
-                Haptics.tap()
-                hideKeyboard()
-                if nextIndex < all.count { navigate(nextIndex) }
-            }
-            .buttonStyle(OutlineButtonStyle())
-            .disabled(nextIndex >= all.count)
-            .opacity(nextIndex >= all.count ? 0.5 : 1)
-        }
-        .disabled(isCompleting)
-    }
-
-    private var completeButton: some View {
-        Button(action: complete) {
-            Label(isCompleting ? "Set logged" : (isCompleted ? "Mark complete again" : "Complete exercise"),
-                  systemImage: "checkmark")
-                .symbolEffect(.bounce, value: isCompleting)
-        }
-        .buttonStyle(FilledButtonStyle(background: AnyShapeStyle(isCompleting || isCompleted ? Theme.greenDeep : Theme.green)))
-        .scaleEffect(isCompleting && !reduceMotion ? 1.03 : 1)
-        .animation(.spring(response: 0.3, dampingFraction: 0.5), value: isCompleting)
-        .disabled(isCompleting)
-    }
-
-    private func recommendedCard(_ calculated: Double) -> some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text("Recommended Weight").font(.body.weight(.medium))
-                Spacer()
-                Text("\(Fmt.num(calculated)) lbs").font(.title3.weight(.bold)).foregroundStyle(Theme.green)
-            }
-            HStack {
-                Text("1RM: \(Fmt.num(exercise.oneRM)) lbs")
-                Spacer()
-                Text("Load: \(Fmt.num(exercise.base.loadPercentage))%")
+            Spacer()
+            VStack(alignment: .trailing, spacing: 2) {
+                Text("\(Fmt.num(exercise.base.loadPercentage))% of 1RM")
+                Text("1RM \(Fmt.num(exercise.oneRM)) lbs")
             }
             .font(.subheadline)
             .foregroundStyle(.secondary)
         }
         .card()
-        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Color.yellow.opacity(0.35)))
     }
 
-    private var setGroupsCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("Sets, reps, & weight").font(.headline)
-                Spacer()
-                if rows.count > 1 {
-                    Text("\(rows.count) groups").font(.caption.weight(.medium)).foregroundStyle(.secondary)
+    private var setGroupsSection: some View {
+        GroupedSection("Sets, reps & weight") {
+            if rows.count > 1 {
+                Text("\(rows.count) groups").font(.footnote).foregroundStyle(.secondary)
+            }
+        } content: {
+            VStack(alignment: .leading, spacing: 16) {
+                ForEach(Array(rows.enumerated()), id: \.element.id) { position, row in
+                    if position > 0 { Divider() }
+                    groupEditor(position: position, row: row)
+                }
+
+                Button {
+                    Haptics.tap()
+                    groupsDirty = true
+                    let previous = rows.last?.group ?? SetGroup(sets: 1, reps: 1, weight: 0)
+                    withAnimation(.snappy) { rows.append(EditableGroup(group: previous)) }
+                } label: {
+                    Label("Add Set Group", systemImage: "plus.circle.fill")
+                        .font(.subheadline.weight(.semibold))
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderless)
+                .tint(Theme.green)
+
+                if (exercise.oneRM ?? 0) > 0 && topWeight > 0 || (topWeight > 0 && exercise.record?.usesBarbell == true) {
+                    Divider()
+                    VStack(spacing: 10) {
+                        if let oneRM = exercise.oneRM, oneRM > 0, topWeight > 0 {
+                            Text("\(WorkoutMath.actualPercentage(weight: topWeight, oneRM: oneRM)) of 1RM\(rows.count > 1 ? " (top set)" : "")")
+                                .font(.subheadline.weight(.medium))
+                                .foregroundStyle(.secondary)
+                        }
+                        if topWeight > 0, exercise.record?.usesBarbell == true {
+                            PlateCalculatorView(weight: topWeight)
+                        }
+                    }
+                    .frame(maxWidth: .infinity)
                 }
             }
-
-            ForEach(Array(rows.enumerated()), id: \.element.id) { position, row in
-                groupEditor(position: position, row: row)
-            }
-
-            Button {
-                Haptics.tap()
-                groupsDirty = true
-                let previous = rows.last?.group ?? SetGroup(sets: 1, reps: 1, weight: 0)
-                withAnimation(.snappy) { rows.append(EditableGroup(group: previous)) }
-            } label: {
-                Label("Add set group", systemImage: "plus")
-                    .font(.subheadline.weight(.medium))
-                    .foregroundStyle(Theme.green)
-                    .frame(maxWidth: .infinity, minHeight: 44)
-                    .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [5, 4])).foregroundStyle(Color(.systemGray3)))
-            }
-            .buttonStyle(PressableStyle())
-
-            if let oneRM = exercise.oneRM, oneRM > 0, topWeight > 0 {
-                Text("Actual: \(WorkoutMath.actualPercentage(weight: topWeight, oneRM: oneRM)) of 1RM\(rows.count > 1 ? " (top set)" : "")")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                    .frame(maxWidth: .infinity)
-            }
-            if topWeight > 0, exercise.record?.usesBarbell == true {
-                PlateCalculatorView(weight: topWeight)
-            }
         }
-        .card()
     }
 
     @ViewBuilder
     private func groupEditor(position: Int, row: EditableGroup) -> some View {
-        let multi = rows.count > 1
-        VStack(alignment: .leading, spacing: 10) {
-            if multi {
+        VStack(alignment: .leading, spacing: 12) {
+            if rows.count > 1 {
                 HStack {
-                    Text("\(position + 1)")
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(Theme.greenDeep)
-                        .frame(minWidth: 20, minHeight: 20)
-                        .background(Theme.green.opacity(0.15), in: Capsule())
-                    Text("Set group").font(.subheadline.weight(.semibold))
+                    Text("Group \(position + 1)")
+                        .font(.subheadline.weight(.semibold))
+                        .foregroundStyle(Theme.green)
                     Spacer()
-                    Button {
+                    Button(role: .destructive) {
                         Haptics.tap()
                         groupsDirty = true
                         withAnimation(.snappy) { rows.removeAll { $0.id == row.id } }
                     } label: {
-                        Image(systemName: "xmark").font(.subheadline).frame(width: 44, height: 36)
+                        Image(systemName: "minus.circle.fill").font(.title3)
                     }
-                    .foregroundStyle(.secondary)
+                    .buttonStyle(.borderless)
                     .accessibilityLabel("Remove set group \(position + 1)")
                 }
             }
@@ -381,48 +328,97 @@ struct ExerciseContent: View {
                 StepperField(value: weightBinding(row.id), step: 5, minimum: 0)
             }
         }
-        .padding(multi ? 12 : 0)
-        .overlay {
-            if multi {
-                RoundedRectangle(cornerRadius: 12, style: .continuous).strokeBorder(Color(.separator))
+    }
+
+    private var notesSection: some View {
+        GroupedSection("Notes") {
+            VStack(alignment: .leading, spacing: 12) {
+                if !exercise.notes.isEmpty {
+                    NoteCallout(text: exercise.notes)
+                    Divider()
+                }
+                TextField("Add your notes…", text: Binding(
+                    get: { notes },
+                    set: { notes = $0; notesDirty = true }
+                ), axis: .vertical)
+                .lineLimit(2...8)
             }
         }
     }
 
-    private var notesCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Exercise Notes").font(.headline)
-            if !exercise.notes.isEmpty {
-                NoteCallout(text: exercise.notes)
+    /// Previous · Complete · Next, pinned above the home indicator.
+    private var actionBar: some View {
+        HStack(spacing: 12) {
+            Button {
+                Haptics.tap()
+                hideKeyboard()
+                if previousIndex >= 0 { navigate(previousIndex) } else { finish() }
+            } label: {
+                Image(systemName: "chevron.left")
+                    .font(.headline)
+                    .frame(width: 30, height: 30)
             }
-            TextField("Add your notes...", text: Binding(
-                get: { notes },
-                set: { notes = $0; notesDirty = true }
-            ), axis: .vertical)
-            .lineLimit(3...8)
-            .padding(10)
-            .background(Color(.tertiarySystemFill), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .secondaryButtonStyle()
+            .buttonBorderShape(.circle)
+            .disabled(index == 0)
+            .accessibilityLabel("Previous exercise")
+
+            Button(action: complete) {
+                Label(completeTitle, systemImage: isCompleting ? "checkmark.circle.fill" : "checkmark")
+                    .font(.headline)
+                    .frame(maxWidth: .infinity)
+                    .contentTransition(.symbolEffect(.replace))
+            }
+            .prominentButtonStyle()
+            .buttonBorderShape(.capsule)
+            .scaleEffect(isCompleting && !reduceMotion ? 1.04 : 1)
+            .animation(.spring(response: 0.3, dampingFraction: 0.5), value: isCompleting)
+
+            Button {
+                Haptics.tap()
+                hideKeyboard()
+                if nextIndex < all.count { navigate(nextIndex) }
+            } label: {
+                Image(systemName: "chevron.right")
+                    .font(.headline)
+                    .frame(width: 30, height: 30)
+            }
+            .secondaryButtonStyle()
+            .buttonBorderShape(.circle)
+            .disabled(nextIndex >= all.count)
+            .accessibilityLabel("Next exercise")
         }
-        .card()
+        .controlSize(.large)
+        .disabled(isCompleting)
+        .padding(.horizontal, 16)
+        .padding(.top, 10)
+        .padding(.bottom, 6)
+        .background {
+            if #available(iOS 26.0, *) {
+                // Glass buttons float over content on iOS 26.
+                Color.clear
+            } else {
+                Rectangle().fill(.bar).ignoresSafeArea(edges: .bottom)
+            }
+        }
     }
 
     // MARK: Helpers
 
-    private func iconButton(_ symbol: String, label: String, action: @escaping () -> Void) -> some View {
-        Button(action: action) {
-            Image(systemName: symbol)
-                .font(.body)
-                .foregroundStyle(Theme.green)
-                .frame(width: 36, height: 32)
-                .background(Theme.green.opacity(0.12), in: RoundedRectangle(cornerRadius: 8, style: .continuous))
-        }
-        .buttonStyle(PressableStyle(scale: 0.9))
-        .accessibilityLabel(label)
+    private var completeTitle: String {
+        if isCompleting { return "Logged" }
+        return isCompleted ? "Update Log" : "Complete"
+    }
+
+    private var setTypeText: String {
+        var text = exercise.base.isWorking ? "Working set" : "Warm-up set"
+        if let label = exercise.base.supersetLabel { text += " · Superset \(label)" }
+        return text
     }
 
     private func labeled<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 6) {
-            Text(title).font(.caption.weight(.medium)).foregroundStyle(.secondary)
+            Text(title).font(.caption.weight(.semibold)).foregroundStyle(.secondary).padding(.leading, 4)
             content()
         }
     }
@@ -450,9 +446,9 @@ struct ExerciseContent: View {
     }
 
     private var prescriptionLine: String {
-        var line = exercise.base.prescription
-        if let pct = exercise.base.loadPercentage { line += " @ \(Fmt.num(pct))% 1RM" }
-        if let rpe = exercise.base.rpe { line += " (RPE \(Fmt.num(rpe)))" }
+        var line = exercise.base.prescription.replacingOccurrences(of: " x ", with: " × ")
+        if let pct = exercise.base.loadPercentage { line += " @ \(Fmt.num(pct))%" }
+        if let rpe = exercise.base.rpe { line += " · RPE \(Fmt.num(rpe))" }
         return line
     }
 
@@ -524,7 +520,7 @@ struct ExerciseContent: View {
         guard !isCompleting else { return }
         hideKeyboard()
         Haptics.commit()
-        isCompleting = true
+        withAnimation(.snappy) { isCompleting = true }
         model.completeExercise(
             workout: workout.workoutNumber,
             exercise: exercise,

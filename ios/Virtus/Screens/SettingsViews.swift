@@ -196,37 +196,41 @@ struct OneRMView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                Text("Set your current maximum lifts for accurate weight calculations.")
+            VStack(alignment: .leading, spacing: 20) {
+                Text("Your current max for each main lift. Working weights are calculated from these.")
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
+                    .padding(.horizontal, 4)
                 ForEach(lifts) { lift in
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack {
-                            Text(lift.name).font(.headline)
-                            Spacer()
-                            Text("\(Fmt.num(values[lift.name] ?? lift.fallback)) lbs")
-                                .font(.title3.weight(.bold))
-                                .foregroundStyle(Theme.green)
-                        }
+                    GroupedSection(lift.name) {
                         StepperField(value: Binding(
                             get: { values[lift.name] ?? lift.fallback },
                             set: { values[lift.name] = $0 }
                         ), step: 5, minimum: 0)
                     }
-                    .card()
                 }
-                Button {
-                    Task { await save() }
-                } label: {
-                    if isSaving { ProgressView().tint(.white) } else { Label("Save Changes", systemImage: "square.and.arrow.down") }
-                }
-                .buttonStyle(FilledButtonStyle(background: AnyShapeStyle(Theme.gradient)))
-                .disabled(isSaving || model.exercises.isEmpty)
             }
             .padding(16)
         }
         .background(Color(.systemGroupedBackground))
+        .scrollDismissesKeyboard(.interactively)
+        .safeAreaInset(edge: .bottom) {
+            Button {
+                Task { await save() }
+            } label: {
+                Group {
+                    if isSaving { ProgressView() } else { Text("Save Changes") }
+                }
+                .font(.headline)
+                .frame(maxWidth: .infinity)
+            }
+            .prominentButtonStyle()
+            .buttonBorderShape(.capsule)
+            .controlSize(.large)
+            .disabled(isSaving || model.exercises.isEmpty)
+            .padding(.horizontal, 16)
+            .padding(.bottom, 6)
+        }
         .navigationTitle("One Rep Max")
         .onAppear(perform: loadValues)
         .onChange(of: model.oneRMs) { _, _ in loadValues() }

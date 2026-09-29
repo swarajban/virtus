@@ -68,8 +68,9 @@ struct RootView: View {
             }
         }
         .overlay(alignment: .bottom) {
+            // Floats above the exercise screen's action bar.
             SyncBanner()
-                .padding(.bottom, 8)
+                .padding(.bottom, 76)
                 .animation(.spring(duration: 0.3), value: model.sync.lastNetworkError != nil)
         }
     }

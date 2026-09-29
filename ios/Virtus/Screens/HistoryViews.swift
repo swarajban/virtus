@@ -69,6 +69,7 @@ struct ExerciseHistorySheet: View {
             }
         }
         .task { await load() }
+        .presentationDragIndicator(.visible)
     }
 
     private var deleteTitle: String {
