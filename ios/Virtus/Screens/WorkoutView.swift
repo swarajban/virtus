@@ -26,7 +26,7 @@ struct WorkoutView: View {
         let status = progress?.status ?? .notStarted
         let working = workout.workingIndices
         let currentIndex = status == .inProgress
-            ? working.first { !(progress?.exerciseProgress?["\($0)"]?.isCompleted ?? false) }
+            ? working.first(where: { !(progress?.exerciseProgress?["\($0)"]?.isCompleted ?? false) })
             : nil
 
         return ScrollView {

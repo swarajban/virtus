@@ -192,7 +192,7 @@ struct HistoryListView: View {
     }
 
     var body: some View {
-        let groups = groups
+        let groups = self.groups
         List {
             if isLoading && entries.isEmpty {
                 HStack { Spacer(); ProgressView("Loading exercise history…"); Spacer() }
