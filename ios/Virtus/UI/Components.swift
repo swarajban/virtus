@@ -16,6 +16,20 @@ struct CardBackground: ViewModifier {
 extension View {
     func card(padding: CGFloat = 16) -> some View { modifier(CardBackground(padding: padding)) }
 
+    /// Pins controls to the bottom edge. On iOS 26 this is a safe-area bar, which
+    /// gives scrolling content the native edge blur under Liquid Glass buttons;
+    /// earlier versions get a bar-material inset.
+    @ViewBuilder
+    func bottomActionBar<Bar: View>(@ViewBuilder _ bar: () -> Bar) -> some View {
+        if #available(iOS 26.0, *) {
+            safeAreaBar(edge: .bottom) { bar() }
+        } else {
+            safeAreaInset(edge: .bottom, spacing: 0) {
+                bar().background(.bar)
+            }
+        }
+    }
+
     /// Secondary control style: Liquid Glass on iOS 26, tinted otherwise.
     @ViewBuilder
     func secondaryButtonStyle() -> some View {

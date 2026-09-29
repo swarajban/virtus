@@ -214,7 +214,7 @@ struct OneRMView: View {
         }
         .background(Color(.systemGroupedBackground))
         .scrollDismissesKeyboard(.interactively)
-        .safeAreaInset(edge: .bottom) {
+        .bottomActionBar {
             Button {
                 Task { await save() }
             } label: {
@@ -229,7 +229,7 @@ struct OneRMView: View {
             .controlSize(.large)
             .disabled(isSaving || model.exercises.isEmpty)
             .padding(.horizontal, 16)
-            .padding(.bottom, 6)
+            .padding(.vertical, 6)
         }
         .navigationTitle("One Rep Max")
         .onAppear(perform: loadValues)

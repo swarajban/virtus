@@ -95,7 +95,7 @@ struct ExerciseContent: View {
         }
         .scrollDismissesKeyboard(.interactively)
         .background(Color(.systemGroupedBackground))
-        .safeAreaInset(edge: .bottom, spacing: 0) { actionBar }
+        .bottomActionBar { actionBar }
         .navigationTitle("Exercise \(workingPosition.current) of \(workingPosition.total)")
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
@@ -393,14 +393,6 @@ struct ExerciseContent: View {
         .padding(.horizontal, 16)
         .padding(.top, 10)
         .padding(.bottom, 6)
-        .background {
-            if #available(iOS 26.0, *) {
-                // Glass buttons float over content on iOS 26.
-                Color.clear
-            } else {
-                Rectangle().fill(.bar).ignoresSafeArea(edges: .bottom)
-            }
-        }
     }
 
     // MARK: Helpers
