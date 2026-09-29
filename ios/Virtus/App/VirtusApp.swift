@@ -58,6 +58,9 @@ struct RootView: View {
                     }
                 }
         }
+        #if DEBUG
+        .task { openLaunchRoute() }
+        #endif
         .overlay(alignment: .top) {
             if let toast = model.toast {
                 ToastView(toast: toast)
@@ -74,4 +77,28 @@ struct RootView: View {
                 .animation(.spring(duration: 0.3), value: model.sync.lastNetworkError != nil)
         }
     }
+
+    #if DEBUG
+    /// CI screenshots: `-uiRoute workout:1`, `exercise:1`, `history`, … opens
+    /// that screen on launch. Debug builds only.
+    private func openLaunchRoute() {
+        guard let raw = UserDefaults.standard.string(forKey: "uiRoute") else { return }
+        let parts = raw.split(separator: ":").map(String.init)
+        let number = parts.count > 1 ? Int(parts[1]) : nil
+        switch parts.first {
+        case "workout":
+            if let number { model.path = [.workout(number)] }
+        case "exercise":
+            if let number, let workout = model.workout(number) {
+                let index = parts.count > 2 ? Int(parts[2]) : workout.workingIndices.first
+                if let index { model.path = [.workout(number), .exercise(workout: number, index: index)] }
+            }
+        case "history": model.path = [.history]
+        case "exercises": model.path = [.exercises]
+        case "settings": model.path = [.settings]
+        case "onerm": model.path = [.settings, .oneRM]
+        default: break
+        }
+    }
+    #endif
 }

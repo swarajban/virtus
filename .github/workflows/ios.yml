@@ -39,6 +39,18 @@ jobs:
           brew install xcodegen
           xcodegen generate
 
+      - name: Pick simulator
+        run: |
+          UDID=$(xcrun simctl list devices available -j | python3 -c "
+          import json, sys
+          devices = json.load(sys.stdin)['devices']
+          ios = sorted((k for k in devices if 'iOS' in k), key=lambda k: [int(p) for p in k.split('iOS-')[-1].split('-')])
+          phones = [d for d in devices[ios[-1]] if d['name'].startswith('iPhone') and 'Pro' in d['name'] and 'Max' not in d['name']] or [d for d in devices[ios[-1]] if d['name'].startswith('iPhone')]
+          print(phones[0]['udid'])
+          ")
+          echo "Using simulator $UDID"
+          echo "UDID=$UDID" >> "$GITHUB_ENV"
+
       - name: Build
         working-directory: ios
         run: |
@@ -47,10 +59,55 @@ jobs:
             -project Virtus.xcodeproj \
             -scheme Virtus \
             -configuration Debug \
-            -destination 'generic/platform=iOS Simulator' \
+            -destination "id=$UDID" \
+            -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO \
             | tee build.log | grep -E "error:|warning: .*(deprecated|will be an error)|BUILD (SUCCEEDED|FAILED)" || true
           grep -q "BUILD SUCCEEDED" build.log
+
+      - name: Screenshots
+        working-directory: ios
+        run: |
+          # Uses the shared "demo" account so no personal data lands in artifacts.
+          xcrun simctl boot "$UDID" || true
+          xcrun simctl bootstatus "$UDID" -b
+          xcrun simctl status_bar "$UDID" override --time 9:41 --batteryState charged --batteryLevel 100 --cellularBars 4 || true
+          xcrun simctl install "$UDID" build/Build/Products/Debug-iphonesimulator/Virtus.app
+          BUNDLE=com.swarajban.virtus
+          mkdir -p screenshots
+          shoot() {
+            name=$1; route=$2
+            xcrun simctl terminate "$UDID" $BUNDLE 2>/dev/null || true
+            xcrun simctl launch "$UDID" $BUNDLE -selected-username demo -uiRoute "$route"
+            sleep 8
+            xcrun simctl io "$UDID" screenshot "screenshots/$name.png"
+          }
+          # First launch warms the cache from the API.
+          shoot 01-home home
+          shoot 01-home home
+          shoot 02-workout workout:1
+          shoot 03-exercise exercise:1
+          shoot 04-history history
+          shoot 05-settings settings
+          shoot 06-onerm onerm
+          xcrun simctl ui "$UDID" appearance dark
+          shoot 07-home-dark home
+          shoot 08-exercise-dark exercise:1
+
+      - name: Upload screenshots
+        uses: actions/upload-artifact@v4
+        with:
+          name: screenshots
+          path: ios/screenshots/*.png
+          if-no-files-found: ignore
+
+      - name: Upload build log on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: ios/build.log
+          if-no-files-found: ignore
 
   testflight:
     name: Upload to TestFlight
