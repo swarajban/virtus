@@ -20,7 +20,7 @@ A native SwiftUI app. It talks to the same API as the web app (`https://virtus.f
    - To use a different ID, set a repo **variable** (not a secret) named `IOS_BUNDLE_ID`.
 3. **Create the app record:** go to [App Store Connect → Apps](https://appstoreconnect.apple.com/apps), click **+ → New App**, pick iOS, name it Virtus (or any name not already taken), and select the bundle ID from step 2. For SKU, enter anything, for example `virtus`.
 4. **Create an API key:** go to [App Store Connect → Users and Access → Integrations → App Store Connect API](https://appstoreconnect.apple.com/access/integrations/api) and generate a **Team Key** with the **Admin** role. Admin is required because Xcode's cloud signing creates certificates and profiles for you. Download the `.p8` file, which you can only download once, and note the **Key ID** and **Issuer ID**.
-5. **Find your Team ID:** it's under [developer.apple.com → Membership details](https://developer.apple.com/account#MembershipDetailsCard). It's 10 characters long.
+5. **Team ID:** `8G7N7547R6` is already set in `project.yml` and the workflow. It isn't secret; it's embedded in every signed app.
 6. **Add repo secrets:** in **GitHub → Settings → Secrets and variables → Actions → New repository secret**, add:
 
    | Secret | Value |
@@ -28,7 +28,6 @@ A native SwiftUI app. It talks to the same API as the web app (`https://virtus.f
    | `APP_STORE_CONNECT_KEY_ID` | Key ID from step 4 |
    | `APP_STORE_CONNECT_ISSUER_ID` | Issuer ID from step 4 |
    | `APP_STORE_CONNECT_KEY_P8` | Full contents of the `.p8` file, including the `BEGIN/END PRIVATE KEY` lines |
-   | `APPLE_TEAM_ID` | Team ID from step 5 |
 
 7. **Run the workflow:** go to **Actions → iOS → Run workflow**. After it finishes, the build takes about 5–15 minutes to process in App Store Connect.
 8. **Install it:** in App Store Connect, open your app → **TestFlight → Internal Testing**, create a group, and add yourself. Then install the **TestFlight** app on your iPhone and accept the invite. Internal builds skip Beta App Review, and `ITSAppUsesNonExemptEncryption` is already set, so there's no export-compliance prompt. Builds stay installable for 90 days, and any push to `main` that touches `ios/` ships a new one.
