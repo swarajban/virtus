@@ -79,7 +79,7 @@ jobs:
             name=$1; route=$2
             xcrun simctl terminate "$UDID" $BUNDLE 2>/dev/null || true
             xcrun simctl launch "$UDID" $BUNDLE -selected-username demo -uiRoute "$route"
-            sleep 8
+            sleep 10
             xcrun simctl io "$UDID" screenshot "screenshots/$name.png"
           }
           # First launch warms the cache from the API.
@@ -93,6 +93,13 @@ jobs:
           xcrun simctl ui "$UDID" appearance dark
           shoot 07-home-dark home
           shoot 08-exercise-dark exercise:1
+          # A blank screenshot is either slow launch or a crash; make crashes loud.
+          crashes=$(ls ~/Library/Logs/DiagnosticReports/ 2>/dev/null | grep -i virtus || true)
+          if [ -n "$crashes" ]; then
+            echo "::error::Virtus crashed in the simulator: $crashes"
+            for f in $crashes; do head -80 ~/Library/Logs/DiagnosticReports/"$f"; done
+            exit 1
+          fi
 
       - name: Upload screenshots
         uses: actions/upload-artifact@v4
