@@ -25,7 +25,7 @@ A native SwiftUI app. It talks to the same API as the web app (`https://virtus.f
 
    | Secret | Value |
    |---|---|
-   | `APP_STORE_CONNECT_KEY_ID` | Key ID from step 4 |
+   | `APP_STORE_CONNECT_KEY_ID` | Key ID from step 4: exactly 10 characters, also the part between `AuthKey_` and `.p8` in the file name |
    | `APP_STORE_CONNECT_ISSUER_ID` | Issuer ID from step 4 |
    | `APP_STORE_CONNECT_KEY_P8` | Full contents of the `.p8` file, including the `BEGIN/END PRIVATE KEY` lines |
 
