@@ -364,11 +364,15 @@ struct ExerciseContent: View {
             .accessibilityLabel("Previous exercise")
 
             Button(action: complete) {
-                Label(completeTitle, systemImage: isCompleting ? "checkmark.circle.fill" : "checkmark")
-                    .font(.headline)
-                    .frame(maxWidth: .infinity)
-                    .contentTransition(.symbolEffect(.replace))
+                HStack(spacing: 6) {
+                    Image(systemName: isCompleting ? "checkmark.circle.fill" : "checkmark")
+                        .contentTransition(.symbolEffect(.replace))
+                    Text(completeTitle)
+                }
+                .font(.headline)
+                .frame(maxWidth: .infinity)
             }
+            .layoutPriority(1)
             .prominentButtonStyle()
             .buttonBorderShape(.capsule)
             .scaleEffect(isCompleting && !reduceMotion ? 1.04 : 1)
