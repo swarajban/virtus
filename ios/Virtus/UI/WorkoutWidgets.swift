@@ -99,17 +99,7 @@ struct PlateCalculatorView: View {
     private func bar(_ plate: Plate) -> some View {
         RoundedRectangle(cornerRadius: 2)
             .fill(plate.colorHex == 0x000000 ? Color.primary : Color(hex: plate.colorHex))
-            .frame(width: 6, height: plateHeight(plate.weight))
-    }
-
-    private func plateHeight(_ weight: Double) -> CGFloat {
-        switch weight {
-        case 45...: return 34
-        case 35..<45: return 29
-        case 25..<35: return 24
-        case 10..<25: return 18
-        case 5..<10: return 14
-        default: return 11
-        }
+            // Every plate is drawn the size of a 45; color alone tells them apart.
+            .frame(width: 6, height: 34)
     }
 }
