@@ -34,7 +34,7 @@ A native SwiftUI app. It talks to the same API as the web app (`https://virtus.f
 
 ### Signing notes
 
-Signing is fully automatic: `xcodebuild -allowProvisioningUpdates` with the API key creates and fetches the certificate and provisioning profile on each run. There's nothing to export from a Mac. If a run ever fails with "maximum number of certificates", revoke old **Apple Development** certificates under developer.apple.com → Certificates.
+The archive is built unsigned. The export step signs it with Apple's cloud-managed distribution certificate, using `-allowProvisioningUpdates` and the API key, which is why the key needs the Admin role. No development profile or registered device is needed, and no certificates pile up on your account. Before archiving, the workflow checks the key against the App Store Connect API, so credential problems show Apple's own error message.
 
 ## Building locally (optional, needs a Mac)
 
