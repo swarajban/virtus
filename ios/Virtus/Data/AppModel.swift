@@ -59,6 +59,9 @@ final class AppModel {
     var toast: ToastMessage?
 
     @ObservationIgnored private var lastRefreshAt: Date = .distantPast
+    /// Bumped on account or program/cycle switches; a refresh that started
+    /// before one carries stale data and must not be applied.
+    @ObservationIgnored private var generation = 0
     /// When a progress write for a workout last landed on the server. A GET that
     /// started before that can't include it, so it must not replace local state.
     @ObservationIgnored private var lastSyncedAt: [Int: Date] = [:]
@@ -229,6 +232,7 @@ final class AppModel {
         defer { isRefreshing = false }
 
         let name = username
+        let startGeneration = generation
         let fetchStart = Date()
         async let userResult = try? api.currentUser(name)
         async let progressResult = try? api.workoutProgress(name)
@@ -241,8 +245,9 @@ final class AppModel {
             await (userResult, progressResult, exercisesResult, oneRMsResult, legacyResult)
         _ = await programsDone
 
-        // The user switched accounts while we were fetching; drop the results.
-        guard name == username else { return }
+        // The user switched accounts or programs while we were fetching; the
+        // results describe the old state, so drop them.
+        guard startGeneration == generation, name == username else { return }
 
         if let fetchedUser {
             user = fetchedUser
@@ -250,9 +255,13 @@ final class AppModel {
         }
         if let fetchedProgress { applyServerProgress(fetchedProgress, fetchStart: fetchStart) }
         if let fetchedExercises { exercises = fetchedExercises }
-        if let fetchedOneRMs { oneRMs = Dictionary(fetchedOneRMs.map { ($0.exerciseId, $0.weight) }, uniquingKeysWith: { a, _ in a }) }
+        if let fetchedOneRMs { oneRMs = Self.oneRMMap(fetchedOneRMs) }
         if let fetchedLegacy { legacyOneRM = fetchedLegacy }
         saveCache()
+    }
+
+    private static func oneRMMap(_ records: [OneRepMaxRecord]) -> [Int: Double] {
+        Dictionary(records.map { ($0.exerciseId, $0.weight) }, uniquingKeysWith: { a, _ in a })
     }
 
     func refreshExercises() async {
@@ -268,7 +277,7 @@ final class AppModel {
         async let legacy = try? api.legacyOneRM(name)
         let (fetchedAll, fetchedLegacy) = await (all, legacy)
         guard name == username else { return }
-        if let fetchedAll { oneRMs = Dictionary(fetchedAll.map { ($0.exerciseId, $0.weight) }, uniquingKeysWith: { a, _ in a }) }
+        if let fetchedAll { oneRMs = Self.oneRMMap(fetchedAll) }
         if let fetchedLegacy { legacyOneRM = fetchedLegacy }
         saveCache()
     }
@@ -339,14 +348,6 @@ final class AppModel {
     func completeExercise(workout workoutNumber: Int, exercise: ResolvedExercise, groups: [SetGroup], notes: String) {
         let key = "\(exercise.index)"
         let top = groups.topSet
-        let completion = ExerciseProgress(
-            sets: top.sets,
-            reps: top.reps,
-            weight: top.weight,
-            groups: groups,
-            notes: notes,
-            completed: true
-        )
 
         let current = progress[workoutNumber] ?? WorkoutProgress(
             programName: selectedProgramName,
@@ -357,11 +358,11 @@ final class AppModel {
             exerciseProgress: [:]
         )
         var entry = current.exerciseProgress?[key] ?? ExerciseProgress()
-        entry.sets = completion.sets
-        entry.reps = completion.reps
-        entry.weight = completion.weight
-        entry.groups = completion.groups
-        entry.notes = completion.notes
+        entry.sets = top.sets
+        entry.reps = top.reps
+        entry.weight = top.weight
+        entry.groups = groups
+        entry.notes = notes
         entry.completed = true
         // swappedExercise is preserved from the existing entry.
 
@@ -460,6 +461,7 @@ final class AppModel {
         guard newUsername != username else { return }
         saveCache()
         username = newUsername
+        generation += 1
         defaults.set(newUsername, forKey: "selected-username")
         user = nil
         exercises = []
@@ -478,15 +480,23 @@ final class AppModel {
     /// CURRENT program/cycle, so a straggler landing after the switch would be
     /// recorded against the wrong cycle.
     func startNewProgram(_ programName: String) async throws -> Int? {
-        let pending = sync.ops.filter { $0.username == username }.count
-        if pending > 0 {
-            let drained = await sync.waitUntilDrained(timeout: 20)
+        let name = username
+        if sync.pendingCount(for: name) > 0 {
+            let drained = await sync.waitUntilDrained(timeout: 20, username: name)
             if !drained {
-                throw APIError(status: nil, message: "\(sync.pendingCount) change(s) still waiting to sync. Try again when you're back online.")
+                throw APIError(status: nil, message: "\(sync.pendingCount(for: name)) change(s) still waiting to sync. Try again when you're back online.")
             }
         }
-        let result = try await api.startNewProgram(programName, username: username)
+        let result = try await api.startNewProgram(programName, username: name)
+        guard name == username else { return result.programCycle }
+        generation += 1
         defaults.set(programName, forKey: "selected-program")
+        // selectedProgramName prefers the server user, so reflect the switch
+        // locally rather than relying on the refresh below succeeding.
+        if let current = user {
+            user = User(id: current.id, username: current.username, selectedProgram: programName,
+                        currentProgramCycle: result.programCycle ?? current.currentProgramCycle)
+        }
         progress = [:]
         progressFetched = false
         lastSyncedAt = [:]

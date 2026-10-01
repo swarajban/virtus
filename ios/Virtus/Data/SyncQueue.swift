@@ -66,9 +66,10 @@ final class SyncQueue {
     @ObservationIgnored private var sleepToken = 0
     private let fileURL: URL
 
-    /// Server-side rejections (4xx/5xx) are retried a few times then dropped so
-    /// one bad row can't jam the queue forever. Network failures retry forever.
-    private let maxServerFailures = 5
+    /// Server-side rejections (4xx/5xx) are retried for about a minute and a
+    /// half, then dropped so one bad row can't jam the queue forever. Network
+    /// and gateway failures (see APIError.isTransient) retry forever.
+    private let maxServerFailures = 8
 
     init() {
         let dir = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
@@ -105,15 +106,20 @@ final class SyncQueue {
         }
     }
 
-    /// Wait until everything queued so far has landed (or `timeout` passes).
-    /// Returns true when the queue is empty.
-    func waitUntilDrained(timeout: TimeInterval) async -> Bool {
+    func pendingCount(for username: String) -> Int {
+        ops.filter { $0.username == username }.count
+    }
+
+    /// Wait until everything queued so far (only `username`'s ops, when given)
+    /// has landed, or `timeout` passes. Returns true when none are left.
+    func waitUntilDrained(timeout: TimeInterval, username: String? = nil) async -> Bool {
         kick(resetBackoff: true)
         let deadline = Date().addingTimeInterval(timeout)
-        while !ops.isEmpty && Date() < deadline {
+        func remaining() -> Bool { ops.contains { username == nil || $0.username == username } }
+        while remaining() && Date() < deadline {
             try? await Task.sleep(nanoseconds: 200_000_000)
         }
-        return ops.isEmpty
+        return !remaining()
     }
 
     /// Give in-flight writes a chance to finish when the app is backgrounded.
@@ -143,7 +149,7 @@ final class SyncQueue {
                 backoff = 1
                 lastNetworkError = nil
                 onSynced?(op)
-            } catch let error as APIError where !error.isNetwork {
+            } catch let error as APIError where !error.isTransient {
                 guard let index = ops.firstIndex(where: { $0.id == op.id }) else { continue }
                 ops[index].failures += 1
                 save()
@@ -154,7 +160,7 @@ final class SyncQueue {
                     await sleep(seconds: backoff)
                     backoff = min(backoff * 2, 30)
                 }
-            } catch is CancellationError {
+            } catch is CancellationError where Task.isCancelled {
                 return
             } catch {
                 lastNetworkError = (error as? APIError)?.message ?? error.localizedDescription

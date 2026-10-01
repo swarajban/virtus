@@ -5,7 +5,12 @@ struct APIError: LocalizedError {
     let status: Int?
     let message: String
 
-    var isNetwork: Bool { status == nil }
+    /// Worth retrying indefinitely: the server was never reached, or a gateway
+    /// answered for it (Fly proxy during a deploy or cold start, timeouts).
+    var isTransient: Bool {
+        guard let status else { return true }
+        return [408, 429, 502, 503, 504].contains(status)
+    }
     var errorDescription: String? { message }
 }
 
@@ -33,7 +38,12 @@ struct APIClient: Sendable {
 
     private func makeRequest(_ method: String, _ path: String, query: [URLQueryItem], username: String?, body: Data?) -> URLRequest {
         var components = URLComponents(url: baseURL.appendingPathComponent(path), resolvingAgainstBaseURL: false)!
-        if !query.isEmpty { components.queryItems = query }
+        if !query.isEmpty {
+            components.queryItems = query
+            // URLComponents leaves "+" literal, which Express decodes as a space.
+            components.percentEncodedQuery = components.percentEncodedQuery?
+                .replacingOccurrences(of: "+", with: "%2B")
+        }
         var request = URLRequest(url: components.url!)
         request.httpMethod = method
         request.timeoutInterval = method == "GET" ? Self.readTimeout : Self.writeTimeout

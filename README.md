@@ -180,6 +180,8 @@ tsx server/seed-exercises.ts
 
 See [design_guidelines.md](design_guidelines.md) for the full design system spec including typography, spacing, components, and mobile PWA guidelines.
 
+For how to develop, verify and ship both apps (including iOS changes without a Mac), see [CLAUDE.md](CLAUDE.md).
+
 ## License
 
 MIT

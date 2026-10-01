@@ -15,14 +15,8 @@ extension Color {
 enum Theme {
     static let green = Color(hex: 0x28AF60)          // hsl(145 63% 42%) — --primary
     static let greenEnd = Color(hex: 0x28BD8C)       // hsl(160 65% 45%)
-    static let greenDeep = Color(hex: 0x1F9350)      // hsl(145 65% 35%)
-    static let warning = Color(hex: 0xFAAB51)        // hsl(32 95% 65%)
-    static let amber = Color(hex: 0xFBBF24)
-    static let orange = Color(hex: 0xFB923C)
 
     static let gradient = LinearGradient(colors: [green, greenEnd], startPoint: .topLeading, endPoint: .bottomTrailing)
-    static let deepGradient = LinearGradient(colors: [greenDeep, Color(hex: 0x279A63)], startPoint: .topLeading, endPoint: .bottomTrailing)
-    static let warmupGradient = LinearGradient(colors: [amber, orange], startPoint: .leading, endPoint: .trailing)
 }
 
 enum Haptics {
