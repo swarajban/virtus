@@ -107,8 +107,37 @@ final class AppModel {
         progress[workoutNumber]?.status ?? .notStarted
     }
 
+    /// Where you are in the program, not the oldest gap:
+    /// 1. a workout started in the last day (you're mid-workout);
+    /// 2. otherwise the first not-started workout after your most recent
+    ///    activity (latest completion or start), wrapping to the earliest
+    ///    unstarted one when that's the end of the program;
+    /// 3. with no activity yet, the first workout.
     var nextWorkout: Workout? {
-        workouts.first { status(of: $0.workoutNumber) == .notStarted }
+        let list = workouts
+        let recentCutoff = Date().addingTimeInterval(-24 * 60 * 60)
+        let active = list
+            .compactMap { w -> (Workout, Date)? in
+                guard let p = progress[w.workoutNumber], p.status == .inProgress,
+                      let started = ISODate.parse(p.startedAt), started > recentCutoff else { return nil }
+                return (w, started)
+            }
+            .max { $0.1 < $1.1 }
+        if let active { return active.0 }
+
+        let lastActivityIndex = list.indices
+            .compactMap { i -> (Int, Date)? in
+                guard let p = progress[list[i].workoutNumber],
+                      let date = ISODate.parse(p.completedAt) ?? ISODate.parse(p.startedAt) else { return nil }
+                return (i, date)
+            }
+            .max { $0.1 < $1.1 }?.0
+        let isOpen: (Workout) -> Bool = { self.status(of: $0.workoutNumber) == .notStarted }
+        if let last = lastActivityIndex,
+           let after = list[(last + 1)...].first(where: isOpen) {
+            return after
+        }
+        return list.first(where: isOpen)
     }
 
     func exerciseProgress(workout: Int, index: Int) -> ExerciseProgress? {

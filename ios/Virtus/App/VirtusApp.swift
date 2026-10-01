@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 @main
 struct VirtusApp: App {
@@ -34,6 +35,9 @@ struct VirtusApp: App {
 
 struct RootView: View {
     @Environment(AppModel.self) private var model
+    @Environment(RestTimer.self) private var timer
+    @Environment(\.scenePhase) private var scenePhase
+    @AppStorage(KeepAwake.settingKey) private var keepAwakeEnabled = true
 
     var body: some View {
         @Bindable var model = model
@@ -61,6 +65,14 @@ struct RootView: View {
         #if DEBUG
         .task { openLaunchRoute() }
         #endif
+        // Re-evaluated every 30s so a rest timer left running eventually lets
+        // the phone lock again.
+        .task(id: keepAwakeInputs) {
+            while !Task.isCancelled {
+                KeepAwake.apply(shouldKeepAwake)
+                try? await Task.sleep(nanoseconds: 30_000_000_000)
+            }
+        }
         .overlay(alignment: .top) {
             if let toast = model.toast {
                 ToastView(toast: toast)
@@ -76,6 +88,23 @@ struct RootView: View {
                 .padding(.bottom, 76)
                 .animation(.spring(duration: 0.3), value: model.sync.lastNetworkError != nil)
         }
+    }
+
+    /// Inputs that change the keep-awake decision immediately.
+    private var keepAwakeInputs: [AnyHashable] {
+        [keepAwakeEnabled, onExerciseScreen, timer.startTime, scenePhase == .active]
+    }
+
+    private var onExerciseScreen: Bool {
+        model.path.contains { if case .exercise = $0 { return true } else { return false } }
+    }
+
+    /// Mid-workout the screen stays on: on an exercise, or resting between
+    /// sets anywhere in the app. A rest clock left running past 15 minutes
+    /// stops counting, so a forgotten timer doesn't keep the phone awake.
+    private var shouldKeepAwake: Bool {
+        guard keepAwakeEnabled, scenePhase == .active else { return false }
+        return onExerciseScreen || (timer.isRunning && timer.elapsed() < 15 * 60)
     }
 
     #if DEBUG
@@ -101,4 +130,17 @@ struct RootView: View {
         }
     }
     #endif
+}
+
+/// Disables auto-lock while a workout is happening (UIApplication's idle
+/// timer). iOS only honors this while the app is in the foreground.
+enum KeepAwake {
+    static let settingKey = "keepScreenAwake"
+
+    @MainActor
+    static func apply(_ on: Bool) {
+        if UIApplication.shared.isIdleTimerDisabled != on {
+            UIApplication.shared.isIdleTimerDisabled = on
+        }
+    }
 }

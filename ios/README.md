@@ -6,6 +6,7 @@ A native SwiftUI app. It talks to the same API as the web app (`https://virtus.f
 
 - **Native UI:** SwiftUI, native navigation and back-swipe, haptics, Swift Charts for history, dark mode.
 - **Offline-safe logging:** every write (exercise completion, start/complete/reset, swap) is saved on the phone first and sent through a durable queue. The queue survives app kills and relaunches. It retries offline and gateway errors (deploys, cold starts) forever; if the server itself keeps rejecting a write, it gives up after 8 tries and shows an error. When a write is stuck, an orange banner shows how many changes are waiting.
+- **Screen stays awake mid-workout:** while you're on an exercise, or resting between sets with the timer running (for up to 15 minutes), the phone won't auto-lock. You can turn this off in Settings → Keep Screen Awake.
 - **Instant launch:** the last-known progress, exercises and 1RMs are cached on disk. The program structure ships in the app (`client/public/powerbuilding_data.json` is bundled at build time) and refreshes from the server in the background.
 - **Not ported:** the Data Diagnostic debug page.
 
