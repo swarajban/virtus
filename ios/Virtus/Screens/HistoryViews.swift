@@ -266,7 +266,9 @@ struct HistoryListView: View {
     }
 }
 
-/// Pick a replacement from the exercise library (the swap dialog).
+/// Pick a replacement from the exercise library. One tap swaps: an active
+/// search field hides the navigation bar's buttons, so a separate Swap
+/// button there could be out of reach. Swapping again undoes it.
 struct SwapExerciseSheet: View {
     let current: ResolvedExercise
     let onSwap: (ExerciseRecord) -> Void
@@ -274,7 +276,6 @@ struct SwapExerciseSheet: View {
     @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
     @State private var search = ""
-    @State private var selection: ExerciseRecord?
 
     /// Prefix matches first, then word-start matches, then the rest.
     private var candidates: [ExerciseRecord] {
@@ -298,16 +299,18 @@ struct SwapExerciseSheet: View {
         NavigationStack {
             List(candidates) { exercise in
                 Button {
-                    Haptics.selection()
-                    selection = exercise
+                    Haptics.commit()
+                    onSwap(exercise)
+                    dismiss()
                 } label: {
                     HStack {
                         Text(exercise.name).foregroundStyle(.primary)
                         Spacer()
-                        if selection?.id == exercise.id {
-                            Image(systemName: "checkmark").foregroundStyle(Theme.green)
-                        }
+                        Image(systemName: "arrow.triangle.2.circlepath")
+                            .font(.footnote)
+                            .foregroundStyle(.tertiary)
                     }
+                    .contentShape(Rectangle())
                 }
             }
             .overlay {
@@ -317,7 +320,7 @@ struct SwapExerciseSheet: View {
             .navigationTitle("Swap Exercise")
             .navigationBarTitleDisplayMode(.inline)
             .safeAreaInset(edge: .top) {
-                Text("Replacing \"\(current.name)\"")
+                Text("Tap an exercise to replace \"\(current.name)\"")
                     .font(.footnote)
                     .foregroundStyle(.secondary)
                     .frame(maxWidth: .infinity)
@@ -327,15 +330,6 @@ struct SwapExerciseSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Swap") {
-                        if let selection {
-                            onSwap(selection)
-                            dismiss()
-                        }
-                    }
-                    .disabled(selection == nil)
                 }
             }
         }
