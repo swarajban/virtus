@@ -106,7 +106,10 @@ struct HomeView: View {
             .listStyle(.insetGrouped)
             .refreshable { await model.refresh(force: true) }
             .onAppear { scrollToNext(proxy, next: next) }
-            .onChange(of: next?.workoutNumber) { _, _ in scrollToNext(proxy, next: next) }
+            // Only while Home is on screen; otherwise onAppear handles it on return.
+            .onChange(of: next?.workoutNumber) { _, _ in
+                if model.path.isEmpty { scrollToNext(proxy, next: next) }
+            }
         }
         .navigationTitle("Virtus")
         .toolbar {
