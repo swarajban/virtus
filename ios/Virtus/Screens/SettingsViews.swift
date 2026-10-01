@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SettingsView: View {
     @Environment(AppModel.self) private var model
+    @AppStorage(KeepAwake.settingKey) private var keepAwake = true
     @State private var users: [User] = []
     @State private var pendingProgram: String?
     @State private var showProgramSheet = false
@@ -58,6 +59,16 @@ struct SettingsView: View {
                 Text("Program")
             } footer: {
                 Text("Start a fresh cycle of your current program or switch to a different one. Your history is preserved.")
+            }
+
+            Section {
+                Toggle(isOn: $keepAwake) {
+                    Label("Keep Screen Awake", systemImage: "sun.max")
+                }
+            } header: {
+                Text("Workout")
+            } footer: {
+                Text("Stops the phone from auto-locking while you're on an exercise or resting between sets.")
             }
 
             Section {
