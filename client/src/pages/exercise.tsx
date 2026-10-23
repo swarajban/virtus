@@ -31,7 +31,7 @@ import { enhanceExerciseWithCalculations, getActualPercentage, getRirSets } from
 import { usePowerbuildingData, resolveProgramWorkouts, skipWarmups } from "@/hooks/use-powerbuilding-data";
 import { usePageResume } from "@/hooks/use-page-resume";
 import { rememberSelectedProgram } from "@/lib/api-client";
-import { useAllExercises, useAllOneRMs, exerciseHistoryQueryOptions } from "@/hooks/use-exercises-data";
+import { useAllExercises, useAllOneRMs, latestExerciseSessionQueryOptions } from "@/hooks/use-exercises-data";
 import { useQueryClient } from "@tanstack/react-query";
 import { ProgramDataError } from "@/components/program-data-error";
 import { DURATION, RACK_EASE } from "@/lib/motion";
@@ -332,7 +332,7 @@ export default function ExercisePage() {
     const seedKey = inputSeedKeyRef.current;
 
     queryClient.fetchQuery({
-      ...exerciseHistoryQueryOptions(exercise.name),
+      ...latestExerciseSessionQueryOptions(exercise.name),
       retry: 1,
     }).then((history) => {
       if (!active || inputSeedKeyRef.current !== seedKey || !history?.length) return;

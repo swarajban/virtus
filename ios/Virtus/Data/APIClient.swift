@@ -184,6 +184,14 @@ struct APIClient: Sendable {
         return try await get("api/exercise-history", query: query, username: username)
     }
 
+    /// The rows of the most recent session of one exercise, however long ago.
+    /// A server without `latest` support answers with the 3-month window,
+    /// which callers handle the same way.
+    func latestSession(_ username: String, exerciseName: String) async throws -> [HistoryEntry] {
+        let query = [URLQueryItem(name: "exerciseName", value: exerciseName), URLQueryItem(name: "latest", value: "1")]
+        return try await get("api/exercise-history", query: query, username: username)
+    }
+
     struct HistoryBatch: Encodable {
         let entries: [HistoryPayload]
         let workoutNumber: Int

@@ -58,6 +58,7 @@ export interface IStorage {
   
   // Exercise History operations  
   getExerciseHistory(userId: number, exerciseName?: string, since?: Date): Promise<ExerciseHistoryEntry[]>;
+  getLatestExerciseSession(userId: number, exerciseName: string): Promise<ExerciseHistoryEntry[]>;
   saveExerciseHistory(userId: number, history: ExerciseHistoryEntry, workoutNumber?: number): Promise<void>;
   saveExerciseHistoryBatch(userId: number, entries: ExerciseHistoryEntry[], workoutNumber?: number): Promise<void>;
   deleteExerciseHistoryEntry(userId: number, entryId: number): Promise<void>;
@@ -67,6 +68,23 @@ export interface IStorage {
   updateUserProgram(userId: number, programName: string): Promise<void>;
   clearAllProgress(userId: number): Promise<void>;
   recoverProgressFromHistory(userId: number, workoutNumbers: number[]): Promise<any>;
+}
+
+// Row -> API shape shared by every exercise-history read.
+function toHistoryEntry(h: ExerciseHistoryDB): ExerciseHistoryEntry {
+  return {
+    id: h.id, // Include database ID for deletion
+    date: h.performedAt.toISOString(),
+    exerciseName: h.exerciseName,
+    sets: h.sets,
+    reps: h.reps,
+    weight: h.weight,
+    sessionId: h.sessionId, // lets the history views group N rows into one session
+    setGroup: h.setGroup,   // ordering of the set-group within the session
+    exerciseIndex: h.exerciseIndex, // workout slot this row was logged under
+    notes: h.notes || undefined,
+    typeOfSet: h.typeOfSet as "warm-up" | "working" | undefined,
+  } as ExerciseHistoryEntry;
 }
 
 // Database storage implementation
@@ -410,20 +428,36 @@ export class DatabaseStorage implements IStorage {
       .where(and(...filters))
       .orderBy(desc(exerciseHistory.performedAt));
     
-    return histories.map(h => ({
-      id: h.id, // Include database ID for deletion
-      date: h.performedAt.toISOString(),
-      exerciseName: h.exerciseName,
-      sets: h.sets,
-      reps: h.reps,
-      weight: h.weight,
-      sessionId: h.sessionId, // lets the history views group N rows into one session
-      setGroup: h.setGroup,   // ordering of the set-group within the session
-      exerciseIndex: h.exerciseIndex, // workout slot this row was logged under
-      notes: h.notes || undefined,
-      typeOfSet: h.typeOfSet as "warm-up" | "working" | undefined,
-    }));
+    return histories.map(toHistoryEntry);
   }
+
+  // Only the most recent session's working-set rows for one exercise: what the
+  // exercise page needs to pre-fill a last-used weight. Constant cost however
+  // much history exists (and however long ago the lift was last done): one
+  // LIMIT 1 probe on idx_eh_user_ex_type_performed, then that session's rows.
+  async getLatestExerciseSession(userId: number, exerciseName: string): Promise<ExerciseHistoryEntry[]> {
+    const base = and(
+      eq(exerciseHistory.userId, userId),
+      eq(exerciseHistory.typeOfSet, "working"),
+      eq(exerciseHistory.exerciseName, exerciseName),
+    );
+    const [latest] = await db
+      .select()
+      .from(exerciseHistory)
+      .where(base)
+      .orderBy(desc(exerciseHistory.performedAt))
+      .limit(1);
+    if (!latest) return [];
+    // Legacy rows have no session to group by; the single row is the session.
+    if (!latest.sessionId) return [toHistoryEntry(latest)];
+    const rows = await db
+      .select()
+      .from(exerciseHistory)
+      .where(and(base, eq(exerciseHistory.sessionId, latest.sessionId)))
+      .orderBy(desc(exerciseHistory.performedAt));
+    return rows.map(toHistoryEntry);
+  }
+
 
   // Resolve session_id, program_name, and program_cycle from workout_progress
   // (the authoritative source for active session state). Filter by program_name

@@ -108,7 +108,7 @@ The app prefers `DIRECT_DATABASE_URL` over `DATABASE_URL`.
 | `GET /api/user/current` | Current user |
 | `GET /api/workout-progress` | Get progress |
 | `POST /api/workout-progress/:id` | Save progress |
-| `GET /api/exercise-history` | Get history |
+| `GET /api/exercise-history` | Get working-set history (last ~3 months by default; `?all=1` full log; `?exerciseName=X&latest=1` only that lift's most recent session) |
 | `POST /api/exercise-history` | Save history entry |
 | `GET /api/one-rm` | Get 1RM values |
 | `POST /api/one-rm` | Save 1RM values |

@@ -69,7 +69,31 @@ export function exerciseHistoryQueryOptions(exerciseName: string) {
     queryKey: ["/api/exercise-history", { exerciseName }] as const,
     queryFn: async () => {
       const res = await fetchWithTimeout(
-        `/api/exercise-history?exerciseName=${encodeURIComponent(exerciseName)}`,
+        // all=1: the route defaults to a 3-month window, but this per-exercise
+        // read seeds the last-used weight and the all-time session count, and
+        // lifts not done in months are exactly the ones that need it.
+        `/api/exercise-history?exerciseName=${encodeURIComponent(exerciseName)}&all=1`,
+        { headers: { "x-username": username() }, credentials: "include" as const },
+      );
+      if (!res.ok) {
+        throw new Error(`${res.status}: failed to load exercise history`);
+      }
+      return res.json();
+    },
+  };
+}
+
+/**
+ * Only the most recent session of one exercise (`latest=1`), however long ago.
+ * Used to pre-fill a last-used weight: the default 3-month window misses lifts
+ * not done in a while, and the full history can be large.
+ */
+export function latestExerciseSessionQueryOptions(exerciseName: string) {
+  return {
+    queryKey: ["/api/exercise-history", { exerciseName, latest: true }] as const,
+    queryFn: async () => {
+      const res = await fetchWithTimeout(
+        `/api/exercise-history?exerciseName=${encodeURIComponent(exerciseName)}&latest=1`,
         { headers: { "x-username": username() }, credentials: "include" as const },
       );
       if (!res.ok) {
