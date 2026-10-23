@@ -502,7 +502,10 @@ struct ExerciseContent: View {
     private func seedWeightFromHistory() async {
         guard exercise.calculatedWeight == nil, !isCompleted else { return }
         let name = exercise.name
-        guard let history = try? await model.api.history(model.username, exerciseName: name), !history.isEmpty else { return }
+        // all: the server's default 3-month window misses lifts you haven't
+        // done in a while, which is exactly when a pre-filled weight helps.
+        guard let history = try? await model.api.history(model.username, exerciseName: name, all: true),
+              !history.isEmpty else { return }
         let latest = history.max { (ISODate.parse($0.date) ?? .distantPast) < (ISODate.parse($1.date) ?? .distantPast) }
         guard let latest else { return }
         let sessionRows = history.filter { latest.sessionId != nil ? $0.sessionId == latest.sessionId : $0.id == latest.id }
