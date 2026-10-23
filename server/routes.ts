@@ -176,6 +176,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const user = await getUserFromRequest(req);
       const exerciseName = req.query.exerciseName as string | undefined;
+      // `?exerciseName=X&latest=1`: just the most recent session for that lift
+      // (pre-filling a last-used weight). Constant cost, any history age.
+      if (exerciseName && (req.query.latest === "1" || req.query.latest === "true")) {
+        return res.json(await storage.getLatestExerciseSession(user.id, exerciseName));
+      }
       const wantAll = req.query.all === "1" || req.query.all === "true";
       const sinceParam = req.query.since as string | undefined;
       let since: Date | undefined;

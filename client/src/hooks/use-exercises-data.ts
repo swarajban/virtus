@@ -83,6 +83,27 @@ export function exerciseHistoryQueryOptions(exerciseName: string) {
   };
 }
 
+/**
+ * Only the most recent session of one exercise (`latest=1`), however long ago.
+ * Used to pre-fill a last-used weight: the default 3-month window misses lifts
+ * not done in a while, and the full history can be large.
+ */
+export function latestExerciseSessionQueryOptions(exerciseName: string) {
+  return {
+    queryKey: ["/api/exercise-history", { exerciseName, latest: true }] as const,
+    queryFn: async () => {
+      const res = await fetchWithTimeout(
+        `/api/exercise-history?exerciseName=${encodeURIComponent(exerciseName)}&latest=1`,
+        { headers: { "x-username": username() }, credentials: "include" as const },
+      );
+      if (!res.ok) {
+        throw new Error(`${res.status}: failed to load exercise history`);
+      }
+      return res.json();
+    },
+  };
+}
+
 /** One exercise's history by name (e.g. for the detail/info view). */
 export function useExerciseHistory<T = any[]>(exerciseName: string | undefined | null) {
   const name = exerciseName ?? "";
