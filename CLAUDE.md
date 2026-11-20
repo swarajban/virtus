@@ -19,13 +19,24 @@ The app is used daily at the gym, often on bad wifi. Logging a set must never bl
 ## Web app
 
 ```bash
-npm install
-npm run dev      # Express + Vite on :5000 (needs DATABASE_URL / DIRECT_DATABASE_URL)
-npm run check    # TypeScript
+npm ci
+scripts/dev-db.sh create <name>                  # your own Neon branch of production (see below)
+source "$(scripts/dev-db.sh env <name>)"         # exports DIRECT_DATABASE_URL without printing it
+npm run dev      # Express + Vite on :5000
+npm run check    # TypeScript (main currently has 4 known errors in server/storage.ts and shared/schema.ts)
 npm run build    # production build
+scripts/dev-db.sh delete <name>                  # when you're done
 ```
 
-UI changes are verified with Playwright scripts in `scripts/verify-*.ts`. They run real WebKit at iPhone size against a running dev server; each script's header lists its prerequisites. Write a new one for a significant UI change.
+### Dev database
+
+The server uses `@neondatabase/serverless`, a websocket driver, so a local Postgres won't work. Develop against a Neon branch instead. `scripts/dev-db.sh create <name>` makes a copy-on-write child of the `production` branch called `dev-<name>` (reusing it if it exists), with production's data as of that moment. Name it after your thread code or handle. The connection string goes into a `0600` file under `~/.local/state/virtus-dev-db/`, never to stdout, so source that file rather than echoing the URL. `list` shows every branch, and `delete` removes yours; delete it when you finish. The script needs `NEON_API_KEY` and only ever touches `dev-*` branches.
+
+Never write to the `production` branch. Read-only queries against it are fine when a task needs real data.
+
+### Verifying web changes
+
+UI changes are verified with Playwright scripts in `scripts/verify-*.ts`. They run real WebKit at iPhone size against a running dev server (`npx tsx scripts/verify-rir-display.ts`); each script's header lists its prerequisites. A fresh dev branch is a copy of production, so it already has the `demo` and `minmax-test` users that `verify-rir-display.ts` needs; use `demo` for anything that ends up in a screenshot. Write a new one for a significant UI change.
 
 ## iOS app
 
@@ -49,12 +60,19 @@ Key invariants, mirroring `client/src/lib/storage.ts`:
 
 ### Verifying changes (no Mac needed)
 
-There's no Swift toolchain in the Linux sandbox. **CI is the compiler.** Push a branch and the `iOS` workflow's `build` job:
+There's no Swift toolchain in the Linux sandbox and no Mac to borrow. Capy's cloud iPhones and remote mobile builds weren't available to agents in this project when last checked (2026-11-20), so **CI is the compiler.** Push a branch and the `iOS` workflow's `build` job:
 1. generates the project with XcodeGen and builds it for the simulator. Compile errors show up in the job log as `error:` lines.
 2. launches the app in an iPhone simulator as the shared **`demo`** user, never a real user, and screenshots Home, a Workout, an Exercise, History, Settings and 1RM in light mode, plus Home and Exercise in dark mode.
 3. fails if the app crashed, and uploads the PNGs as the `screenshots` artifact.
 
-To check your work, get the run's artifacts with the GitHub MCP tools (`actions_list` → `list_workflow_run_artifacts`, then `actions_get` → `download_workflow_run_artifact`), download and unzip them, and look at the images. To screenshot a new screen, add a case to `openLaunchRoute()` in `ios/Virtus/App/VirtusApp.swift` (debug builds only) and a matching `shoot` line in the workflow.
+The workflow runs on pull requests that touch `ios/`, `client/public/powerbuilding_data.json` or the workflow file. To check your work, download the run's screenshots with `gh` and look at the images:
+
+```bash
+gh run list -w iOS -b <branch> -L 3                      # find the run id
+gh run download <run-id> -n screenshots -D /tmp/shots    # the PNGs listed above
+```
+
+Artifacts expire after 90 days. On a failed build, the `build-log` artifact holds the full `xcodebuild` output. To screenshot a new screen, add a case to `openLaunchRoute()` in `ios/Virtus/App/VirtusApp.swift` (debug builds only) and a matching `shoot` line in the workflow.
 
 Tips:
 - Re-read Swift diffs for compile errors before pushing. Each CI round trip takes about 5 minutes.
@@ -74,5 +92,14 @@ Setup:
 - Full first-time setup: `ios/README.md`.
 
 After an upload, Apple takes about 5–15 minutes to process the build, then TestFlight on the owner's phone updates it. Bump `MARKETING_VERSION` in `ios/project.yml` only for meaningful releases; build numbers handle everything else.
+
+## Checking production
+
+Both are read-only:
+
+- `scripts/fly-status.sh [lines]` shows the health endpoint, recent releases, the machine's state and recent logs for the Fly app `virtus`. Needs `flyctl` and `FLY_API_TOKEN`. The app auto-stops when idle, so a `stopped` machine is normal; the health request wakes it. After a merge, the newest release should be dated after the `Fly Deploy` run (`gh run list -w "Fly Deploy" -L 1`).
+- `uv run scripts/asc-builds.py [-n N]` lists the latest TestFlight builds with their processing state. A build is ready for the phone when it shows `VALID` and `IN_BETA_TESTING`. Needs the three `APP_STORE_CONNECT_*` variables.
+
+Never deploy by hand (`flyctl deploy`, a manual upload); merging to `main` is the only deploy path.
 
 Agent permissions: this environment's GitHub token can push, but it can't re-run workflows or start `workflow_dispatch`. To start a new run, push a commit with a real change. Don't push empty commits.
